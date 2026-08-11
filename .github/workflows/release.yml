@@ -42,17 +42,28 @@ jobs:
               cat ~/.local/share/talkin/data/talkin.log 2>&1 || true
               exit 1
             fi
-            grep -q "settings on" ~/.local/share/talkin/data/talkin.log 2>/dev/null && break
+            grep -q "Talkin is ready" ~/.local/share/talkin/data/talkin.log 2>/dev/null && break
           done
-          grep -q "settings on" ~/.local/share/talkin/data/talkin.log 2>/dev/null || {
-            echo "settings server never started" >&2
+          grep -q "Talkin is ready" ~/.local/share/talkin/data/talkin.log 2>/dev/null || {
+            echo "Talkin never finished starting up" >&2
             cat ~/.local/share/talkin/data/talkin.log 2>&1 || true
             exit 1
           }
           kill "$pid"
 
-      - name: Upload release asset
+      # Two copies of the same file: the plain name is what the website
+      # links to (via GitHub's /releases/latest/download/<name> URL, which
+      # always serves whatever the newest release uploaded under that
+      # exact name — so the site never needs editing for a new version),
+      # and the versioned name is there so anyone browsing the Releases
+      # page directly can tell what they downloaded.
+      - name: Create versioned copy
+        run: cp Talkin-x86_64.AppImage "Talkin-${{ github.ref_name }}-x86_64.AppImage"
+
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: Talkin-x86_64.AppImage
+          files: |
+            Talkin-x86_64.AppImage
+            Talkin-${{ github.ref_name }}-x86_64.AppImage
           fail_on_unmatched_files: true

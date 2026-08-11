@@ -40,9 +40,6 @@ DICT_PATH = os.path.join(DATA_DIR, "dictionary.json")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.jsonl")
 LOG_PATH = os.path.join(DATA_DIR, "talkin.log")
 
-SETTINGS_HOST = "127.0.0.1"
-SETTINGS_PORT = 4816
-
 DEFAULTS = {
     "language": "en",
     "hotkey_hold": "ctrl_r",
