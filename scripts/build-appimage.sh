@@ -50,13 +50,18 @@ DIST_PKGS="/usr/lib/python3/dist-packages"
 # `cairo` Python module in python3-cairo — NOT python3-gi-cairo, which
 # is a different, GI-only package that doesn't provide it.)
 echo "-- vendoring PyGObject/pycairo from apt --"
+echo "SITE=$SITE (exists: $([ -d "$SITE" ] && echo yes || echo no))"
 for pkg in gi cairo; do
+  echo "checking $DIST_PKGS/$pkg"
   if [ ! -d "$DIST_PKGS/$pkg" ]; then
     echo "!! $DIST_PKGS/$pkg missing — is python3-gi / python3-cairo installed?" >&2
     exit 1
   fi
-  cp -r "$DIST_PKGS/$pkg" "$SITE/"
+  echo "copying $pkg -> $SITE/"
+  cp -rv "$DIST_PKGS/$pkg" "$SITE/" | tail -3
+  echo "done $pkg"
 done
+echo "-- vendoring complete --"
 
 # --system-site-packages venvs silently treat anything already
 # importable via the system as "satisfied" without installing it
