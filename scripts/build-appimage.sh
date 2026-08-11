@@ -11,6 +11,15 @@
 # and the AppImage itself small.
 set -euo pipefail
 
+# pynput's Linux backend connects to an X display the moment it's
+# imported — not just when a Controller is instantiated — so even the
+# dependency-completeness check below needs one. Transparently re-exec
+# under a virtual display if there's no real one (headless CI); a no-op
+# wherever a real X session already exists (the maintainer's desktop).
+if [ -z "${DISPLAY:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
+  exec xvfb-run -a "$0" "$@"
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${1:-$REPO_ROOT/build-appimage}"
 PY_VERSION="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
