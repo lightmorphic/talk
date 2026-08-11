@@ -265,6 +265,10 @@ EXCLUDE_ARGS=(
 
 export DEPLOY_GTK_VERSION=3
 export PATH="$PWD/tools:$PATH"
+# Deliberately NOT --output appimage here: that would make linuxdeploy
+# invoke appimagetool itself as the last part of this same command,
+# sealing the squashfs before the cleanup below ever runs. Packaging
+# is a separate, explicit step instead, after AppDir is truly final.
 NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   --appdir AppDir \
   -e AppDir/usr/bin/python3 \
@@ -273,17 +277,17 @@ NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   "${EXCLUDE_ARGS[@]}" \
   -d AppDir/talkin.desktop \
   -i AppDir/talkin.png \
-  --plugin gtk \
-  --output appimage
+  --plugin gtk
 
-# Belt and braces: if any of these slipped in anyway (e.g. copied as
-# a transitive dependency of something other than what we excluded
-# above), remove them so the dynamic linker falls through to the
-# system's own self-consistent set at runtime, exactly as tested.
+# Belt and braces: the GTK plugin's own bundling pass ignores
+# --exclude-library and re-deploys these regardless (confirmed), so
+# remove them for real here, before packaging, letting the dynamic
+# linker fall through to the target system's self-consistent set.
 rm -f AppDir/usr/lib/{libglib-2.0,libgobject-2.0,libgio-2.0,libgmodule-2.0,libmount,libblkid,libselinux}.so*
 
-mv Talkin*.AppImage "$REPO_ROOT/Talkin-x86_64.AppImage" 2>/dev/null || \
-  mv talkin*.AppImage "$REPO_ROOT/Talkin-x86_64.AppImage"
+echo "-- packaging AppImage --"
+tools/appimagetool-x86_64.AppImage --appimage-extract-and-run \
+  AppDir "$REPO_ROOT/Talkin-x86_64.AppImage"
 
 echo "== built: $REPO_ROOT/Talkin-x86_64.AppImage =="
 ls -la "$REPO_ROOT/Talkin-x86_64.AppImage"
