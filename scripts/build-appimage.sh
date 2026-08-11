@@ -81,15 +81,16 @@ import cairo, numpy, sounddevice, flask, onnx_asr, onnxruntime
 import httpx
 from huggingface_hub import snapshot_download
 import pynput.keyboard, pynput.mouse
-from pynput.keyboard import Controller as KC
-from pynput.mouse import Controller as MC
-KC(); MC()
 print('CLEAN')
 " 2>&1
 }
 
 for _ in $(seq 1 25); do
-  out="$(verify)"
+  # verify() failing must NOT abort the script here (that's the whole
+  # point of this loop) — under `set -e`, a plain `out="$(verify)"`
+  # assignment DOES still trigger errexit on a nonzero exit status,
+  # silently skipping every line below it. The `|| true` is load-bearing.
+  out="$(verify)" || true
   echo "$out" | grep -q CLEAN && { echo "== dependency closure clean =="; break; }
   missing="$(echo "$out" | grep -oP "No module named '\K[^']+" | head -1)"
   if [ -z "$missing" ]; then
