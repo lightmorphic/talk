@@ -25,9 +25,9 @@
   "applicationCategory": "UtilitiesApplication",
   "description": "Private, on-device dictation for the Linux desktop. Hold a key, speak, let go — your words are typed into any app. Speech recognition runs locally; no audio ever leaves the machine.",
   "url": "https://talkin.lightmorphic.co.uk/",
-  "downloadUrl": "https://github.com/lightmorphic/talkin",
+  "downloadUrl": "https://github.com/lightmorphic/talkin/releases/latest",
   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "GBP"},
-  "license": "https://opensource.org/licenses/MIT",
+  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "author": {"@type": "Organization", "name": "Lightmorphic", "url": "https://lightmorphic.co.uk"}
 }
 </script>
@@ -53,10 +53,10 @@
     <h1>Speak anywhere.<br>Your voice never leaves your&nbsp;machine.</h1>
     <p class="lede">Talkin is dictation for the Linux desktop. Hold a key, speak, let go — your words appear wherever your cursor is. Recognition runs entirely on your own computer.</p>
     <div class="cta">
-      <a class="btn primary" href="#install">Install Talkin</a>
+      <a class="btn primary" href="#download">Download Talkin</a>
       <a class="btn ghost" href="https://github.com/lightmorphic/talkin">View on GitHub</a>
     </div>
-    <p class="hero-note">Free &amp; open source · MIT · No cloud, no accounts, no telemetry</p>
+    <p class="hero-note">Free &amp; open source · GPL-3.0 · No cloud, no accounts, no telemetry</p>
   </div>
 </header>
 
@@ -111,7 +111,7 @@
       </article>
       <article>
         <h3>Yours, permanently</h3>
-        <p>MIT licensed. History, settings and dictionary are plain local files with one-click export. Updates come straight from GitHub — when you ask, never behind your back.</p>
+        <p>GPL-3.0 licensed. History, settings and dictionary are plain local files with one-click export. Updates come straight from GitHub — when you ask, never behind your back.</p>
       </article>
     </div>
   </div>
@@ -121,19 +121,24 @@
   <div class="wrap">
     <h2 id="privacy-title">The whole privacy policy, in full</h2>
     <p class="privacy-line">Talkin sends nothing, to no one, ever. There is nothing else to disclose.</p>
-    <p class="privacy-detail">No analytics, no telemetry, no crash reporting, no cookies on this site. The only network access the app ever makes: downloading the speech model when you install, and checking GitHub for updates when you open Settings.</p>
+    <p class="privacy-detail">No analytics, no telemetry, no crash reporting, no cookies on this site. The app makes exactly two kinds of network request, both of which you can see happen: downloading the speech model once on first run, and checking GitHub for updates when you open Settings. Nothing else, ever.</p>
   </div>
 </section>
 
-<section class="install" id="install" aria-labelledby="install-title">
+<section class="install" id="download" aria-labelledby="download-title">
   <div class="wrap">
-    <h2 id="install-title">Install</h2>
-    <pre><code>git clone https://github.com/lightmorphic/talkin
-cd talkin
-python3 -m venv --system-site-packages .venv
-.venv/bin/pip install -r requirements.txt
-./scripts/talkin.sh</code></pre>
-    <p class="install-note">Linux with X11 · Python 3.11+ · GTK 3 · First run downloads the speech model (~600&nbsp;MB), then you're offline for good. Full details in the <a href="https://github.com/lightmorphic/talkin#install">README</a>.</p>
+    <h2 id="download-title">Download</h2>
+    <div class="download-card">
+      <svg class="dl-icon" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+        <path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19.5h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="dl-text">
+        <p class="dl-title">Talkin for Linux</p>
+        <p class="dl-sub">One AppImage, no installer. Downloads the speech model once on first run, then works fully offline.</p>
+      </div>
+      <a class="btn primary" href="https://github.com/lightmorphic/talkin/releases/latest/download/Talkin-x86_64.AppImage">Download AppImage</a>
+    </div>
+    <p class="install-note">Every release, with notes and checksums, is on <a href="https://github.com/lightmorphic/talkin/releases">GitHub</a>.</p>
   </div>
 </section>
 
@@ -141,7 +146,7 @@ python3 -m venv --system-site-packages .venv
 
 <footer>
   <div class="wrap foot">
-    <p>Talkin · MIT licence · <a href="https://github.com/lightmorphic/talkin">Source on GitHub</a></p>
+    <p>Talkin · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0 licence</a> · <a href="https://github.com/lightmorphic/talkin">Source on GitHub</a></p>
     <a class="credit" href="https://lightmorphic.co.uk">
       <span>Created by</span>
       <picture>

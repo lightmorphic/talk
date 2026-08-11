@@ -5,6 +5,8 @@ press/release semantics). The correction hotkey is a modifier combo
 like ctrl+alt+c. Callbacks are marshalled onto the GTK main loop.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 
 from gi.repository import GLib

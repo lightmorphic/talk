@@ -1,27 +1,49 @@
-"""Self-update from GitHub, the Fetch Terminal way, adapted for git.
+"""Self-update from GitHub.
 
-A release is a git tag (v1.2.3) on the GitHub repo. Checking compares
-the newest remote tag with the running version; updating checks the
-tag out, refreshes dependencies and restarts. The previous version is
-remembered so a bad update can be rolled back with one command.
+Two run modes:
+ - Source checkout: a release is a git tag; updating checks the tag
+   out, refreshes pip dependencies, and restarts — the full Fetch
+   Terminal pattern.
+ - AppImage: there's no git repo to check out, and safely replacing a
+   running AppImage's own file from inside itself is exactly the kind
+   of thing that goes wrong in a way that loses the user's only copy.
+   So in this mode Talkin only ever CHECKS for a newer release (via
+   the GitHub Releases API) and hands back the download page for the
+   user to grab the new file themselves. Nothing is lost either way —
+   settings and the downloaded speech model live outside the AppImage,
+   in a folder that survives every future update untouched.
 
 Privacy: this module is the ONLY code in Talkin that touches the
 network, it talks only to github.com, and it runs only when the
 Settings page asks it to — never on a timer, never in the background.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import json
 import logging
 import os
 import re
 import subprocess
+import urllib.request
 
 from . import __version__
 from .config import BASE_DIR, DATA_DIR
 
 log = logging.getLogger("talkin.updater")
 
-REPO_URL = "https://github.com/lightmorphic/talkin"
+REPO = "lightmorphic/talkin"
+RELEASES_PAGE = "https://github.com/{}/releases/latest".format(REPO)
 PREVIOUS_PATH = os.path.join(DATA_DIR, "previous-version.txt")
+
+
+def is_packaged():
+    return bool(os.environ.get("APPIMAGE"))
+
+
+def _parse(tag):
+    match = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag.strip())
+    return tuple(int(p) for p in match.groups()) if match else None
 
 
 def _git(*args, timeout=30):
@@ -30,37 +52,51 @@ def _git(*args, timeout=30):
         capture_output=True, text=True, timeout=timeout)
 
 
-def _parse(tag):
-    match = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag.strip())
-    return tuple(int(p) for p in match.groups()) if match else None
+def _latest_release_tag():
+    req = urllib.request.Request(
+        "https://api.github.com/repos/{}/releases/latest".format(REPO),
+        headers={"Accept": "application/vnd.github+json",
+                 "User-Agent": "Talkin"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.load(resp)
+    except Exception:
+        log.warning("release check failed", exc_info=True)
+        return None
+    return data.get("tag_name")
 
 
-def check():
-    """Fetch tags from GitHub and compare with the running version."""
+def _latest_source_tag():
     result = _git("fetch", "--tags", "--quiet", "origin")
     if result.returncode != 0:
         log.warning("update check failed: %s", result.stderr.strip())
-        return {"state": "error"}
+        return None
     tags = _git("tag", "--list", "v*").stdout.split()
     versions = sorted(v for v in (_parse(t) for t in tags) if v)
-    if not versions:
+    return "v{}.{}.{}".format(*versions[-1]) if versions else None
+
+
+def check():
+    """Compare the running version with the newest release on GitHub."""
+    latest_tag = (_latest_release_tag() if is_packaged()
+                  else _latest_source_tag())
+    if latest_tag is None:
         return {"state": "error"}
-    latest = versions[-1]
+    latest = _parse(latest_tag)
     current = _parse("v" + __version__) or (0, 0, 0)
-    latest_tag = "v{}.{}.{}".format(*latest)
-    if latest > current:
+    if latest and latest > current:
         return {"state": "available", "latest": latest_tag,
-                "current": __version__}
+                "current": __version__, "packaged": is_packaged(),
+                "download_url": RELEASES_PAGE}
     return {"state": "up-to-date", "current": __version__}
 
 
 def apply(tag):
-    """Move to `tag`, refresh dependencies, and report success.
+    """Move a source checkout to `tag`, refresh deps, report success.
 
-    The caller restarts the app afterwards. The version we're leaving
-    is written down first so rollback is always one step away.
+    Never called in AppImage mode — see the module docstring.
     """
-    if not _parse(tag):
+    if is_packaged() or not _parse(tag):
         return False
     with open(PREVIOUS_PATH, "w", encoding="utf-8") as f:
         f.write("v" + __version__ + "\n")
@@ -80,7 +116,9 @@ def apply(tag):
 
 
 def rollback():
-    """Return to the version recorded before the last update."""
+    """Return a source checkout to the version before the last update."""
+    if is_packaged():
+        return False
     try:
         with open(PREVIOUS_PATH, "r", encoding="utf-8") as f:
             tag = f.read().strip()

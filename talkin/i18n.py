@@ -8,6 +8,8 @@ file to an AI. Blank cells fall back to English, so a half-finished
 column still works.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import csv
 import os
 

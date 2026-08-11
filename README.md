@@ -25,6 +25,21 @@ voice never leaves your machine.
 
 ## Install
 
+Download the latest `Talkin-x86_64.AppImage` from
+[Releases](https://github.com/lightmorphic/talkin/releases/latest),
+make it executable, and run it — that's the whole install:
+
+```bash
+chmod +x Talkin-x86_64.AppImage
+./Talkin-x86_64.AppImage
+```
+
+The speech model is bundled inside the AppImage, so there's no
+download, no network access, and nothing else to install. Requirements:
+Linux with X11 and PipeWire/PulseAudio.
+
+## Building from source
+
 ```bash
 git clone https://github.com/lightmorphic/talkin
 cd talkin
@@ -33,8 +48,8 @@ python3 -m venv --system-site-packages .venv
 ./scripts/talkin.sh
 ```
 
-Requirements: Linux with X11, PipeWire/PulseAudio, Python 3.11+, GTK 3
-with AppIndicator (`gir1.2-ayatanaappindicator3-0.1`). The first run
+Needs Python 3.11+ and GTK 3 with AppIndicator
+(`gir1.2-ayatanaappindicator3-0.1`) on the system. The first run
 downloads the speech model (~600 MB) from Hugging Face; after that the
 app is pinned hard-offline.
 
@@ -54,6 +69,6 @@ GitHub.
 
 ## Licence
 
-MIT. The Parakeet model is CC-BY-4.0 (© NVIDIA).
+GPL-3.0-or-later. The Parakeet model is CC-BY-4.0 (© NVIDIA).
 
 Created by [Lightmorphic](https://lightmorphic.co.uk).

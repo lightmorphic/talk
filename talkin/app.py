@@ -1,5 +1,7 @@
 """The Talkin application: wires hotkeys, audio, model, UI together."""
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 import os
 import shutil
@@ -38,7 +40,8 @@ class TalkinApp:
         self.recorder = Recorder(self.config, on_level=self.overlay.push_level)
         self.transcriber = Transcriber(
             on_ready=lambda: GLib.idle_add(self._model_ready),
-            on_error=lambda key: GLib.idle_add(self._fail, key))
+            on_error=lambda key: GLib.idle_add(self._fail, key),
+            on_downloading=lambda: GLib.idle_add(self._downloading))
         self.hotkeys = Hotkeys(
             self.config,
             on_press_key=self._key_pressed,
@@ -63,9 +66,13 @@ class TalkinApp:
             self.overlay.hide_overlay()
 
     def _model_ready(self):
-        if self.state == "loading":
+        if self.state in ("loading", "downloading"):
             self._set_state("idle")
             self.notify(i18n.t("notify.ready"))
+
+    def _downloading(self):
+        self._set_state("downloading")
+        self.notify(i18n.t("notify.downloading"))
 
     def _fail(self, error_key):
         self._set_state("idle" if self.transcriber.ready else "paused")
@@ -153,8 +160,7 @@ class TalkinApp:
 
     def restart(self):
         log.info("restarting")
-        script = os.path.join(cfg.BASE_DIR, "scripts", "talkin.sh")
-        subprocess.Popen([script], cwd=cfg.BASE_DIR)
+        subprocess.Popen([cfg.launcher_path()], cwd=cfg.BASE_DIR)
         self.quit()
 
     def quit(self):

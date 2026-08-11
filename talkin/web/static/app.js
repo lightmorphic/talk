@@ -229,6 +229,8 @@ $("show-log").addEventListener("click", () => {
 /* ---- self-update (Fetch Terminal pattern) ---- */
 
 let latestTag = null;
+let latestPackaged = false;
+let latestDownloadUrl = null;
 
 function setDot(state, tip) {
   const dot = $("update-dot");
@@ -243,9 +245,13 @@ function checkUpdates() {
   post("/api/update/check").then((r) => {
     if (r.state === "available") {
       latestTag = r.latest;
+      latestPackaged = !!r.packaged;
+      latestDownloadUrl = r.download_url || null;
       setDot("available", S["update.available"] + " " + r.latest);
       const btn = $("update-btn");
-      btn.textContent = S["update.button"].replace("{v}", r.latest);
+      btn.textContent = latestPackaged
+        ? S["update.download"].replace("{v}", r.latest)
+        : S["update.button"].replace("{v}", r.latest);
       btn.hidden = false;
     } else if (r.state === "up-to-date") {
       setDot("up-to-date", S["update.uptodate"] + " (v" + r.current + ")");
@@ -258,6 +264,12 @@ function checkUpdates() {
 $("update-dot").addEventListener("click", checkUpdates);
 $("update-btn").addEventListener("click", () => {
   const btn = $("update-btn");
+  if (latestPackaged) {
+    // An AppImage can't replace its own running file — hand the user
+    // the download page instead of pretending to install anything.
+    window.open(latestDownloadUrl || "https://github.com/lightmorphic/talkin/releases/latest", "_blank", "noopener");
+    return;
+  }
   btn.disabled = true;
   btn.textContent = S["update.installing"];
   post("/api/update/apply", {tag: latestTag}).then((r) => {

@@ -5,6 +5,8 @@ and logs are plain JSON/JSONL files in data/ so the whole app can be
 backed up, moved or exported as one folder.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import json
 import logging
 import logging.handlers
@@ -13,10 +15,25 @@ import threading
 
 APP_NAME = "talkin"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+
+# When packaged as an AppImage, BASE_DIR resolves inside that version's
+# read-only, throwaway squashfs mount. Anything Talkin needs to WRITE —
+# its own settings, and the downloaded speech model, which must survive
+# every future update without re-downloading 600 MB — lives instead in
+# one persistent per-user folder outside the bundle. A source checkout
+# has no such throwaway mount, so it keeps everything in the repo, as
+# a single self-contained folder.
+if os.environ.get("APPIMAGE"):
+    _WRITABLE_ROOT = os.path.join(
+        os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")),
+        "talkin")
+else:
+    _WRITABLE_ROOT = BASE_DIR
+
 LOCALE_DIR = os.path.join(BASE_DIR, "locales")
 ASSET_DIR = os.path.join(BASE_DIR, "assets")
-MODEL_DIR = os.path.join(BASE_DIR, "models", "hf-cache")
+DATA_DIR = os.path.join(_WRITABLE_ROOT, "data")
+MODEL_DIR = os.path.join(_WRITABLE_ROOT, "models", "hf-cache")
 
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 DICT_PATH = os.path.join(DATA_DIR, "dictionary.json")
@@ -168,6 +185,12 @@ class History:
         return {"dictations": len(entries), "words": words}
 
 
+def launcher_path():
+    """The command that relaunches Talkin exactly as it's running now."""
+    appimage = os.environ.get("APPIMAGE")
+    return appimage if appimage else os.path.join(BASE_DIR, "scripts", "talkin.sh")
+
+
 def set_autostart(enabled):
     """Write or remove the desktop-autostart entry for Talkin."""
     autostart_dir = os.path.expanduser("~/.config/autostart")
@@ -179,7 +202,7 @@ def set_autostart(enabled):
             pass
         return
     os.makedirs(autostart_dir, exist_ok=True)
-    launcher = os.path.join(BASE_DIR, "scripts", "talkin.sh")
+    launcher = launcher_path()
     with open(path, "w", encoding="utf-8") as f:
         f.write("[Desktop Entry]\n"
                 "Type=Application\n"

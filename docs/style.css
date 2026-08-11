@@ -237,16 +237,32 @@ h2 {
 
 /* install */
 
-.install pre {
-  background: var(--code-bg);
-  color: var(--code-fg);
+.download-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius);
+  box-shadow: var(--shadow);
   padding: 1.5rem;
-  overflow-x: auto;
-  font-size: 0.9375rem;
-  line-height: 1.7;
   margin: 0 0 1rem;
+  flex-wrap: wrap;
 }
+
+.dl-icon { flex: none; color: var(--yellow); }
+
+.dl-text { flex: 1 1 16rem; min-width: 0; }
+
+.dl-title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin: 0 0 0.15rem;
+}
+
+.dl-sub { margin: 0; color: var(--muted-fg); font-size: 0.9375rem; }
+
+.download-card .btn { flex: none; }
 
 .install-note { color: var(--muted-fg); text-align: center; font-size: 0.9375rem; }
 
