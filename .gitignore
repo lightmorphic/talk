@@ -3,3 +3,5 @@ models/hf-cache/
 data/
 __pycache__/
 *.pyc
+build-appimage/
+Talkin-x86_64.AppImage

@@ -185,6 +185,32 @@ class History:
         return {"dictations": len(entries), "words": words}
 
 
+def patch_library_lookup():
+    """Work around ctypes.util.find_library inside the AppImage.
+
+    sounddevice locates PortAudio via find_library(), which on Linux
+    normally shells out to ldconfig — and ldconfig only knows about
+    libraries actually installed on the host, never anything bundled
+    inside the AppImage. Point it at our bundled copy directly so
+    sounddevice's own Linux code path (which has no other fallback)
+    finds it. A no-op outside the AppImage.
+    """
+    appdir = os.environ.get("APPDIR")
+    if not appdir:
+        return
+    import ctypes.util
+    bundled = {"portaudio": os.path.join(appdir, "usr", "lib", "libportaudio.so.2")}
+    original = ctypes.util.find_library
+
+    def find_library(name):
+        path = bundled.get(name)
+        if path and os.path.exists(path):
+            return path
+        return original(name)
+
+    ctypes.util.find_library = find_library
+
+
 def launcher_path():
     """The command that relaunches Talkin exactly as it's running now."""
     appimage = os.environ.get("APPIMAGE")
