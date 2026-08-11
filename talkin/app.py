@@ -178,13 +178,20 @@ def main():
     cfg.setup_logging()
     log.info("Talkin starting (pid %s)", os.getpid())
 
-    # One instance only: a lock on a well-known abstract socket.
+    # One instance only: a lock on a well-known abstract socket. During
+    # a self-update restart the old instance may hold the lock for a
+    # moment longer, so retry briefly before concluding we're a duplicate.
     import socket
+    import time
     global _single
     _single = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        _single.bind("\0talkin-single-instance")
-    except OSError:
+    for attempt in range(20):
+        try:
+            _single.bind("\0talkin-single-instance")
+            break
+        except OSError:
+            time.sleep(0.5)
+    else:
         print("Talkin is already running.", file=sys.stderr)
         sys.exit(0)
 
