@@ -236,6 +236,33 @@ while IFS= read -r so; do
   SO_ARGS+=(-l "$so")
 done < <(find AppDir -name "*.so" -o -name "*.so.*")
 
+# AyatanaAppIndicator3's actual .so is never bundled — GObject
+# Introspection typelibs reference their library by name and resolve
+# it via dlopen at runtime, invisible to linuxdeploy's static ldd
+# scan (same reason libportaudio needed handling separately above) —
+# so it ALWAYS comes from the target system. That's fine on its own,
+# but if we also bundle our OWN (older, build-machine) glib alongside
+# it, a target system whose own glib is newer than ours can hand that
+# system AppIndicator a glib it doesn't expect, and it crashes on a
+# missing symbol — confirmed exactly this way while testing a build.
+# glib's ABI is strongly backward-compatible (newer glib satisfies
+# code built against older glib, not the reverse), so excluding just
+# glib/gobject/gio/gmodule — plus gio's own version-sensitive runtime
+# deps — and letting that whole cluster resolve from the target
+# system instead keeps everything mutually consistent, however new or
+# old that system's glib turns out to be. GTK3/pango/cairo etc. stay
+# bundled as normal: an older bundled GTK3 calling a newer system glib
+# is exactly the safe direction.
+EXCLUDE_ARGS=(
+  --exclude-library="libglib-2.0*"
+  --exclude-library="libgobject-2.0*"
+  --exclude-library="libgio-2.0*"
+  --exclude-library="libgmodule-2.0*"
+  --exclude-library="libmount*"
+  --exclude-library="libblkid*"
+  --exclude-library="libselinux*"
+)
+
 export DEPLOY_GTK_VERSION=3
 export PATH="$PWD/tools:$PATH"
 NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
@@ -243,10 +270,17 @@ NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   -e AppDir/usr/bin/python3 \
   -l "AppDir/usr/lib/$PY_LIB" \
   "${SO_ARGS[@]}" \
+  "${EXCLUDE_ARGS[@]}" \
   -d AppDir/talkin.desktop \
   -i AppDir/talkin.png \
   --plugin gtk \
   --output appimage
+
+# Belt and braces: if any of these slipped in anyway (e.g. copied as
+# a transitive dependency of something other than what we excluded
+# above), remove them so the dynamic linker falls through to the
+# system's own self-consistent set at runtime, exactly as tested.
+rm -f AppDir/usr/lib/{libglib-2.0,libgobject-2.0,libgio-2.0,libgmodule-2.0,libmount,libblkid,libselinux}.so*
 
 mv Talkin*.AppImage "$REPO_ROOT/Talkin-x86_64.AppImage" 2>/dev/null || \
   mv talkin*.AppImage "$REPO_ROOT/Talkin-x86_64.AppImage"
