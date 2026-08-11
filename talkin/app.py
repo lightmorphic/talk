@@ -16,6 +16,7 @@ from . import cleanup, config as cfg, correction, i18n, injector
 from .engine import Recorder, Transcriber
 from .hotkeys import Hotkeys
 from .overlay import Overlay
+from .settings_window import open_settings
 from .tray import Tray
 
 log = logging.getLogger("talkin.app")
@@ -49,9 +50,6 @@ class TalkinApp:
             on_toggle=self._toggle,
             on_correction=self._correction)
         self._recording_via = None  # "hold" | "toggle" | None
-
-        from .web.server import start_server
-        self.server_url = start_server(self)
 
         cfg.set_autostart(self.config.get("autostart"))
 
@@ -156,9 +154,7 @@ class TalkinApp:
             self._set_state("paused")
 
     def open_settings(self):
-        subprocess.Popen(["xdg-open", self.server_url],
-                         stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL)
+        open_settings(self)
 
     def apply_settings(self):
         """Called by the web server after config changes."""
@@ -200,6 +196,24 @@ def main():
     GLib.set_prgname("talkin")
     GLib.set_application_name("Lightmorphic Talkin")
 
+    # A source checkout isn't registered in any icon theme, so without
+    # this the window manager's taskbar/dock/alt-tab falls back to a
+    # generic grey icon for every window this app opens (Settings, the
+    # correction popup, file dialogs) — the tray icon is set separately
+    # in tray.py and unaffected either way.
+    #
+    # PNG, not SVG: SVG loads through a separate gdk-pixbuf loader
+    # plugin (backed by librsvg) that isn't reliably present in the
+    # AppImage bundle, so this raised and took the whole app down
+    # before it ever got a window on screen. PNG decodes with gdk-pixbuf
+    # itself, no plugin required. Wrapped regardless — a cosmetic
+    # window icon must never be able to crash startup again.
+    try:
+        Gtk.Window.set_default_icon_from_file(
+            os.path.join(cfg.ASSET_DIR, "talkin.png"))
+    except GLib.GError:
+        log.warning("could not load window icon", exc_info=True)
+
     # One instance only: a lock on a well-known abstract socket. During
     # a self-update restart the old instance may hold the lock for a
     # moment longer, so retry briefly before concluding we're a duplicate.
@@ -219,4 +233,11 @@ def main():
 
     app = TalkinApp()
     GLib.idle_add(lambda: app.tray.set_state("loading") and False)
+
+    import signal
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        GLib.unix_signal_add(
+            GLib.PRIORITY_DEFAULT, sig, lambda: app.quit() or False)
+
     Gtk.main()
+    log.info("Talkin quit (pid %s)", os.getpid())

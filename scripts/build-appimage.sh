@@ -77,7 +77,7 @@ echo "-- vendoring complete --"
 # locally. Detect and vendor every such straggler so the bundle is
 # genuinely self-contained — verified against the REAL import chain
 # actually exercised at runtime (recognizing audio, downloading the
-# model, running the settings server), not just the top-level modules.
+# model, showing the settings window), not just the top-level modules.
 verify() {
   pkgvenv/bin/python -c "
 import sys
@@ -86,7 +86,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
 from gi.repository import Gtk, AyatanaAppIndicator3
-import cairo, numpy, sounddevice, flask, onnx_asr, onnxruntime
+import cairo, numpy, sounddevice, onnx_asr, onnxruntime
 import httpx
 from huggingface_hub import snapshot_download
 import pynput.keyboard, pynput.mouse
