@@ -7,10 +7,15 @@ const $ = (id) => document.getElementById(id);
 function api(path, options = {}) {
   options.headers = Object.assign(
     {"X-Talkin-Token": boot.token}, options.headers || {});
-  return fetch(path, options).then((r) => {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
-  });
+  return fetch(path, options).then((r) =>
+    r.json().catch(() => ({})).then((body) => {
+      if (!r.ok) {
+        const err = new Error(body.error || ("HTTP " + r.status));
+        err.body = body;
+        throw err;
+      }
+      return body;
+    }));
 }
 
 function post(path, body) {
@@ -77,7 +82,152 @@ $("save").addEventListener("click", () => {
   post("/api/config", conf).then(() => {
     toast(S["settings.saved"]);
     if (conf.language !== langBefore) location.reload();
-  }).catch(() => toast(S["error.generic"]));
+  }).catch((err) => {
+    const messages = {
+      unsafe_combo: S["settings.hotkey_unsafe"],
+      duplicate_combo: S["settings.hotkey_duplicate"],
+    };
+    toast((err.body && messages[err.body.error]) || S["error.generic"]);
+  });
+});
+
+/* ---- hotkey capture ---- */
+
+const KEY_LABELS = {
+  ctrl_r: "Right Ctrl", alt_r: "Right Alt", shift_r: "Right Shift",
+  f1: "F1", f2: "F2", f3: "F3", f4: "F4", f5: "F5", f6: "F6",
+  f7: "F7", f8: "F8", f9: "F9", f10: "F10", f11: "F11", f12: "F12",
+  space: "Space", tab: "Tab", escape: "Esc", pause: "Pause",
+  scroll_lock: "Scroll Lock", menu: "Menu", insert: "Insert",
+  delete: "Delete", home: "Home", end: "End", page_up: "Page Up",
+  page_down: "Page Down", up: "Up", down: "Down", left: "Left",
+  right: "Right",
+};
+const MOD_LABELS = {ctrl: "Ctrl", alt: "Alt", shift: "Shift"};
+
+// Maps a KeyboardEvent's physical key (event.code) to our canonical
+// token scheme — the same one talkin/hotkeys.py understands.
+const CODE_TOKENS = {
+  Space: "space", Tab: "tab", Escape: "escape", Pause: "pause",
+  ScrollLock: "scroll_lock", ContextMenu: "menu", Insert: "insert",
+  Delete: "delete", Home: "home", End: "end", PageUp: "page_up",
+  PageDown: "page_down", ArrowUp: "up", ArrowDown: "down",
+  ArrowLeft: "left", ArrowRight: "right",
+  F1: "f1", F2: "f2", F3: "f3", F4: "f4", F5: "f5", F6: "f6",
+  F7: "f7", F8: "f8", F9: "f9", F10: "f10", F11: "f11", F12: "f12",
+};
+
+function codeToToken(e) {
+  if (e.code.startsWith("Key")) return e.code.slice(3).toLowerCase();
+  if (e.code.startsWith("Digit")) return e.code.slice(5);
+  return CODE_TOKENS[e.code] || null;
+}
+
+const NON_PRINTING = new Set([
+  "ctrl_r", "alt_r", "shift_r", "f1", "f2", "f3", "f4", "f5", "f6",
+  "f7", "f8", "f9", "f10", "f11", "f12", "pause", "scroll_lock",
+  "menu", "insert", "delete", "home", "end", "page_up", "page_down",
+  "up", "down", "left", "right", "tab", "escape",
+]);
+
+// Mirrors talkin/hotkeys.py's combo_is_safe(): a printable trigger
+// (a plain letter, digit or symbol) needs at least one modifier, or
+// every ordinary keystroke anywhere would fire this hotkey.
+function comboIsSafe(value) {
+  if (!value) return true;
+  const parts = value.split("+");
+  const trigger = parts.pop();
+  if (NON_PRINTING.has(trigger)) return true;
+  return parts.length > 0;
+}
+
+function formatCombo(value) {
+  if (!value) return S["settings.not_set"];
+  const parts = value.split("+");
+  const trigger = parts.pop();
+  const label = KEY_LABELS[trigger] || trigger.toUpperCase();
+  const mods = parts.map((m) => MOD_LABELS[m] || m);
+  return [...mods, label].join(" + ");
+}
+
+function renderKeycap(field) {
+  const value = $("input-" + field).value;
+  document.querySelector(`.keycap[data-target="${field}"] .keycap-text`)
+    .textContent = formatCombo(value);
+}
+
+function showHotkeyStatus(message, isError) {
+  const el = $("hotkey-status");
+  el.hidden = false;
+  el.textContent = message;
+  el.className = "hotkey-status" + (isError ? " bad" : "");
+}
+
+document.querySelectorAll(".keycap").forEach((button) => {
+  const field = button.dataset.target;
+  const hidden = $("input-" + field);
+  const textEl = button.querySelector(".keycap-text");
+  renderKeycap(field);
+
+  button.addEventListener("click", () => {
+    const original = hidden.value;
+    button.classList.add("recording");
+    textEl.textContent = S["settings.press_keys"];
+    $("hotkey-status").hidden = true;
+
+    const finish = (value) => {
+      document.removeEventListener("keydown", onKeydown, true);
+      button.classList.remove("recording");
+      button.blur();
+      if (value === null) { renderKeycap(field); return; }
+      hidden.value = value;
+      renderKeycap(field);
+    };
+
+    const onKeydown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") { finish(original); return; }
+      if (e.key === "Backspace" || e.key === "Delete") { finish(""); return; }
+      if (["Control", "Alt", "Shift", "AltGraph", "Meta"].includes(e.key)) {
+        // A right-side modifier held alone is a valid combo on its own —
+        // finalise immediately. Left-side modifiers just wait for more.
+        if (e.code === "ControlRight") finish("ctrl_r");
+        else if (e.code === "AltRight") finish("alt_r");
+        else if (e.code === "ShiftRight") finish("shift_r");
+        return;
+      }
+      const trigger = codeToToken(e);
+      if (!trigger) return;
+      const mods = [];
+      if (e.ctrlKey) mods.push("ctrl");
+      if (e.altKey) mods.push("alt");
+      if (e.shiftKey) mods.push("shift");
+      const combo = mods.length ? mods.join("+") + "+" + trigger : trigger;
+      if (!comboIsSafe(combo)) {
+        showHotkeyStatus(S["settings.hotkey_unsafe"], true);
+        return; // keep listening — let them try a combo with a modifier
+      }
+      const others = ["hotkey_hold", "hotkey_toggle", "correction_hotkey"]
+        .filter((f) => f !== field)
+        .map((f) => $("input-" + f).value);
+      if (others.includes(combo)) {
+        showHotkeyStatus(S["settings.hotkey_duplicate"], true);
+        return;
+      }
+      finish(combo);
+    };
+
+    document.addEventListener("keydown", onKeydown, true);
+  });
+});
+
+document.querySelectorAll("[data-clear]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const field = button.dataset.clear;
+    $("input-" + field).value = "";
+    renderKeycap(field);
+  });
 });
 
 /* ---- microphone test ---- */

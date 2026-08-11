@@ -44,9 +44,11 @@ class TalkinApp:
             on_downloading=lambda: GLib.idle_add(self._downloading))
         self.hotkeys = Hotkeys(
             self.config,
-            on_press_key=self._key_pressed,
-            on_release_key=self._key_released,
+            on_hold_press=self._hold_press,
+            on_hold_release=self._hold_release,
+            on_toggle=self._toggle,
             on_correction=self._correction)
+        self._recording_via = None  # "hold" | "toggle" | None
 
         from .web.server import start_server
         self.server_url = start_server(self)
@@ -80,33 +82,37 @@ class TalkinApp:
 
     # -- dictation flow ----------------------------------------------
 
-    def _key_pressed(self):
-        if self.state == "paused" or not self.transcriber.ready:
-            return
-        if self.config.get("mode") == "toggle":
-            if self.state == "listening":
-                self._finish_recording()
-            elif self.state == "idle":
-                self._start_recording()
-        elif self.state == "idle":
-            self._start_recording()
+    def _can_start(self):
+        return self.state == "idle" and self.transcriber.ready
 
-    def _key_released(self):
-        if self.config.get("mode") == "hold" and self.state == "listening":
+    def _hold_press(self):
+        if self._can_start():
+            self._start_recording("hold")
+
+    def _hold_release(self):
+        if self.state == "listening" and self._recording_via == "hold":
             self._finish_recording()
 
-    def _start_recording(self):
+    def _toggle(self):
+        if self.state == "listening" and self._recording_via == "toggle":
+            self._finish_recording()
+        elif self._can_start():
+            self._start_recording("toggle")
+
+    def _start_recording(self, via):
         try:
             self.recorder.start()
         except Exception:
             log.exception("could not open microphone")
             self.notify(i18n.t("error.mic"))
             return
-        log.info("listening (mic open)")
+        self._recording_via = via
+        log.info("listening (mic open, via %s)", via)
         self._set_state("listening")
 
     def _finish_recording(self):
         audio = self.recorder.stop()
+        self._recording_via = None
         log.info("recorded %.1fs, transcribing", len(audio) / 16000)
         self._set_state("thinking")
         self.transcriber.submit(
@@ -146,6 +152,7 @@ class TalkinApp:
         else:
             if self.recorder.recording:
                 self.recorder.stop()
+                self._recording_via = None
             self._set_state("paused")
 
     def open_settings(self):
@@ -156,6 +163,7 @@ class TalkinApp:
     def apply_settings(self):
         """Called by the web server after config changes."""
         i18n.set_language(self.config.get("language"))
+        self.hotkeys.reload()
         return True
 
     def restart(self):
@@ -174,7 +182,7 @@ class TalkinApp:
         log.info("notify: %s", message)
         if shutil.which("notify-send"):
             subprocess.Popen(
-                ["notify-send", "--app-name", "Talkin",
+                ["notify-send", "--app-name", "Lightmorphic Talkin",
                  "--icon", os.path.join(cfg.ASSET_DIR, "talkin-idle.svg"),
                  i18n.t("notify.title"), message],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -183,6 +191,14 @@ class TalkinApp:
 def main():
     cfg.setup_logging()
     log.info("Talkin starting (pid %s)", os.getpid())
+
+    # Without this, GLib falls back to argv[0]'s basename for the
+    # process identity — which is literally "__main__.py" when running
+    # via `python -m talkin`, and that's what desktop environments show
+    # as the tray icon's hover tooltip. Must run before any GTK/GLib
+    # object (Tray, Overlay, dialogs) is created.
+    GLib.set_prgname("talkin")
+    GLib.set_application_name("Lightmorphic Talkin")
 
     # One instance only: a lock on a well-known abstract socket. During
     # a self-update restart the old instance may hold the lock for a

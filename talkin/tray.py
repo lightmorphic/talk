@@ -30,6 +30,7 @@ class Tray:
             "talkin", "talkin-idle",
             AppIndicator.IndicatorCategory.APPLICATION_STATUS)
         self._indicator.set_icon_theme_path(ASSET_DIR)
+        self._indicator.set_title("Lightmorphic Talkin")
         self._indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
         menu = Gtk.Menu()
@@ -62,7 +63,8 @@ class Tray:
     def set_state(self, state):
         icon = _ICONS.get(state, "talkin-idle")
         icon_path = os.path.join(ASSET_DIR, icon + ".svg")
-        self._indicator.set_icon_full(icon_path, state)
+        self._indicator.set_icon_full(
+            icon_path, "Lightmorphic Talkin — " + t("tray.status." + state))
         self._status_item.set_label(t("tray.status." + state))
         self._pause_item.set_label(
             t("tray.resume") if state == "paused" else t("tray.pause"))

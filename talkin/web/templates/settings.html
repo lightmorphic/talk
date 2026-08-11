@@ -60,31 +60,33 @@
 
 <section class="panel">
   <h2>{{ s['settings.section.hotkey'] }}</h2>
-  <div class="row">
-    <label for="hotkey">{{ s['settings.hotkey'] }}</label>
-    <select id="hotkey" data-conf="hotkey">
-      {% for key in dictation_keys %}
-      <option value="{{ key }}" {% if config.hotkey == key %}selected{% endif %}>{{ key.replace('_', ' ') }}</option>
-      {% endfor %}
-    </select>
+  <p class="hint">{{ s['settings.hotkey_intro'] }}</p>
+
+  {% for field, title_key, help_key in [
+    ('hotkey_hold', 'settings.hotkey_hold', 'settings.hotkey_hold_help'),
+    ('hotkey_toggle', 'settings.hotkey_toggle', 'settings.hotkey_toggle_help'),
+    ('correction_hotkey', 'settings.correction_hotkey', 'settings.correction_hotkey_help'),
+  ] %}
+  <div class="hotkey-row">
+    <div class="hotkey-label">
+      <label id="lbl-{{ field }}">{{ s[title_key] }}</label>
+      <p class="hint">{{ s[help_key] }}</p>
+    </div>
+    <div class="hotkey-controls">
+      <input type="hidden" data-conf="{{ field }}" id="input-{{ field }}" value="{{ config[field] }}">
+      <button type="button" class="keycap" data-target="{{ field }}" aria-labelledby="lbl-{{ field }}">
+        <span class="keycap-text"></span>
+      </button>
+      <button type="button" class="iconbtn" data-clear="{{ field }}"
+        title="{{ s['settings.clear_key'] }}" aria-label="{{ s['settings.clear_key'] }}: {{ s[title_key] }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
   </div>
-  <p class="hint">{{ s['settings.hotkey_help'] }}</p>
-  <div class="row">
-    <label for="mode">{{ s['settings.mode'] }}</label>
-    <select id="mode" data-conf="mode">
-      <option value="hold" {% if config.mode == 'hold' %}selected{% endif %}>{{ s['settings.mode.hold'] }}</option>
-      <option value="toggle" {% if config.mode == 'toggle' %}selected{% endif %}>{{ s['settings.mode.toggle'] }}</option>
-    </select>
-  </div>
-  <div class="row">
-    <label for="correction_hotkey">{{ s['settings.correction_hotkey'] }}</label>
-    <select id="correction_hotkey" data-conf="correction_hotkey">
-      {% for key in correction_keys %}
-      <option value="{{ key }}" {% if config.correction_hotkey == key %}selected{% endif %}>{{ key }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <p class="hint">{{ s['settings.correction_hotkey_help'] }}</p>
+  {% endfor %}
+  <p class="hotkey-status" id="hotkey-status" role="status" aria-live="polite" hidden></p>
 </section>
 
 <section class="panel">
