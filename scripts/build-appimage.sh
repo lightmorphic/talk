@@ -92,13 +92,22 @@ for _ in $(seq 1 25); do
   # silently skipping every line below it. The `|| true` is load-bearing.
   out="$(verify)" || true
   echo "$out" | grep -q CLEAN && { echo "== dependency closure clean =="; break; }
-  missing="$(echo "$out" | grep -oP "No module named '\K[^']+" | head -1)"
+  echo "--- verify() output ---"
+  echo "$out"
+  echo "-----------------------"
+  # tail -1, not head -1: huggingface_hub prints an optional-dependency
+  # warning containing this same phrase before the real traceback, so
+  # the FIRST match is often a red herring — the actual unhandled
+  # exception (what we need to fix) is always the last one.
+  missing="$(echo "$out" | grep -oP "No module named '\K[^']+" | tail -1)"
   if [ -z "$missing" ]; then
-    echo "$out"
     echo "!! could not resolve remaining import failure" >&2
     exit 1
   fi
-  origin="$(python3 -c "
+  # Check via pkgvenv's OWN interpreter (not the bare system python3,
+  # which can be a different install entirely) so this matches exactly
+  # what verify() itself sees.
+  origin="$(pkgvenv/bin/python -c "
 import importlib.util
 spec = importlib.util.find_spec('$missing')
 print(spec.origin if spec else '')
@@ -110,8 +119,13 @@ print(spec.origin if spec else '')
     echo "vendoring $missing (module) from system"
     cp "$origin" "$SITE/"
   else
+    # --ignore-installed: pip's own "already satisfied" check also
+    # looks at the system site-packages (same --system-site-packages
+    # gotcha as the main requirements.txt install above) and silently
+    # no-ops instead of actually installing a local copy — confirmed
+    # with `pip install -v`, which showed exactly that for filelock.
     echo "installing $missing via pip"
-    pkgvenv/bin/pip install -q --no-deps "$missing"
+    pkgvenv/bin/pip install -q --ignore-installed --no-deps "$missing"
   fi
 done
 verify | grep -q CLEAN || { echo "!! dependency closure never converged" >&2; exit 1; }
