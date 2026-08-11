@@ -35,7 +35,36 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="hero">
+<nav class="topnav">
+  <div class="wrap topnav-inner">
+    <a class="topnav-brand" href="#top">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#111827"/>
+        <g stroke="#fbc711" stroke-width="1.9" stroke-linecap="round">
+          <line x1="6.5" y1="9.5" x2="6.5" y2="14.5"/>
+          <line x1="9.25" y1="7.5" x2="9.25" y2="16.5"/>
+          <line x1="12" y1="6" x2="12" y2="18"/>
+          <line x1="14.75" y1="7.5" x2="14.75" y2="16.5"/>
+          <line x1="17.5" y1="9.5" x2="17.5" y2="14.5"/>
+        </g>
+      </svg>
+      Talkin
+    </a>
+    <button class="topnav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Menu</span>
+    </button>
+    <div class="topnav-links" id="nav-links">
+      <a href="#how-title">How it works</a>
+      <a href="#features-title">Features</a>
+      <a href="#privacy-title">Privacy</a>
+      <a href="#family-title">From Lightmorphic</a>
+      <a class="topnav-cta" href="#download">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
   <div class="wrap">
     <div class="hero-circle" aria-hidden="true">
       <svg viewBox="0 0 120 120" width="120" height="120">
@@ -125,18 +154,38 @@
   </div>
 </section>
 
+<section class="family" aria-labelledby="family-title">
+  <div class="wrap">
+    <h2 id="family-title">From the same studio</h2>
+    <p class="family-lede">Talkin is one small part of what Lightmorphic builds. Two places to see the rest.</p>
+    <div class="family-grid">
+      <article class="family-card">
+        <p class="family-kicker">Websites &amp; hosting</p>
+        <h3>lightmorphic.co.uk</h3>
+        <p>Fast, accessible websites for real businesses — no bloat, no cookie banners, no dark patterns. Built to load instantly, rank well, and still make sense to edit in five years. If your current site feels slow, cluttered, or like it's fighting you, this is who fixes that.</p>
+        <a class="btn ghost dark" href="https://lightmorphic.co.uk">Visit lightmorphic.co.uk</a>
+      </article>
+      <article class="family-card">
+        <p class="family-kicker">Free, open-source tools</p>
+        <h3>code.lightmorphic.co.uk</h3>
+        <p>The developer side of the studio: self-hosted, privacy-first tools like this one, built to solve a real problem and then given away — source included, nothing phoning home. If you liked how Talkin thinks, there's more where it came from.</p>
+        <a class="btn ghost dark" href="https://code.lightmorphic.co.uk">Visit code.lightmorphic.co.uk</a>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section class="install" id="download" aria-labelledby="download-title">
   <div class="wrap">
     <h2 id="download-title">Download</h2>
     <div class="download-card">
-      <svg class="dl-icon" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
-        <path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19.5h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <div class="dl-text">
-        <p class="dl-title">Talkin for Linux</p>
-        <p class="dl-sub">One AppImage, no installer. Downloads the speech model once on first run, then works fully offline.</p>
+      <p class="dl-title">Linux AppImage</p>
+      <p class="dl-sub">One file, no installer, nothing else to set up.</p>
+      <div class="dl-row">
+        <a class="btn primary dl-btn" href="https://github.com/lightmorphic/talkin/releases/latest/download/Talkin-x86_64.AppImage">Download AppImage</a>
+        <span class="dl-meta">x86_64 · ~180&nbsp;MB · GPL-3.0-or-later</span>
       </div>
-      <a class="btn primary" href="https://github.com/lightmorphic/talkin/releases/latest/download/Talkin-x86_64.AppImage">Download AppImage</a>
+      <p class="dl-help">First run: mark the file executable (right-click, Properties, "Allow executing" on most desktops), then open it. It downloads the speech model once, then works fully offline — and checks for updates itself, right there in Settings.</p>
     </div>
     <p class="install-note">Every release, with notes and checksums, is on <a href="https://github.com/lightmorphic/talkin/releases">GitHub</a>.</p>
   </div>
@@ -157,5 +206,19 @@
   </div>
 </footer>
 
+<script>
+(() => {
+  const toggle = document.getElementById("nav-toggle");
+  const links = document.getElementById("nav-links");
+  toggle.addEventListener("click", () => {
+    const open = links.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(open));
+  });
+  links.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => {
+    links.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+  }));
+})();
+</script>
 </body>
 </html>
