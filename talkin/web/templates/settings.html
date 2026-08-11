@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="{{ config.language }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ s['settings.title'] }}</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/talkin.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="10.5" fill="#1c1e23"/>
+    <circle cx="12" cy="12" r="10" fill="none" stroke="#019587" stroke-width="1.4"/>
+    <g stroke="#5cc7a6" stroke-width="1.8" stroke-linecap="round">
+      <line x1="6.5" y1="9.5" x2="6.5" y2="14.5"/>
+      <line x1="9.25" y1="7.5" x2="9.25" y2="16.5"/>
+      <line x1="12" y1="6" x2="12" y2="18"/>
+      <line x1="14.75" y1="8" x2="14.75" y2="16"/>
+      <line x1="17.5" y1="10" x2="17.5" y2="14"/>
+    </g>
+  </svg>
+  <h1>{{ s['settings.title'] }}</h1>
+  <div class="brand-meta">
+    <span class="brand-row">
+      <a class="brand-link" href="https://github.com/lightmorphic/talkin" target="_blank" rel="noopener">Talkin
+        <span class="brand-version">v{{ version }}</span></a>
+      <button type="button" class="update-dot checking" id="update-dot"
+        title="{{ s['update.checking'] }}" aria-label="{{ s['update.checking'] }}"></button>
+    </span>
+    <a class="lightmorphic-credit" href="https://lightmorphic.co.uk" target="_blank" rel="noopener">
+      <span>{{ s['update.created_by'] }}</span>
+      <picture>
+        <source srcset="/static/lightmorphic-dark-tb-250x50-sq.webp" media="(prefers-color-scheme: dark)">
+        <img src="/static/lightmorphic-tb-250x50-sq.webp" alt="Lightmorphic" width="73" height="15">
+      </picture>
+    </a>
+    <button type="button" class="update-btn" id="update-btn" hidden></button>
+  </div>
+</header>
+<p class="subtitle">{{ s['settings.subtitle'] }}</p>
+
+<section class="panel">
+  <h2>{{ s['settings.section.general'] }}</h2>
+  <div class="row">
+    <label for="language">{{ s['settings.language'] }}</label>
+    <select id="language" data-conf="language">
+      {% for code, name in languages %}
+      <option value="{{ code }}" {% if config.language == code %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <label class="check"><input type="checkbox" data-conf="autostart"
+    {% if config.autostart %}checked{% endif %}> {{ s['settings.autostart'] }}</label>
+  <label class="check"><input type="checkbox" data-conf="history_enabled"
+    {% if config.history_enabled %}checked{% endif %}> {{ s['settings.history_enabled'] }}</label>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.hotkey'] }}</h2>
+  <div class="row">
+    <label for="hotkey">{{ s['settings.hotkey'] }}</label>
+    <select id="hotkey" data-conf="hotkey">
+      {% for key in dictation_keys %}
+      <option value="{{ key }}" {% if config.hotkey == key %}selected{% endif %}>{{ key.replace('_', ' ') }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <p class="hint">{{ s['settings.hotkey_help'] }}</p>
+  <div class="row">
+    <label for="mode">{{ s['settings.mode'] }}</label>
+    <select id="mode" data-conf="mode">
+      <option value="hold" {% if config.mode == 'hold' %}selected{% endif %}>{{ s['settings.mode.hold'] }}</option>
+      <option value="toggle" {% if config.mode == 'toggle' %}selected{% endif %}>{{ s['settings.mode.toggle'] }}</option>
+    </select>
+  </div>
+  <div class="row">
+    <label for="correction_hotkey">{{ s['settings.correction_hotkey'] }}</label>
+    <select id="correction_hotkey" data-conf="correction_hotkey">
+      {% for key in correction_keys %}
+      <option value="{{ key }}" {% if config.correction_hotkey == key %}selected{% endif %}>{{ key }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <p class="hint">{{ s['settings.correction_hotkey_help'] }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.microphone'] }}</h2>
+  <div class="row">
+    <label for="mic">{{ s['settings.mic'] }}</label>
+    <select id="mic" data-conf="mic">
+      {% for mic_id, name in mics %}
+      <option value="{{ mic_id }}" {% if config.mic == mic_id %}selected{% endif %}>
+        {% if mic_id == 'default' %}{{ s['settings.mic.default'] }}{% else %}{{ name }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="actions">
+    <button type="button" class="secondary" id="mic-test">{{ s['settings.mic_test'] }}</button>
+  </div>
+  <p class="statusline" id="mic-result" hidden></p>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.output'] }}</h2>
+  <div class="row">
+    <label for="injection">{{ s['settings.injection'] }}</label>
+    <select id="injection" data-conf="injection">
+      <option value="paste" {% if config.injection == 'paste' %}selected{% endif %}>{{ s['settings.injection.paste'] }}</option>
+      <option value="type" {% if config.injection == 'type' %}selected{% endif %}>{{ s['settings.injection.type'] }}</option>
+    </select>
+  </div>
+  <h2 style="margin-top:1.4rem">{{ s['settings.section.cleanup'] }}</h2>
+  <label class="check"><input type="checkbox" data-conf="cleanup_fillers"
+    {% if config.cleanup_fillers %}checked{% endif %}> {{ s['settings.cleanup_fillers'] }}</label>
+  <label class="check"><input type="checkbox" data-conf="cleanup_dictionary"
+    {% if config.cleanup_dictionary %}checked{% endif %}> {{ s['settings.cleanup_dictionary'] }}</label>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.dictionary'] }}</h2>
+  <p class="hint">{{ s['settings.dictionary_help'] }}</p>
+  <table id="dict-table">
+    <caption>{{ s['settings.section.dictionary'] }}</caption>
+    <thead>
+      <tr><th>{{ s['settings.dict.heard'] }}</th><th>{{ s['settings.dict.say'] }}</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p class="hint" id="dict-empty" hidden>{{ s['settings.dict.empty'] }}</p>
+  <div class="row" style="margin-top:0.8rem">
+    <input type="text" id="dict-heard" placeholder="{{ s['settings.dict.heard'] }}" aria-label="{{ s['settings.dict.heard'] }}">
+    <input type="text" id="dict-say" placeholder="{{ s['settings.dict.say'] }}" aria-label="{{ s['settings.dict.say'] }}">
+  </div>
+  <div class="actions">
+    <button type="button" class="secondary" id="dict-add">{{ s['settings.dict.add'] }}</button>
+    <a href="/api/dictionary/export" download><button type="button" class="secondary">{{ s['settings.dict.export'] }}</button></a>
+    <button type="button" class="secondary" id="dict-import">{{ s['settings.dict.import'] }}</button>
+    <input type="file" id="dict-file" accept="application/json" hidden>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.history'] }}</h2>
+  <p class="hint">{{ s['settings.history_help'] }}</p>
+  <table id="history-table">
+    <caption>{{ s['settings.section.history'] }}</caption>
+    <tbody></tbody>
+  </table>
+  <p class="hint" id="history-empty" hidden>{{ s['settings.history.empty'] }}</p>
+  <div class="actions">
+    <a href="/api/history/export" download><button type="button" class="secondary">{{ s['settings.history.export'] }}</button></a>
+    <button type="button" class="secondary" id="history-clear">{{ s['settings.history.clear'] }}</button>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>{{ s['settings.section.maintenance'] }}</h2>
+  <p class="hint">{{ s['settings.maintenance_help'] }}</p>
+  <div class="actions">
+    <button type="button" class="secondary" id="restart">{{ s['settings.restart'] }}</button>
+    <button type="button" class="secondary" id="show-log">{{ s['settings.view_log'] }}</button>
+    <a href="/api/export-all" download><button type="button" class="secondary">{{ s['settings.export_all'] }}</button></a>
+  </div>
+  <pre class="log" id="log"></pre>
+  <h2 style="margin-top:1.4rem">{{ s['settings.stats'] }}</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">{{ stats.dictations }}</div><div class="lbl">{{ s['settings.stats.dictations'] }}</div></div>
+    <div class="stat"><div class="num">{{ stats.words }}</div><div class="lbl">{{ s['settings.stats.words'] }}</div></div>
+    <div class="stat"><div class="num" style="font-size:1rem;line-height:2.2">{{ model }}</div><div class="lbl">{{ s['settings.stats.model'] }} · Talkin {{ version }}</div></div>
+  </div>
+</section>
+
+<div class="savebar">
+  <button type="button" class="primary" id="save">{{ s['settings.save'] }}</button>
+</div>
+
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script type="application/json" id="boot">{{ boot_json | safe }}</script>
+<script src="/static/app.js"></script>
+</body>
+</html>
