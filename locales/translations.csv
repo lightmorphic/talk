@@ -1,0 +1,92 @@
+key,en,fr,de,es,it,nl
+language.name,English,Français,Deutsch,Español,Italiano,Nederlands
+app.name,Talkin,Talkin,Talkin,Talkin,Talkin,Talkin
+app.tagline,Speak anywhere. Your voice never leaves this machine.,Parlez partout. Votre voix ne quitte jamais cette machine.,Sprechen Sie überall. Ihre Stimme verlässt diesen Rechner nie.,Habla en cualquier parte. Tu voz nunca sale de esta máquina.,Parla ovunque. La tua voce non lascia mai questa macchina.,Spreek overal. Je stem verlaat deze machine nooit.
+tray.status.loading,Loading speech model…,Chargement du modèle vocal…,Sprachmodell wird geladen…,Cargando el modelo de voz…,Caricamento del modello vocale…,Spraakmodel wordt geladen…
+tray.status.idle,Ready — hold your key and speak,Prêt — maintenez votre touche et parlez,Bereit — Taste gedrückt halten und sprechen,Listo — mantén tu tecla y habla,Pronto — tieni premuto il tasto e parla,Klaar — houd je toets ingedrukt en spreek
+tray.status.listening,Listening…,Écoute…,Hört zu…,Escuchando…,In ascolto…,Luistert…
+tray.status.thinking,Transcribing…,Transcription…,Transkribiert…,Transcribiendo…,Trascrizione…,Bezig met transcriberen…
+tray.status.paused,Paused,En pause,Pausiert,En pausa,In pausa,Gepauzeerd
+tray.open_settings,Settings,Réglages,Einstellungen,Ajustes,Impostazioni,Instellingen
+tray.pause,Pause Talkin,Mettre Talkin en pause,Talkin pausieren,Pausar Talkin,Metti in pausa Talkin,Talkin pauzeren
+tray.resume,Resume Talkin,Reprendre Talkin,Talkin fortsetzen,Reanudar Talkin,Riprendi Talkin,Talkin hervatten
+tray.restart,Restart,Redémarrer,Neu starten,Reiniciar,Riavvia,Herstarten
+tray.quit,Quit,Quitter,Beenden,Salir,Esci,Afsluiten
+correction.title,Teach Talkin a word,Apprendre un mot à Talkin,Talkin ein Wort beibringen,Enséñale una palabra a Talkin,Insegna una parola a Talkin,Leer Talkin een woord
+correction.heard,Talkin heard,Talkin a entendu,Talkin hat verstanden,Talkin oyó,Talkin ha sentito,Talkin hoorde
+correction.should_be,How should it be spelt?,Comment doit-il s'écrire ?,Wie soll es geschrieben werden?,¿Cómo debe escribirse?,Come va scritta?,Hoe moet het gespeld worden?
+correction.save,Save,Enregistrer,Speichern,Guardar,Salva,Opslaan
+correction.cancel,Cancel,Annuler,Abbrechen,Cancelar,Annulla,Annuleren
+correction.no_selection,"Highlight the mistyped word first, then press the correction key.","Surlignez d'abord le mot mal écrit, puis appuyez sur la touche de correction.",Markieren Sie zuerst das falsch geschriebene Wort und drücken Sie dann die Korrekturtaste.,Primero resalta la palabra mal escrita y luego pulsa la tecla de corrección.,"Prima evidenzia la parola scritta male, poi premi il tasto di correzione.",Markeer eerst het verkeerd getypte woord en druk dan op de correctietoets.
+correction.saved,Learned! It will be spelt that way from now on.,Appris ! Il s'écrira ainsi désormais.,Gelernt! Ab jetzt wird es so geschrieben.,¡Aprendido! A partir de ahora se escribirá así.,Imparato! D'ora in poi verrà scritta così.,Geleerd! Vanaf nu wordt het zo gespeld.
+settings.title,Talkin Settings,Réglages de Talkin,Talkin-Einstellungen,Ajustes de Talkin,Impostazioni di Talkin,Talkin-instellingen
+settings.subtitle,Everything runs on this machine. Nothing is ever sent anywhere.,Tout fonctionne sur cette machine. Rien n'est jamais envoyé ailleurs.,Alles läuft auf diesem Rechner. Nichts wird jemals irgendwohin gesendet.,Todo funciona en esta máquina. Nunca se envía nada a ninguna parte.,Tutto funziona su questa macchina. Nulla viene mai inviato altrove.,Alles draait op deze machine. Er wordt nooit iets verstuurd.
+settings.saved,Saved,Enregistré,Gespeichert,Guardado,Salvato,Opgeslagen
+settings.save,Save changes,Enregistrer les modifications,Änderungen speichern,Guardar cambios,Salva le modifiche,Wijzigingen opslaan
+settings.section.general,General,Général,Allgemein,General,Generale,Algemeen
+settings.language,Language,Langue,Sprache,Idioma,Lingua,Taal
+settings.autostart,Start Talkin when the computer starts,Lancer Talkin au démarrage de l'ordinateur,Talkin beim Hochfahren des Rechners starten,Iniciar Talkin al encender el ordenador,Avvia Talkin all'accensione del computer,Talkin starten wanneer de computer opstart
+settings.history_enabled,Keep a local history of what I dictate,Conserver un historique local de mes dictées,Lokalen Verlauf meiner Diktate behalten,Guardar un historial local de mis dictados,Conserva una cronologia locale dei miei dettati,Een lokale geschiedenis van mijn dictaten bewaren
+settings.section.hotkey,Keys,Touches,Tasten,Teclas,Tasti,Toetsen
+settings.hotkey,Dictation key,Touche de dictée,Diktiertaste,Tecla de dictado,Tasto di dettatura,Dicteertoets
+settings.hotkey_help,Hold this key and speak. Let go and the words are typed for you.,Maintenez cette touche et parlez. Relâchez et les mots sont tapés pour vous.,Halten Sie diese Taste gedrückt und sprechen Sie. Loslassen — und die Wörter werden für Sie getippt.,Mantén esta tecla y habla. Suéltala y las palabras se escriben por ti.,Tieni premuto questo tasto e parla. Rilascialo e le parole vengono scritte per te.,Houd deze toets ingedrukt en spreek. Laat los en de woorden worden voor je getypt.
+settings.mode,Key behaviour,Comportement de la touche,Tastenverhalten,Comportamiento de la tecla,Comportamento del tasto,Toetsgedrag
+settings.mode.hold,Hold to talk (let go when done),Maintenir pour parler (relâchez quand c'est fini),"Zum Sprechen halten (loslassen, wenn fertig)",Mantener para hablar (suelta al terminar),Tieni premuto per parlare (rilascia quando hai finito),Ingedrukt houden om te praten (loslaten als je klaar bent)
+settings.mode.toggle,"Press once to start, again to stop","Appuyez une fois pour commencer, une autre pour arrêter","Einmal drücken zum Starten, erneut zum Stoppen",Pulsa una vez para empezar y otra para parar,"Premi una volta per iniziare, di nuovo per fermare","Eén keer drukken om te starten, nog eens om te stoppen"
+settings.correction_hotkey,Correction key,Touche de correction,Korrekturtaste,Tecla de corrección,Tasto di correzione,Correctietoets
+settings.correction_hotkey_help,"Highlight a mistyped word anywhere, press this, and teach Talkin the right spelling.","Surlignez un mot mal écrit n'importe où, appuyez ici, et apprenez la bonne orthographe à Talkin.","Markieren Sie irgendwo ein falsch geschriebenes Wort, drücken Sie diese Taste und bringen Sie Talkin die richtige Schreibweise bei.","Resalta una palabra mal escrita en cualquier sitio, pulsa esto y enséñale a Talkin la ortografía correcta.","Evidenzia una parola scritta male ovunque, premi questo e insegna a Talkin l'ortografia giusta.","Markeer waar dan ook een verkeerd getypt woord, druk hierop en leer Talkin de juiste spelling."
+settings.section.microphone,Microphone,Microphone,Mikrofon,Micrófono,Microfono,Microfoon
+settings.mic,Input device,Périphérique d'entrée,Eingabegerät,Dispositivo de entrada,Dispositivo di ingresso,Invoerapparaat
+settings.mic.default,System default,Défaut du système,Systemstandard,Predeterminado del sistema,Predefinito di sistema,Systeemstandaard
+settings.mic_test,Test microphone,Tester le microphone,Mikrofon testen,Probar el micrófono,Prova il microfono,Microfoon testen
+settings.mic_testing,Listening for 3 seconds — say something…,Écoute pendant 3 secondes — dites quelque chose…,Hört 3 Sekunden zu — sagen Sie etwas…,Escuchando durante 3 segundos — di algo…,In ascolto per 3 secondi — di' qualcosa…,Luistert 3 seconden — zeg iets…
+settings.mic_test_heard,Heard,Entendu,Verstanden,Oído,Sentito,Gehoord
+settings.mic_test_nothing,Heard nothing — check the microphone is plugged in and not muted.,Rien entendu — vérifiez que le micro est branché et non coupé.,"Nichts gehört — prüfen Sie, ob das Mikrofon angeschlossen und nicht stummgeschaltet ist.",No se oyó nada — comprueba que el micrófono está conectado y sin silenciar.,Non ho sentito nulla — controlla che il microfono sia collegato e non silenziato.,Niets gehoord — controleer of de microfoon is aangesloten en niet gedempt.
+settings.mic_test_level,Peak level,Niveau de crête,Spitzenpegel,Nivel máximo,Livello di picco,Piekniveau
+settings.section.output,Typing out,Saisie du texte,Texteingabe,Escritura,Scrittura,Tekstinvoer
+settings.injection,How text is entered,Comment le texte est saisi,Wie der Text eingegeben wird,Cómo se introduce el texto,Come viene inserito il testo,Hoe tekst wordt ingevoerd
+settings.injection.paste,Paste instantly (recommended),Coller instantanément (recommandé),Sofort einfügen (empfohlen),Pegar al instante (recomendado),Incolla all'istante (consigliato),Direct plakken (aanbevolen)
+settings.injection.type,Type it out key by key (for apps where paste doesn't work),Taper touche par touche (pour les applis où le collage ne marche pas),"Zeichen für Zeichen tippen (für Apps, in denen Einfügen nicht funktioniert)",Escribir tecla a tecla (para apps donde pegar no funciona),Digita tasto per tasto (per le app dove incollare non funziona),Toets voor toets typen (voor apps waar plakken niet werkt)
+settings.section.cleanup,Cleanup,Nettoyage,Bereinigung,Limpieza,Pulizia,Opschonen
+settings.cleanup_fillers,"Remove filler words (um, uh, er…)","Supprimer les mots de remplissage (euh, hum…)","Füllwörter entfernen (ähm, äh…)","Quitar muletillas (em, eh…)","Rimuovi gli intercalari (ehm, uhm…)","Stopwoordjes verwijderen (uhm, eh…)"
+settings.cleanup_dictionary,Apply my personal dictionary,Appliquer mon dictionnaire personnel,Mein persönliches Wörterbuch anwenden,Aplicar mi diccionario personal,Applica il mio dizionario personale,Mijn persoonlijke woordenboek toepassen
+settings.section.dictionary,Personal dictionary,Dictionnaire personnel,Persönliches Wörterbuch,Diccionario personal,Dizionario personale,Persoonlijk woordenboek
+settings.dictionary_help,"When Talkin hears the left word, it types the right one instead.","Quand Talkin entend le mot de gauche, il tape celui de droite à la place.","Hört Talkin das linke Wort, tippt es stattdessen das rechte.","Cuando Talkin oye la palabra de la izquierda, escribe la de la derecha.","Quando Talkin sente la parola a sinistra, scrive quella a destra.","Als Talkin het linkerwoord hoort, typt het in plaats daarvan het rechterwoord."
+settings.dict.heard,When it hears,Quand il entend,Wenn es hört,Cuando oye,Quando sente,Als het hoort
+settings.dict.say,Type instead,Taper à la place,Stattdessen tippen,Escribir en su lugar,Scrivi invece,Typ in plaats daarvan
+settings.dict.add,Add word,Ajouter un mot,Wort hinzufügen,Añadir palabra,Aggiungi parola,Woord toevoegen
+settings.dict.empty,Nothing learned yet. Highlight a mistyped word anywhere and press the correction key.,Rien d'appris pour l'instant. Surlignez un mot mal écrit et appuyez sur la touche de correction.,Noch nichts gelernt. Markieren Sie ein falsch geschriebenes Wort und drücken Sie die Korrekturtaste.,Aún no ha aprendido nada. Resalta una palabra mal escrita y pulsa la tecla de corrección.,Ancora nulla di imparato. Evidenzia una parola scritta male e premi il tasto di correzione.,Nog niets geleerd. Markeer een verkeerd getypt woord en druk op de correctietoets.
+settings.dict.remove,Remove,Supprimer,Entfernen,Quitar,Rimuovi,Verwijderen
+settings.dict.export,Export dictionary,Exporter le dictionnaire,Wörterbuch exportieren,Exportar diccionario,Esporta il dizionario,Woordenboek exporteren
+settings.dict.import,Import dictionary,Importer un dictionnaire,Wörterbuch importieren,Importar diccionario,Importa un dizionario,Woordenboek importeren
+settings.dict.imported,Dictionary imported,Dictionnaire importé,Wörterbuch importiert,Diccionario importado,Dizionario importato,Woordenboek geïmporteerd
+settings.dict.import_bad,That file isn't a Talkin dictionary.,Ce fichier n'est pas un dictionnaire Talkin.,Diese Datei ist kein Talkin-Wörterbuch.,Ese archivo no es un diccionario de Talkin.,Quel file non è un dizionario di Talkin.,Dat bestand is geen Talkin-woordenboek.
+settings.section.history,History,Historique,Verlauf,Historial,Cronologia,Geschiedenis
+settings.history_help,"Your last dictations, stored only on this machine.","Vos dernières dictées, stockées uniquement sur cette machine.","Ihre letzten Diktate, nur auf diesem Rechner gespeichert.","Tus últimos dictados, guardados solo en esta máquina.","I tuoi ultimi dettati, salvati solo su questa macchina.","Je laatste dictaten, alleen op deze machine opgeslagen."
+settings.history.empty,No dictations yet.,Aucune dictée pour l'instant.,Noch keine Diktate.,Aún no hay dictados.,Nessun dettato per ora.,Nog geen dictaten.
+settings.history.export,Export history,Exporter l'historique,Verlauf exportieren,Exportar historial,Esporta la cronologia,Geschiedenis exporteren
+settings.history.clear,Clear history,Effacer l'historique,Verlauf löschen,Borrar historial,Cancella la cronologia,Geschiedenis wissen
+settings.history.cleared,History cleared,Historique effacé,Verlauf gelöscht,Historial borrado,Cronologia cancellata,Geschiedenis gewist
+settings.section.maintenance,Maintenance,Entretien,Wartung,Mantenimiento,Manutenzione,Onderhoud
+settings.maintenance_help,"The routine jobs, one click each — no terminal needed.","Les tâches courantes, en un clic — sans terminal.","Die Routineaufgaben, je ein Klick — kein Terminal nötig.","Las tareas rutinarias, a un clic — sin terminal.","Le operazioni di routine, un clic ciascuna — senza terminale.","De routineklussen, elk met één klik — geen terminal nodig."
+settings.restart,Restart Talkin,Redémarrer Talkin,Talkin neu starten,Reiniciar Talkin,Riavvia Talkin,Talkin herstarten
+settings.restarting,Restarting…,Redémarrage…,Startet neu…,Reiniciando…,Riavvio…,Herstarten…
+settings.view_log,View log,Voir le journal,Protokoll ansehen,Ver el registro,Vedi il registro,Logboek bekijken
+settings.export_all,Download everything (zip),Tout télécharger (zip),Alles herunterladen (ZIP),Descargar todo (zip),Scarica tutto (zip),Alles downloaden (zip)
+settings.stats,About this install,À propos de cette installation,Über diese Installation,Sobre esta instalación,Su questa installazione,Over deze installatie
+settings.stats.model,Speech model,Modèle vocal,Sprachmodell,Modelo de voz,Modello vocale,Spraakmodel
+settings.stats.dictations,Dictations made,Dictées effectuées,Diktate insgesamt,Dictados realizados,Dettati effettuati,Dictaten gemaakt
+settings.stats.words,Words spoken,Mots prononcés,Gesprochene Wörter,Palabras dichas,Parole pronunciate,Gesproken woorden
+error.mic,"Talkin couldn't hear the microphone. Check it's plugged in, then try again.","Talkin n'a pas pu entendre le microphone. Vérifiez qu'il est branché, puis réessayez.",Talkin konnte das Mikrofon nicht hören. Prüfen Sie den Anschluss und versuchen Sie es erneut.,Talkin no pudo oír el micrófono. Comprueba que está conectado e inténtalo de nuevo.,Talkin non è riuscito a sentire il microfono. Controlla che sia collegato e riprova.,Talkin kon de microfoon niet horen. Controleer of hij is aangesloten en probeer opnieuw.
+error.model,The speech model failed to load. Open Settings → View log for details.,Le modèle vocal n'a pas pu se charger. Ouvrez Réglages → Voir le journal pour les détails.,Das Sprachmodell konnte nicht geladen werden. Öffnen Sie Einstellungen → Protokoll ansehen für Details.,El modelo de voz no se pudo cargar. Abre Ajustes → Ver el registro para más detalles.,Il modello vocale non si è caricato. Apri Impostazioni → Vedi il registro per i dettagli.,Het spraakmodel kon niet laden. Open Instellingen → Logboek bekijken voor details.
+error.inject,Talkin transcribed your words but couldn't type them into that window. They're saved in History.,Talkin a transcrit vos mots mais n'a pas pu les taper dans cette fenêtre. Ils sont enregistrés dans l'historique.,"Talkin hat Ihre Wörter transkribiert, konnte sie aber nicht in dieses Fenster tippen. Sie sind im Verlauf gespeichert.",Talkin transcribió tus palabras pero no pudo escribirlas en esa ventana. Están guardadas en el historial.,Talkin ha trascritto le tue parole ma non è riuscito a scriverle in quella finestra. Sono salvate nella cronologia.,Talkin heeft je woorden getranscribeerd maar kon ze niet in dat venster typen. Ze staan in de geschiedenis.
+error.generic,Something went wrong. Your dictation is saved in History.,Un problème est survenu. Votre dictée est enregistrée dans l'historique.,Etwas ist schiefgelaufen. Ihr Diktat ist im Verlauf gespeichert.,Algo salió mal. Tu dictado está guardado en el historial.,Qualcosa è andato storto. Il tuo dettato è salvato nella cronologia.,Er ging iets mis. Je dictaat staat in de geschiedenis.
+notify.ready,Talkin is ready — hold your key and speak.,Talkin est prêt — maintenez votre touche et parlez.,Talkin ist bereit — Taste gedrückt halten und sprechen.,Talkin está listo — mantén tu tecla y habla.,Talkin è pronto — tieni premuto il tasto e parla.,Talkin is klaar — houd je toets ingedrukt en spreek.
+notify.title,Talkin,Talkin,Talkin,Talkin,Talkin,Talkin
+update.checking,Checking for updates…,Recherche de mises à jour…,Suche nach Updates…,Buscando actualizaciones…,Ricerca aggiornamenti…,Zoeken naar updates…
+update.uptodate,You're on the latest version,Vous avez la dernière version,Sie haben die neueste Version,Tienes la última versión,Hai l'ultima versione,Je hebt de nieuwste versie
+update.available,Update available:,Mise à jour disponible :,Update verfügbar:,Actualización disponible:,Aggiornamento disponibile:,Update beschikbaar:
+update.button,Update to {v},Mettre à jour vers {v},Auf {v} aktualisieren,Actualizar a {v},Aggiorna a {v},Bijwerken naar {v}
+update.installing,Updating — Talkin will restart…,Mise à jour — Talkin va redémarrer…,Aktualisierung — Talkin startet neu…,Actualizando — Talkin se reiniciará…,Aggiornamento — Talkin si riavvierà…,Bijwerken — Talkin start opnieuw…
+update.error,Couldn't check for updates,Impossible de vérifier les mises à jour,Updates konnten nicht geprüft werden,No se pudieron comprobar las actualizaciones,Impossibile verificare gli aggiornamenti,Kon niet op updates controleren
+update.created_by,Created by,Créé par,Erstellt von,Creado por,Creato da,Gemaakt door
