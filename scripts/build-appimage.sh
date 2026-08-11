@@ -26,27 +26,37 @@ cd "$BUILD_DIR"
 
 # -- 1. fetch packaging tools -------------------------------------------
 
-curl -sL -o tools/linuxdeploy-x86_64.AppImage \
+echo "-- fetching packaging tools --"
+curl -fsSL -o tools/linuxdeploy-x86_64.AppImage \
   "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-curl -sL -o tools/linuxdeploy-plugin-gtk.sh \
+curl -fsSL -o tools/linuxdeploy-plugin-gtk.sh \
   "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
-curl -sL -o tools/appimagetool-x86_64.AppImage \
+curl -fsSL -o tools/appimagetool-x86_64.AppImage \
   "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 chmod +x tools/*.AppImage tools/*.sh
 
 # -- 2. a self-contained Python environment ------------------------------
 
+echo "-- creating venv and installing requirements --"
 python3 -m venv --system-site-packages pkgvenv
 pkgvenv/bin/pip -q install --upgrade pip
-pkgvenv/bin/pip -q install -r "$REPO_ROOT/requirements.txt"
+pkgvenv/bin/pip install -r "$REPO_ROOT/requirements.txt"
 
 SITE="pkgvenv/lib/python$PY_VERSION/site-packages"
 DIST_PKGS="/usr/lib/python3/dist-packages"
 
 # PyGObject/pycairo must match the system GTK they'll be bundled
-# against, so they come from apt, not pip.
-cp -r "$DIST_PKGS/gi" "$SITE/"
-cp -r "$DIST_PKGS/cairo" "$SITE/"
+# against, so they come from apt, not pip. (Ubuntu ships the actual
+# `cairo` Python module in python3-cairo — NOT python3-gi-cairo, which
+# is a different, GI-only package that doesn't provide it.)
+echo "-- vendoring PyGObject/pycairo from apt --"
+for pkg in gi cairo; do
+  if [ ! -d "$DIST_PKGS/$pkg" ]; then
+    echo "!! $DIST_PKGS/$pkg missing — is python3-gi / python3-cairo installed?" >&2
+    exit 1
+  fi
+  cp -r "$DIST_PKGS/$pkg" "$SITE/"
+done
 
 # --system-site-packages venvs silently treat anything already
 # importable via the system as "satisfied" without installing it
@@ -117,6 +127,7 @@ cp "$PORTAUDIO_PATH" AppDir/usr/lib/libportaudio.so.2
 
 # -- 3. AppDir skeleton ---------------------------------------------------
 
+echo "-- assembling AppDir --"
 mkdir -p AppDir/usr/bin AppDir/usr/lib "AppDir/usr/lib/python$PY_VERSION" \
          AppDir/usr/share/talkin AppDir/usr/share/applications \
          AppDir/usr/share/icons/hicolor/256x256/apps
@@ -190,6 +201,7 @@ chmod +x AppDir/usr/bin/talkin
 
 # -- 4. bundle GTK/GObject-Introspection + resolve every shared lib -----
 
+echo "-- running linuxdeploy (this is the slow part) --"
 SO_ARGS=()
 while IFS= read -r so; do
   SO_ARGS+=(-l "$so")
