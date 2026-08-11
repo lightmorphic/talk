@@ -192,7 +192,7 @@ cp AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png AppDir/talkin.png
 cat > AppDir/talkin.desktop <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Talkin
+Name=Lightmorphic Talkin
 Comment=Private, on-device dictation for the Linux desktop
 Exec=talkin
 Icon=talkin

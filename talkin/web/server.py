@@ -23,7 +23,7 @@ from .. import cleanup, i18n
 from ..config import (BASE_DIR, DATA_DIR, LOG_PATH, SETTINGS_HOST,
                       SETTINGS_PORT, DEFAULTS)
 from ..engine import MODEL_NAME, list_microphones
-from ..hotkeys import CORRECTION_KEYS, DICTATION_KEYS
+from ..hotkeys import combo_is_safe
 
 log = logging.getLogger("talkin.web")
 
@@ -75,8 +75,6 @@ def start_server(app_obj):
             s=strings,
             config=config.all(),
             languages=i18n.available_languages(),
-            dictation_keys=DICTATION_KEYS,
-            correction_keys=CORRECTION_KEYS,
             mics=list_microphones(),
             model=MODEL_NAME,
             stats=history.stats(),
@@ -86,6 +84,8 @@ def start_server(app_obj):
             version=_version())
 
     # -- config -----------------------------------------------------
+
+    _COMBO_FIELDS = {"hotkey_hold", "hotkey_toggle", "correction_hotkey"}
 
     @web.route("/api/config", methods=["POST"])
     def save_config():
@@ -98,7 +98,14 @@ def start_server(app_obj):
             if isinstance(default, bool):
                 changes[key] = bool(value)
             else:
-                changes[key] = str(value)
+                changes[key] = str(value).strip()
+        for field in _COMBO_FIELDS:
+            if field in changes and not combo_is_safe(changes[field]):
+                return jsonify(ok=False, error="unsafe_combo", field=field), 400
+        prospective = {**config.all(), **changes}
+        combos = [prospective[f] for f in _COMBO_FIELDS if prospective[f]]
+        if len(combos) != len(set(combos)):
+            return jsonify(ok=False, error="duplicate_combo"), 400
         config.update(changes)
         from gi.repository import GLib
         GLib.idle_add(app_obj.apply_settings)

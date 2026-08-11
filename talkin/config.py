@@ -45,8 +45,8 @@ SETTINGS_PORT = 4816
 
 DEFAULTS = {
     "language": "en",
-    "hotkey": "ctrl_r",
-    "mode": "hold",  # hold | toggle
+    "hotkey_hold": "ctrl_r",
+    "hotkey_toggle": "",
     "correction_hotkey": "ctrl+alt+c",
     "injection": "paste",  # paste | type
     "mic": "default",
@@ -81,7 +81,11 @@ class Config:
         os.makedirs(DATA_DIR, exist_ok=True)
         with _lock:
             stored = _read_json(CONFIG_PATH, {})
-            self._values = {**DEFAULTS, **stored}
+            # Keep only keys DEFAULTS still defines — settings removed in
+            # an update (like the old "hotkey"/"mode" pair) don't linger
+            # forever in an upgraded install's config.json.
+            self._values = {**DEFAULTS,
+                            **{k: v for k, v in stored.items() if k in DEFAULTS}}
 
     def get(self, key):
         with _lock:
@@ -232,7 +236,7 @@ def set_autostart(enabled):
     with open(path, "w", encoding="utf-8") as f:
         f.write("[Desktop Entry]\n"
                 "Type=Application\n"
-                "Name=Talkin\n"
+                "Name=Lightmorphic Talkin\n"
                 "Comment=Private on-device dictation\n"
                 f"Exec={launcher}\n"
                 f"Icon={os.path.join(ASSET_DIR, 'talkin-idle.svg')}\n"
