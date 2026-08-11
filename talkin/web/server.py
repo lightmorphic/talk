@@ -20,7 +20,7 @@ from flask import (Flask, abort, jsonify, redirect, render_template,
 from .. import cleanup, i18n
 from ..config import (BASE_DIR, DATA_DIR, LOG_PATH, SETTINGS_HOST,
                       SETTINGS_PORT, DEFAULTS)
-from ..engine import MODEL_NAME, SAMPLE_RATE, list_microphones
+from ..engine import MODEL_NAME, list_microphones
 from ..hotkeys import CORRECTION_KEYS, DICTATION_KEYS
 
 log = logging.getLogger("talkin.web")
@@ -32,6 +32,7 @@ _ALLOWED_HOSTS = {f"{SETTINGS_HOST}:{SETTINGS_PORT}",
 def start_server(app_obj):
     web = Flask(__name__)
     web.secret_key = secrets.token_hex(32)
+    web.config["MAX_CONTENT_LENGTH"] = 1024 * 1024  # dictionary imports
     launch_token = secrets.token_urlsafe(24)
 
     config, dictionary, history = (
@@ -178,7 +179,6 @@ def start_server(app_obj):
     def mic_test():
         if app_obj.state != "idle":
             return jsonify(ok=False), 409
-        import numpy as np
         try:
             app_obj.recorder.start()
             time.sleep(3)
