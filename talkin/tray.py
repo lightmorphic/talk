@@ -1,5 +1,7 @@
 """System tray icon and menu via AppIndicator."""
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 
 import gi
@@ -12,6 +14,7 @@ from .i18n import t
 
 _ICONS = {
     "loading": "talkin-thinking",
+    "downloading": "talkin-thinking",
     "idle": "talkin-idle",
     "listening": "talkin-listening",
     "thinking": "talkin-thinking",

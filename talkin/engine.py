@@ -5,6 +5,8 @@ a single worker thread so the UI never blocks. The Parakeet model is
 loaded once at startup (in the background) and kept in memory.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 import os
 import queue
@@ -21,15 +23,50 @@ MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
 MAX_SECONDS = 300  # hard cap on one dictation, keeps memory bounded
 
 
-def _force_offline():
-    """Hard-pin the process offline for the model hub.
+_DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talkin-download-complete")
 
-    The model is already on disk; with these set the Hugging Face
-    client will not attempt any network request, ever.
+
+def _model_cached():
+    if os.path.exists(_DOWNLOADED_MARKER):
+        return True
+    # No marker yet, but the cache may already be populated (e.g. an
+    # install from before this check existed). A real downloaded file
+    # in any model's blobs/ dir means the download actually finished,
+    # as opposed to the empty ref/snapshot dirs the hub client creates
+    # up front — so only that counts as cached, not a bare folder.
+    hub_dir = os.path.join(MODEL_DIR, "hub")
+    try:
+        for entry in os.listdir(hub_dir):
+            if not entry.startswith("models--"):
+                continue
+            blobs_dir = os.path.join(hub_dir, entry, "blobs")
+            if any(os.scandir(blobs_dir)):
+                _mark_cached()
+                return True
+    except OSError:
+        pass
+    return False
+
+
+def _mark_cached():
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    open(_DOWNLOADED_MARKER, "w", encoding="utf-8").close()
+
+
+def _configure_hub(offline):
+    """Point the Hugging Face client at our own cache folder.
+
+    Talkin is offline by default. The one exception is the very first
+    run, before the model has ever been downloaded — that single
+    download is allowed, then this pins the process hard-offline for
+    good, so no request is ever made again.
     """
-    os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     os.environ["HF_HOME"] = MODEL_DIR
+    if offline:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+    else:
+        os.environ.pop("HF_HUB_OFFLINE", None)
 
 
 def list_microphones():
@@ -105,11 +142,12 @@ class Recorder:
 class Transcriber:
     """Owns the Parakeet model and a serial transcription queue."""
 
-    def __init__(self, on_ready=None, on_error=None):
+    def __init__(self, on_ready=None, on_error=None, on_downloading=None):
         self._model = None
         self._queue = queue.Queue()
         self.on_ready = on_ready
         self.on_error = on_error
+        self.on_downloading = on_downloading
         threading.Thread(target=self._run, name="transcriber",
                          daemon=True).start()
 
@@ -118,10 +156,18 @@ class Transcriber:
         return self._model is not None
 
     def _load(self):
-        _force_offline()
+        cached = _model_cached()
+        _configure_hub(offline=cached)
+        if not cached:
+            log.info("model not cached — this run will download it once")
+            if self.on_downloading is not None:
+                self.on_downloading()
         import onnx_asr
         log.info("loading %s", MODEL_NAME)
         self._model = onnx_asr.load_model(MODEL_NAME, quantization="int8")
+        if not cached:
+            _mark_cached()
+            _configure_hub(offline=True)
         log.info("model ready")
         if self.on_ready is not None:
             self.on_ready()

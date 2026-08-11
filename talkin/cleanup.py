@@ -5,6 +5,8 @@ Runs entirely locally on the transcript text. The dictionary maps
 the correction hotkey or the Settings page.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import re
 
 # Standalone hesitation sounds only — never words that can carry meaning.

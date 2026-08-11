@@ -5,6 +5,8 @@ session token (generated fresh at each start), and the Host header is
 checked, so no website or other machine can drive it.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import io
 import json
 import logging
@@ -244,6 +246,12 @@ def start_server(app_obj):
     @web.route("/api/update/apply", methods=["POST"])
     def update_apply():
         from .. import updater
+        if updater.is_packaged():
+            # An AppImage can't safely replace its own running file, so
+            # there's nothing to "apply" — the frontend opens the
+            # download page instead. This request just confirms that.
+            return jsonify(ok=True, packaged=True,
+                          download_url=updater.RELEASES_PAGE)
         data = request.get_json(silent=True) or {}
         ok = updater.apply(str(data.get("tag", "")))
         if ok:

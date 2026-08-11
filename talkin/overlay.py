@@ -6,6 +6,8 @@ moving inside the circle; while transcribing the lines give way to an
 arc revolving around the circle. Hidden when idle.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import collections
 import math
 import threading

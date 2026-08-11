@@ -1,8 +1,6 @@
 #!/bin/bash
-# Talkin launcher. Pins the app hard-offline: the model is on disk, so
-# nothing ever needs (or gets) network access.
+# Talkin launcher. Offline/online is decided in talkin/engine.py: the
+# very first run is allowed to download the speech model once, then
+# every run after that is pinned hard-offline. Nothing is forced here.
 cd "$(dirname "$0")/.." || exit 1
-export HF_HUB_OFFLINE=1
-export HF_HUB_DISABLE_TELEMETRY=1
-export HF_HOME="$PWD/models/hf-cache"
 exec .venv/bin/python -m talkin "$@"

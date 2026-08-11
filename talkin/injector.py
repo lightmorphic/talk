@@ -8,6 +8,8 @@ Two strategies:
           something else.
 """
 
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import logging
 import threading
 import time
