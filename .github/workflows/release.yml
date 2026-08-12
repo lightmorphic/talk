@@ -75,3 +75,4 @@ jobs:
             Talkin-x86_64.AppImage
             Talkin-${{ github.ref_name }}-x86_64.AppImage
           fail_on_unmatched_files: true
+          generate_release_notes: true

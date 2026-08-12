@@ -186,7 +186,7 @@ cp -r "$SITE" "AppDir/usr/lib/python$PY_VERSION/site-packages"
 find "AppDir/usr/lib/python$PY_VERSION/site-packages" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find AppDir -xtype l -delete
 
-cp "$REPO_ROOT/docs/talkin-512.png" AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png
+cp "$REPO_ROOT/docs/images/talkin-512.png" AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png
 cp AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png AppDir/talkin.png
 
 cat > AppDir/talkin.desktop <<'EOF'
