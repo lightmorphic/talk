@@ -39,10 +39,10 @@ _FIELD_GAP = 16
 # dark setting — there is no "light Talkin" any more than there's a
 # grey tray icon.
 _CSS = b"""
-@define-color lm_bg #09090b;
+@define-color lm_bg #050507;
 @define-color lm_fg #fafafa;
-@define-color lm_panel #1b1d29;
-@define-color lm_panel_border alpha(#ffffff, 0.09);
+@define-color lm_panel #24273a;
+@define-color lm_panel_border alpha(#ffffff, 0.16);
 @define-color lm_border #27272a;
 @define-color lm_muted #1c1c1f;
 @define-color lm_muted_fg #a1a1aa;
@@ -71,6 +71,7 @@ window.talkin-settings {
   border: 1px solid @lm_panel_border;
   border-radius: 1.375rem;
   padding: 1.5rem;
+  box-shadow: 0 2px 10px alpha(#000000, 0.35);
 }
 
 .talkin-settings button {
@@ -125,10 +126,39 @@ window.talkin-settings {
 .talkin-settings .update-dot.uptodate { background-color: @lm_success; }
 .talkin-settings .update-dot.available { background-color: @lm_warning; }
 .talkin-settings .update-dot.error { background-color: @lm_danger; }
-
+/* A round 12px dot wearing the same square yellow ring as everything
+   else looks broken, not focused - and GTK auto-focuses the first
+   focusable widget on window show, so this was visible immediately
+   on every open with no click at all. A matching round ring instead. */
+.talkin-settings .update-dot:focus {
+  outline: 2px solid @lm_fg;
+  outline-offset: 3px;
+}
 .talkin-settings entry, .talkin-settings combobox button,
 .talkin-settings treeview {
   border-radius: 0.875rem;
+}
+
+.talkin-settings .category-list {
+  background-color: @lm_bg;
+  border-right: 1px solid @lm_panel_border;
+  padding-top: 4px;
+}
+.talkin-settings .category-list row {
+  background-color: transparent;
+  color: @lm_muted_fg;
+  border-left: 3px solid transparent;
+}
+.talkin-settings .category-list row label { color: @lm_muted_fg; }
+.talkin-settings .category-list row:hover {
+  background-color: alpha(#ffffff, 0.04);
+}
+.talkin-settings .category-list row:selected {
+  background-color: alpha(#fbc711, 0.10);
+  border-left: 3px solid @lm_accent;
+}
+.talkin-settings .category-list row:selected label {
+  color: @lm_fg; font-weight: 600;
 }
 
 .talkin-settings *:focus {
@@ -238,7 +268,7 @@ class SettingsWindow(Gtk.Window):
         self.dictionary = app_obj.dictionary
         self.history = app_obj.history
 
-        self.set_default_size(560, 720)
+        self.set_default_size(760, 560)
         self.get_style_context().add_class("talkin-settings")
         _load_bundled_font()
         self._apply_css()
@@ -256,30 +286,80 @@ class SettingsWindow(Gtk.Window):
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.add(outer)
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        outer.pack_start(scroller, True, True, 0)
+        header = self._build_header()
+        header.set_margin_top(20)
+        header.set_margin_bottom(4)
+        header.set_margin_start(24)
+        header.set_margin_end(24)
+        outer.pack_start(header, False, False, 0)
 
-        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-        body.set_margin_top(20)
-        body.set_margin_bottom(20)
-        body.set_margin_start(24)
-        body.set_margin_end(24)
-        scroller.add(body)
+        # A normal two-pane settings layout: a category list on the
+        # left, one page visible at a time on the right — not one long
+        # page stacking every section, which is what forced scrolling
+        # through everything just to reach Maintenance.
+        split = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        split.set_margin_top(12)
+        outer.pack_start(split, True, True, 0)
 
-        body.pack_start(self._build_header(), False, False, 0)
-        body.pack_start(self._build_general(), False, False, 0)
-        body.pack_start(self._build_hotkeys(), False, False, 0)
-        body.pack_start(self._build_microphone(), False, False, 0)
-        body.pack_start(self._build_output(), False, False, 0)
-        body.pack_start(self._build_dictionary(), False, False, 0)
-        body.pack_start(self._build_history(), False, False, 0)
-        body.pack_start(self._build_maintenance(), False, False, 0)
+        categories = [
+            ("general", "settings.section.general", self._build_general),
+            ("hotkey", "settings.section.hotkey", self._build_hotkeys),
+            ("microphone", "settings.section.microphone",
+             self._build_microphone),
+            ("output", "settings.section.output", self._build_output),
+            ("dictionary", "settings.section.dictionary",
+             self._build_dictionary),
+            ("history", "settings.section.history", self._build_history),
+            ("maintenance", "settings.section.maintenance",
+             self._build_maintenance),
+        ]
+
+        sidebar = Gtk.ListBox()
+        sidebar.get_style_context().add_class("category-list")
+        sidebar.set_size_request(180, -1)
+        sidebar.set_selection_mode(Gtk.SelectionMode.SINGLE)
+
+        self._stack = Gtk.Stack()
+        self._stack.set_hexpand(True)
+        self._stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self._stack.set_transition_duration(120)
+
+        for key, title_key, builder in categories:
+            row = Gtk.ListBoxRow()
+            label = Gtk.Label(label=i18n.t(title_key), xalign=0)
+            label.set_margin_top(10)
+            label.set_margin_bottom(10)
+            label.set_margin_start(16)
+            label.set_margin_end(16)
+            row.add(label)
+            row.category_key = key
+            sidebar.add(row)
+
+            page_scroller = Gtk.ScrolledWindow()
+            page_scroller.set_policy(
+                Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            content.set_margin_top(4)
+            content.set_margin_bottom(20)
+            content.set_margin_start(20)
+            content.set_margin_end(24)
+            content.pack_start(builder(), False, False, 0)
+            page_scroller.add(content)
+            self._stack.add_named(page_scroller, key)
+
+        sidebar.connect("row-selected", self._on_category_selected)
+        split.pack_start(sidebar, False, False, 0)
+        split.pack_start(self._stack, True, True, 0)
 
         outer.pack_start(self._build_savebar(), False, False, 0)
 
+        sidebar.select_row(sidebar.get_row_at_index(0))
         self._refresh_dictionary()
         self._refresh_history()
+
+    def _on_category_selected(self, _listbox, row):
+        if row is not None:
+            self._stack.set_visible_child_name(row.category_key)
 
     def _apply_css(self):
         provider = Gtk.CssProvider()
@@ -355,30 +435,49 @@ class SettingsWindow(Gtk.Window):
 
     def _build_header(self):
         from . import __version__
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
+
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         title = Gtk.Label(label=i18n.t("settings.title"), xalign=0)
         title.get_style_context().add_class("section-title")
-        box.pack_start(title, False, False, 0)
+        left.pack_start(title, False, False, 0)
         sub = Gtk.Label(label=i18n.t("settings.subtitle"), xalign=0, wrap=True)
         sub.get_style_context().add_class("hint")
-        box.pack_start(sub, False, False, 0)
+        left.pack_start(sub, False, False, 0)
+        row.pack_start(left, True, True, 0)
 
+        # Version + status dot, right-aligned like the same pairing in
+        # Charlie's other apps (Fetch Terminal etc.) rather than buried
+        # left-aligned under the title.
         ver_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        ver = Gtk.Label(label="Talkin v{}".format(__version__), xalign=0)
-        ver.get_style_context().add_class("hint")
-        ver_row.pack_start(ver, False, False, 0)
+        ver_row.set_halign(Gtk.Align.END)
+        ver_row.set_valign(Gtk.Align.START)
+
+        ver_label = Gtk.Label(label="Talkin v{}".format(__version__))
+        ver_label.get_style_context().add_class("hint")
+        ver_event = Gtk.EventBox()
+        ver_event.add(ver_label)
+        ver_event.set_tooltip_text("talkin.lightmorphic.co.uk")
+        ver_event.connect("button-press-event", self._on_version_clicked)
+        ver_event.connect("realize", lambda w: w.get_window().set_cursor(
+            Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
+        ver_row.pack_start(ver_event, False, False, 0)
 
         self._update_dot = Gtk.Button()
         self._update_dot.get_style_context().add_class("update-dot")
         self._update_dot.connect("clicked", self._on_update_dot_clicked)
         ver_row.pack_start(self._update_dot, False, False, 0)
-        box.pack_start(ver_row, False, False, 0)
+        row.pack_start(ver_row, False, False, 0)
 
         self._update_state = "checking"
         self._update_tag = None
         self._set_update_dot("checking", i18n.t("update.checking"))
         GLib.idle_add(self._check_update)
-        return box
+        return row
+
+    def _on_version_clicked(self, _widget, _event):
+        import webbrowser
+        webbrowser.open("https://talkin.lightmorphic.co.uk")
 
     def _set_update_dot(self, state, tooltip):
         ctx = self._update_dot.get_style_context()
@@ -1008,3 +1107,7 @@ def open_settings(app_obj):
         app_obj._settings_window = window
     window.show_all()
     window.present()
+    # Otherwise GTK auto-focuses the first focusable widget on show,
+    # which happens to be the update dot — a persistent focus ring
+    # around it with no click involved reads as a rendering bug.
+    window.set_focus(None)
