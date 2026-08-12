@@ -32,8 +32,16 @@ jobs:
 
       - name: Verify the build actually runs
         run: |
+          # Run from outside the checkout, not from the repo root: the
+          # repo has its own talkin/ package sitting right there, and
+          # Python's -m always prepends the current directory to
+          # sys.path — so testing from inside the checkout can "pass"
+          # by silently importing the source tree instead of whatever
+          # got bundled into the AppImage, masking real packaging bugs.
           rm -rf ~/.local/share/talkin
-          xvfb-run -a ./Talkin-x86_64.AppImage &
+          APPIMAGE_PATH="$(readlink -f ./Talkin-x86_64.AppImage)"
+          cd /tmp
+          xvfb-run -a "$APPIMAGE_PATH" &
           pid=$!
           for _ in $(seq 1 30); do
             sleep 2
