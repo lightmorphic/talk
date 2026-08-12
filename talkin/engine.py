@@ -24,11 +24,27 @@ MAX_SECONDS = 300  # hard cap on one dictation, keeps memory bounded
 
 
 def _resample(audio, orig_rate, target_rate):
-    from math import gcd
-    from scipy.signal import resample_poly
-    g = gcd(orig_rate, target_rate)
-    return resample_poly(
-        audio, target_rate // g, orig_rate // g).astype(np.float32)
+    """Bandlimited resample via FFT (numpy only — no scipy).
+
+    scipy's own vendored libgfortran/libquadmath collided with numpy's
+    inside the AppImage bundle (mismatched hash-suffixed filenames
+    linuxdeploy couldn't resolve), breaking the build outright. This
+    is the same core technique scipy.signal.resample uses internally,
+    just without dragging in a second copy of Fortran runtime libs for
+    one function.
+    """
+    if len(audio) == 0:
+        return audio
+    n_target = int(round(len(audio) * target_rate / orig_rate))
+    spectrum = np.fft.rfft(audio)
+    n_freq_target = n_target // 2 + 1
+    if n_freq_target <= len(spectrum):
+        spectrum = spectrum[:n_freq_target]
+    else:
+        spectrum = np.pad(spectrum, (0, n_freq_target - len(spectrum)))
+    resampled = np.fft.irfft(spectrum, n=n_target)
+    resampled *= (n_target / len(audio))
+    return resampled.astype(np.float32)
 
 
 _DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talkin-download-complete")
