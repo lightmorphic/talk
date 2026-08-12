@@ -137,6 +137,24 @@ window.talkin-settings {
 .talkin-settings treeview {
   border-radius: 0.875rem;
 }
+.talkin-settings treeview {
+  background-color: @lm_muted;
+  border: 1px solid @lm_border;
+}
+.talkin-settings treeview row {
+  border-bottom: 1px solid @lm_panel_border;
+  min-height: 2rem;
+}
+.talkin-settings treeview header button {
+  background-color: @lm_bg;
+  border: none;
+  border-bottom: 1px solid @lm_border;
+  padding: 8px 10px;
+  font-weight: 600;
+}
+.talkin-settings treeview:selected {
+  background-color: alpha(#fbc711, 0.14);
+}
 
 .talkin-settings .category-list {
   background-color: @lm_bg;
@@ -747,11 +765,18 @@ class SettingsWindow(Gtk.Window):
         tree.append_column(remove_col)
         tree.connect("row-activated", self._on_dict_row_activated)
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_min_content_height(140)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroller.add(tree)
-        box.pack_start(scroller, False, False, 0)
+        self._dict_scroller = Gtk.ScrolledWindow()
+        self._dict_scroller.set_min_content_height(140)
+        self._dict_scroller.set_policy(
+            Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._dict_scroller.set_no_show_all(True)
+        self._dict_scroller.add(tree)
+        # no_show_all on the scroller means the parent window's
+        # show_all() never cascades into it OR its children at all -
+        # explicitly showing the treeview itself is unaffected by that
+        # flag (it only governs automatic cascading from an ancestor).
+        tree.show()
+        box.pack_start(self._dict_scroller, False, False, 0)
 
         self._dict_empty = Gtk.Label(label=i18n.t("settings.dict.empty"),
                                      xalign=0, wrap=True)
@@ -787,6 +812,7 @@ class SettingsWindow(Gtk.Window):
         entries = self.dictionary.entries()
         for e in entries:
             self._dict_store.append([e["heard"], e["say"]])
+        self._dict_scroller.set_visible(bool(entries))
         self._dict_empty.set_visible(not entries)
 
     def _on_dict_row_activated(self, tree, path, column):
@@ -872,11 +898,14 @@ class SettingsWindow(Gtk.Window):
             wrap_width=360, wrap_mode=Pango.WrapMode.WORD_CHAR)
         tree.append_column(Gtk.TreeViewColumn("", text_renderer, text=1))
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_min_content_height(160)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroller.add(tree)
-        box.pack_start(scroller, False, False, 0)
+        self._history_scroller = Gtk.ScrolledWindow()
+        self._history_scroller.set_min_content_height(160)
+        self._history_scroller.set_policy(
+            Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._history_scroller.set_no_show_all(True)
+        self._history_scroller.add(tree)
+        tree.show()
+        box.pack_start(self._history_scroller, False, False, 0)
 
         self._history_empty = Gtk.Label(
             label=i18n.t("settings.history.empty"), xalign=0)
@@ -901,6 +930,7 @@ class SettingsWindow(Gtk.Window):
             when = time.strftime(
                 "%Y-%m-%d %H:%M", time.localtime(e["ts"]))
             self._history_store.append([when, e.get("clean", "")])
+        self._history_scroller.set_visible(bool(entries))
         self._history_empty.set_visible(not entries)
 
     def _on_history_export(self, _button):
