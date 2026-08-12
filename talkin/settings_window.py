@@ -112,6 +112,20 @@ window.talkin-settings {
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 .talkin-settings .keycap label { color: @lm_on_accent; }
 
+@define-color lm_success #4bae4f;
+@define-color lm_warning #ffc006;
+.talkin-settings .update-dot {
+  min-width: 12px; min-height: 12px;
+  padding: 0; margin: 0 2px;
+  border-radius: 50%;
+  border: none;
+  background-image: none;
+}
+.talkin-settings .update-dot.checking { background-color: @lm_muted_fg; }
+.talkin-settings .update-dot.uptodate { background-color: @lm_success; }
+.talkin-settings .update-dot.available { background-color: @lm_warning; }
+.talkin-settings .update-dot.error { background-color: @lm_danger; }
+
 .talkin-settings entry, .talkin-settings combobox button,
 .talkin-settings treeview {
   border-radius: 0.875rem;
@@ -120,6 +134,14 @@ window.talkin-settings {
 .talkin-settings *:focus {
   outline: 2px solid @lm_accent;
   outline-offset: 2px;
+}
+/* Buttons that are already accent-colored need a focus ring that
+   actually contrasts against them, not more of the same yellow -
+   otherwise clicking Save reads as a garish yellow-on-yellow flash. */
+.talkin-settings button.primary:focus,
+.talkin-settings .keycap:focus {
+  outline: 2px solid @lm_bg;
+  outline-offset: -4px;
 }
 """
 
@@ -220,6 +242,10 @@ class SettingsWindow(Gtk.Window):
         self.get_style_context().add_class("talkin-settings")
         _load_bundled_font()
         self._apply_css()
+        try:
+            self.set_icon_from_file(os.path.join(ASSET_DIR, "talkin.png"))
+        except GLib.GError:
+            log.warning("could not load settings window icon", exc_info=True)
         self.connect("delete-event", self._on_close)
 
         self._pending = {}       # config changes not yet saved
@@ -336,10 +362,31 @@ class SettingsWindow(Gtk.Window):
         sub = Gtk.Label(label=i18n.t("settings.subtitle"), xalign=0, wrap=True)
         sub.get_style_context().add_class("hint")
         box.pack_start(sub, False, False, 0)
+
+        ver_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         ver = Gtk.Label(label="Talkin v{}".format(__version__), xalign=0)
         ver.get_style_context().add_class("hint")
-        box.pack_start(ver, False, False, 0)
+        ver_row.pack_start(ver, False, False, 0)
+
+        self._update_dot = Gtk.Button()
+        self._update_dot.get_style_context().add_class("update-dot")
+        self._update_dot.connect("clicked", self._on_update_dot_clicked)
+        ver_row.pack_start(self._update_dot, False, False, 0)
+        box.pack_start(ver_row, False, False, 0)
+
+        self._update_state = "checking"
+        self._update_tag = None
+        self._set_update_dot("checking", i18n.t("update.checking"))
+        GLib.idle_add(self._check_update)
         return box
+
+    def _set_update_dot(self, state, tooltip):
+        ctx = self._update_dot.get_style_context()
+        for cls in ("checking", "uptodate", "available", "error"):
+            ctx.remove_class(cls)
+        ctx.add_class(state)
+        self._update_dot.set_tooltip_text(tooltip)
+        self._update_state = state
 
     # -- general -----------------------------------------------------
 
@@ -796,20 +843,6 @@ class SettingsWindow(Gtk.Window):
         actions.pack_start(export_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
 
-        update_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                             spacing=_FIELD_GAP)
-        self._update_label = Gtk.Label(xalign=0)
-        self._update_label.get_style_context().add_class("hint")
-        update_row.pack_start(self._update_label, True, True, 0)
-        self._update_btn = Gtk.Button()
-        self._update_btn.get_style_context().add_class("secondary")
-        self._update_btn.set_no_show_all(True)
-        self._update_btn.set_visible(False)
-        self._update_btn.connect("clicked", self._on_update_apply)
-        update_row.pack_start(self._update_btn, False, False, 0)
-        box.pack_start(update_row, False, False, 0)
-        GLib.idle_add(self._check_update)
-
         stats_title = Gtk.Label(label=i18n.t("settings.stats"), xalign=0)
         stats_title.get_style_context().add_class("section-title")
         box.pack_start(stats_title, False, False, 0)
@@ -878,7 +911,7 @@ class SettingsWindow(Gtk.Window):
         dialog.destroy()
 
     def _check_update(self):
-        self._update_label.set_text(i18n.t("update.checking"))
+        self._set_update_dot("checking", i18n.t("update.checking"))
 
         def run():
             from . import updater
@@ -889,39 +922,42 @@ class SettingsWindow(Gtk.Window):
         return False
 
     def _update_checked(self, result):
-        from . import updater
         state = result.get("state")
         if state == "available":
-            self._update_label.set_text(
-                "{} {}".format(i18n.t("update.available"), result["latest"]))
-            if result.get("packaged"):
-                self._update_btn.set_label(
-                    i18n.t("update.download").format(v=result["latest"]))
-            else:
-                self._update_btn.set_label(
-                    i18n.t("update.button").format(v=result["latest"]))
-            self._update_btn.set_visible(True)
             self._update_tag = result["latest"]
-            self._update_packaged = result.get("packaged")
+            self._set_update_dot("available", "{} {}".format(
+                i18n.t("update.available"), result["latest"]))
         elif state == "up-to-date":
-            self._update_label.set_text(i18n.t("update.uptodate"))
+            self._set_update_dot("uptodate", i18n.t("update.uptodate"))
         else:
-            self._update_label.set_text("")
+            detail = result.get("detail")
+            tooltip = i18n.t("update.error")
+            if detail:
+                tooltip = "{}: {}".format(tooltip, detail)
+            self._set_update_dot("error", tooltip)
         return False
 
-    def _on_update_apply(self, _button):
+    def _on_update_dot_clicked(self, _button):
+        # Any click re-checks; a click while an update is already known
+        # to be available goes straight to installing it — one click to
+        # go from "there's an update" to "it's installed", per the dot's
+        # whole point.
+        if self._update_state == "available":
+            self._apply_update()
+        else:
+            self._check_update()
+
+    def _apply_update(self):
         from . import updater
-        if self._update_packaged:
-            import webbrowser
-            webbrowser.open(updater.RELEASES_PAGE)
-            return
-        self._update_label.set_text(i18n.t("update.installing"))
-        self._update_btn.set_visible(False)
+        self._set_update_dot("checking", i18n.t("update.installing"))
 
         def run():
             ok = updater.apply(self._update_tag)
             if ok:
                 GLib.timeout_add(500, self.app_obj.restart)
+            else:
+                GLib.idle_add(
+                    self._set_update_dot, "error", i18n.t("update.failed"))
         import threading
         threading.Thread(target=run, daemon=True).start()
 

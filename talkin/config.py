@@ -237,6 +237,7 @@ def set_autostart(enabled):
                 "Comment=Private on-device dictation\n"
                 f"Exec={launcher}\n"
                 f"Icon={os.path.join(ASSET_DIR, 'talkin-idle.svg')}\n"
+                "StartupWMClass=talkin\n"
                 "X-GNOME-Autostart-enabled=true\n")
 
 
