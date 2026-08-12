@@ -116,7 +116,6 @@ window.talkin-settings {
 @define-color lm_success #4bae4f;
 @define-color lm_warning #ffc006;
 .talkin-settings .update-dot {
-  min-width: 12px; min-height: 12px;
   padding: 0; margin: 0 2px;
   border-radius: 50%;
   border: none;
@@ -465,6 +464,10 @@ class SettingsWindow(Gtk.Window):
 
         self._update_dot = Gtk.Button()
         self._update_dot.get_style_context().add_class("update-dot")
+        # CSS min-width/min-height alone don't force an exact size, so
+        # the button was free to stretch taller than wide and render
+        # as a slight oval rather than a true circle.
+        self._update_dot.set_size_request(13, 13)
         self._update_dot.connect("clicked", self._on_update_dot_clicked)
         ver_row.pack_start(self._update_dot, False, False, 0)
         row.pack_start(ver_row, False, False, 0)
@@ -1026,6 +1029,7 @@ class SettingsWindow(Gtk.Window):
             self._update_tag = result["latest"]
             self._set_update_dot("available", "{} {}".format(
                 i18n.t("update.available"), result["latest"]))
+            self._show_update_available_dialog()
         elif state == "up-to-date":
             self._set_update_dot("uptodate", i18n.t("update.uptodate"))
         else:
@@ -1038,13 +1042,30 @@ class SettingsWindow(Gtk.Window):
 
     def _on_update_dot_clicked(self, _button):
         # Any click re-checks; a click while an update is already known
-        # to be available goes straight to installing it — one click to
-        # go from "there's an update" to "it's installed", per the dot's
-        # whole point.
+        # to be available re-opens the install prompt rather than
+        # applying silently — a whole new AppImage swapping itself in
+        # from one click with no confirmation is a bit much.
         if self._update_state == "available":
-            self._apply_update()
+            self._show_update_available_dialog()
         else:
             self._check_update()
+
+    def _show_update_available_dialog(self):
+        dialog = Gtk.MessageDialog(
+            transient_for=self, modal=True,
+            message_type=Gtk.MessageType.INFO,
+            text=i18n.t("update.popup_title"),
+            secondary_text=i18n.t("update.popup_body").format(
+                v=self._update_tag))
+        dialog.add_button(i18n.t("update.not_now"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(
+            i18n.t("update.button").format(v=self._update_tag),
+            Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.OK:
+            self._apply_update()
 
     def _apply_update(self):
         from . import updater
@@ -1052,13 +1073,32 @@ class SettingsWindow(Gtk.Window):
 
         def run():
             ok = updater.apply(self._update_tag)
-            if ok:
-                GLib.timeout_add(500, self.app_obj.restart)
-            else:
-                GLib.idle_add(
-                    self._set_update_dot, "error", i18n.t("update.failed"))
+            GLib.idle_add(self._update_applied, ok)
         import threading
         threading.Thread(target=run, daemon=True).start()
+
+    def _update_applied(self, ok):
+        if ok:
+            self._set_update_dot("uptodate", i18n.t("update.ready_body"))
+            self._show_restart_dialog()
+        else:
+            self._set_update_dot("error", i18n.t("update.failed"))
+        return False
+
+    def _show_restart_dialog(self):
+        dialog = Gtk.MessageDialog(
+            transient_for=self, modal=True,
+            message_type=Gtk.MessageType.INFO,
+            text=i18n.t("update.ready_title"),
+            secondary_text=i18n.t("update.ready_body"))
+        dialog.add_button(i18n.t("update.not_now"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(
+            i18n.t("update.restart_now"), Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+        response = dialog.run()
+        dialog.destroy()
+        if response == Gtk.ResponseType.OK:
+            self.app_obj.restart()
 
     # -- save / close ----------------------------------------------------
 
