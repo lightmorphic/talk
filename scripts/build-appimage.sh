@@ -87,7 +87,6 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
 from gi.repository import Gtk, AyatanaAppIndicator3
 import cairo, numpy, sounddevice, onnx_asr, onnxruntime
-import scipy.signal
 import httpx
 from huggingface_hub import snapshot_download
 import pynput.keyboard, pynput.mouse
