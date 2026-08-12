@@ -23,6 +23,14 @@ MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
 MAX_SECONDS = 300  # hard cap on one dictation, keeps memory bounded
 
 
+def _resample(audio, orig_rate, target_rate):
+    from math import gcd
+    from scipy.signal import resample_poly
+    g = gcd(orig_rate, target_rate)
+    return resample_poly(
+        audio, target_rate // g, orig_rate // g).astype(np.float32)
+
+
 _DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talkin-download-complete")
 
 
@@ -83,13 +91,25 @@ def list_microphones():
 
 
 class Recorder:
-    """Push-to-talk microphone capture with live level reporting."""
+    """Push-to-talk microphone capture with live level reporting.
+
+    Captured at whatever rate the device actually supports, not a
+    hardcoded 16kHz: PortAudio's direct-ALSA path (used for any
+    specific hardware device, as opposed to the "default"/"pipewire"
+    aliases which resample internally) refuses a rate the hardware
+    doesn't natively support — most interfaces only do 44.1/48kHz —
+    so forcing 16kHz there failed outright with "Invalid sample rate"
+    on every non-default device. Recorded audio is resampled to what
+    the speech model needs once, in stop(), rather than fighting the
+    hardware for an exact rate up front.
+    """
 
     def __init__(self, config, on_level=None):
         self.config = config
         self.on_level = on_level  # called with 0..1 RMS from audio thread
         self._stream = None
         self._chunks = []
+        self._native_rate = SAMPLE_RATE
         self._lock = threading.Lock()
 
     def _device(self):
@@ -101,24 +121,38 @@ class Recorder:
         except (TypeError, ValueError):
             return None
 
+    def _device_rate(self, device):
+        import sounddevice as sd
+        try:
+            info = (sd.query_devices(kind="input") if device is None
+                    else sd.query_devices(device))
+            return int(info["default_samplerate"])
+        except Exception:
+            log.warning("could not read device sample rate, using %dHz",
+                       SAMPLE_RATE, exc_info=True)
+            return SAMPLE_RATE
+
     def start(self):
         import sounddevice as sd
         with self._lock:
             if self._stream is not None:
                 return
             self._chunks = []
+            device = self._device()
+            self._native_rate = self._device_rate(device)
+            cap_frames = self._native_rate * MAX_SECONDS
 
             def callback(indata, frames, time_info, status):
                 with self._lock:
-                    if len(self._chunks) * frames < SAMPLE_RATE * MAX_SECONDS:
+                    if len(self._chunks) * frames < cap_frames:
                         self._chunks.append(indata[:, 0].copy())
                 if self.on_level is not None:
                     rms = float(np.sqrt(np.mean(indata ** 2)))
                     self.on_level(min(1.0, rms * 8))
 
             self._stream = sd.InputStream(
-                samplerate=SAMPLE_RATE, channels=1, dtype="float32",
-                device=self._device(), callback=callback)
+                samplerate=self._native_rate, channels=1, dtype="float32",
+                device=device, callback=callback)
             self._stream.start()
 
     def stop(self):
@@ -126,12 +160,16 @@ class Recorder:
         with self._lock:
             stream, self._stream = self._stream, None
             chunks, self._chunks = self._chunks, []
+            native_rate = self._native_rate
         if stream is not None:
             stream.stop()
             stream.close()
         if not chunks:
             return np.zeros(0, dtype=np.float32)
-        return np.concatenate(chunks)
+        audio = np.concatenate(chunks)
+        if native_rate != SAMPLE_RATE:
+            audio = _resample(audio, native_rate, SAMPLE_RATE)
+        return audio
 
     @property
     def recording(self):

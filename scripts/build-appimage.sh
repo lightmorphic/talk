@@ -87,6 +87,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
 from gi.repository import Gtk, AyatanaAppIndicator3
 import cairo, numpy, sounddevice, onnx_asr, onnxruntime
+import scipy.signal
 import httpx
 from huggingface_hub import snapshot_download
 import pynput.keyboard, pynput.mouse
@@ -198,6 +199,7 @@ Exec=talkin
 Icon=talkin
 Categories=Utility;Accessibility;
 Terminal=false
+StartupWMClass=talkin
 EOF
 cp AppDir/talkin.desktop AppDir/usr/share/applications/talkin.desktop
 
@@ -212,9 +214,21 @@ cat > AppDir/usr/bin/talkin <<'LAUNCHER'
 HERE="${APPDIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 
 export GI_TYPELIB_PATH="$HERE/usr/lib/girepository-1.0${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
-export XDG_DATA_DIRS="$HERE/usr/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+# Losing the system's XDG_DATA_DIRS (e.g. /usr/share) isn't just
+# cosmetic: gdk-pixbuf's format sniffing depends on the shared MIME
+# database that lives there, and without it every icon load fails
+# with "Couldn't recognise the image file format" — confirmed by
+# reproducing it directly. Falls back to the XDG-spec default rather
+# than the bundle alone if the launch context has no XDG_DATA_DIRS at
+# all (most desktop sessions do, but not every launch context does).
+export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export GSETTINGS_SCHEMA_DIR="$HERE/usr/share/glib-2.0/schemas"
-export GDK_PIXBUF_MODULE_FILE="$HERE/usr/lib/gdk-pixbuf-2.0/loaders.cache"
+# The real file is nested under a gdk-pixbuf ABI version directory
+# (e.g. 2.10.0) that varies by build machine — glob for it rather than
+# hardcoding a version, so this doesn't silently point at nothing.
+GDK_PIXBUF_CACHE="$(find "$HERE/usr/lib/gdk-pixbuf-2.0" \
+  -maxdepth 2 -name loaders.cache 2>/dev/null | head -1)"
+[ -n "$GDK_PIXBUF_CACHE" ] && export GDK_PIXBUF_MODULE_FILE="$GDK_PIXBUF_CACHE"
 export PYTHONHOME="$HERE/usr"
 export PYTHONPATH="$HERE/usr/share/talkin:$HERE/usr/lib/python3.13:$HERE/usr/lib/python3.13/site-packages"
 export PYTHONNOUSERSITE=1
