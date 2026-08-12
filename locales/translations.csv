@@ -95,7 +95,13 @@ update.uptodate,You're on the latest version,Vous avez la dernière version,Sie 
 update.available,Update available:,Mise à jour disponible :,Update verfügbar:,Actualización disponible:,Aggiornamento disponibile:,Update beschikbaar:
 update.button,Update to {v},Mettre à jour vers {v},Auf {v} aktualisieren,Actualizar a {v},Aggiorna a {v},Bijwerken naar {v}
 update.download,Download {v},Télécharger {v},{v} herunterladen,Descargar {v},Scarica {v},{v} downloaden
-update.installing,Updating — Talkin will restart…,Mise à jour — Talkin va redémarrer…,Aktualisierung — Talkin startet neu…,Actualizando — Talkin se reiniciará…,Aggiornamento — Talkin si riavvierà…,Bijwerken — Talkin start opnieuw…
+update.installing,Installing the update…,Installation de la mise à jour…,Update wird installiert…,Instalando la actualización…,Installazione dell'aggiornamento…,Update installeren…
+update.popup_title,Update available,Mise à jour disponible,Update verfügbar,Actualización disponible,Aggiornamento disponibile,Update beschikbaar
+update.popup_body,Talkin {v} is ready to install.,Talkin {v} est prêt à installer.,Talkin {v} ist bereit zur Installation.,Talkin {v} está listo para instalar.,Talkin {v} è pronto per l'installazione.,Talkin {v} is klaar om te installeren.
+update.not_now,Not now,Pas maintenant,Nicht jetzt,Ahora no,Non ora,Niet nu
+update.ready_title,Update installed,Mise à jour installée,Update installiert,Actualización instalada,Aggiornamento installato,Update geïnstalleerd
+update.ready_body,Restart Talkin to finish updating.,Redémarrez Talkin pour terminer la mise à jour.,"Starten Sie Talkin neu, um die Aktualisierung abzuschließen.",Reinicia Talkin para terminar de actualizar.,Riavvia Talkin per completare l'aggiornamento.,Herstart Talkin om de update te voltooien.
+update.restart_now,Restart now,Redémarrer maintenant,Jetzt neu starten,Reiniciar ahora,Riavvia ora,Nu herstarten
 update.error,Couldn't check for updates,Impossible de vérifier les mises à jour,Updates konnten nicht geprüft werden,No se pudieron comprobar las actualizaciones,Impossibile verificare gli aggiornamenti,Kon niet op updates controleren
 update.failed,The update failed. Open Settings → View log for details.,La mise à jour a échoué. Ouvrez Réglages → Voir le journal pour les détails.,Die Aktualisierung ist fehlgeschlagen. Öffnen Sie Einstellungen → Protokoll ansehen für Details.,La actualización falló. Abre Ajustes → Ver el registro para más detalles.,L'aggiornamento non è riuscito. Apri Impostazioni → Vedi il registro per i dettagli.,De update is mislukt. Open Instellingen → Logboek bekijken voor details.
 update.created_by,Created by,Créé par,Erstellt von,Creado por,Creato da,Gemaakt door
