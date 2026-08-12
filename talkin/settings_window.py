@@ -33,6 +33,20 @@ _YELLOW = "#fbc711"
 # the nearest value on the house style's 4px spacing scale.
 _FIELD_GAP = 16
 
+# The update-widget dot: Lightmorphic palette exactly, per house spec
+# (do not substitute other greens/yellows/reds).
+_DOT_SIZE = 15
+_LM_SUCCESS = "#4bae4f"
+_LM_WARNING = "#ffc006"
+_LM_DANGER = "#f34236"
+_LM_MUTED = "#a1a1aa"
+_LM_ON_ACCENT = "#645007"
+
+
+def _hex_rgb(hexstr):
+    h = hexstr.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
 # The Lightmorphic style's dark tokens, translated to GTK CSS. This app
 # commits to the brand's dark navy + yellow identity always (like the
 # tray icons and overlay), rather than following the desktop's light/
@@ -113,26 +127,6 @@ window.talkin-settings {
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 .talkin-settings .keycap label { color: @lm_on_accent; }
 
-@define-color lm_success #4bae4f;
-@define-color lm_warning #ffc006;
-.talkin-settings .update-dot {
-  padding: 0; margin: 0 2px;
-  border-radius: 50%;
-  border: none;
-  background-image: none;
-}
-.talkin-settings .update-dot.checking { background-color: @lm_muted_fg; }
-.talkin-settings .update-dot.uptodate { background-color: @lm_success; }
-.talkin-settings .update-dot.available { background-color: @lm_warning; }
-.talkin-settings .update-dot.error { background-color: @lm_danger; }
-/* A round 12px dot wearing the same square yellow ring as everything
-   else looks broken, not focused - and GTK auto-focuses the first
-   focusable widget on window show, so this was visible immediately
-   on every open with no click at all. A matching round ring instead. */
-.talkin-settings .update-dot:focus {
-  outline: 2px solid @lm_fg;
-  outline-offset: 3px;
-}
 .talkin-settings entry, .talkin-settings combobox button,
 .talkin-settings treeview {
   border-radius: 0.875rem;
@@ -480,14 +474,19 @@ class SettingsWindow(Gtk.Window):
             Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
         ver_row.pack_start(ver_event, False, False, 0)
 
-        self._update_dot = Gtk.Button()
-        self._update_dot.get_style_context().add_class("update-dot")
-        # CSS min-width/min-height alone don't force an exact size, so
-        # the button was free to stretch taller than wide and render
-        # as a slight oval rather than a true circle.
-        self._update_dot.set_size_request(13, 13)
-        self._update_dot.connect("clicked", self._on_update_dot_clicked)
-        ver_row.pack_start(self._update_dot, False, False, 0)
+        # The dot per Charlie's house update-widget spec: a small
+        # custom-drawn circle carrying its own state via colour, a
+        # hollow progress ring while downloading, and an overlay icon
+        # for the two clickable states — no separate button, no
+        # banner, no dialog. The dot IS the whole update UI.
+        self._download_fraction = 0.0
+        self._update_dot = Gtk.DrawingArea()
+        self._update_dot.set_size_request(_DOT_SIZE, _DOT_SIZE)
+        self._update_dot.connect("draw", self._draw_update_dot)
+        dot_event = Gtk.EventBox()
+        dot_event.add(self._update_dot)
+        dot_event.connect("button-press-event", self._on_update_dot_clicked)
+        ver_row.pack_start(dot_event, False, False, 0)
         row.pack_start(ver_row, False, False, 0)
 
         self._update_state = "checking"
@@ -501,12 +500,75 @@ class SettingsWindow(Gtk.Window):
         webbrowser.open("https://talkin.lightmorphic.co.uk")
 
     def _set_update_dot(self, state, tooltip):
-        ctx = self._update_dot.get_style_context()
-        for cls in ("checking", "uptodate", "available", "error"):
-            ctx.remove_class(cls)
-        ctx.add_class(state)
-        self._update_dot.set_tooltip_text(tooltip)
         self._update_state = state
+        self._update_dot.set_tooltip_text(tooltip)
+        self._update_dot.queue_draw()
+
+    def _draw_update_dot(self, widget, cr):
+        import math
+        w = widget.get_allocated_width()
+        h = widget.get_allocated_height()
+        cx, cy = w / 2, h / 2
+        r = min(w, h) / 2 - 1
+        state = self._update_state
+
+        if state == "downloading":
+            cr.set_line_width(2.0)
+            cr.set_source_rgba(0.63, 0.63, 0.67, 0.35)
+            cr.arc(cx, cy, r - 1, 0, 2 * math.pi)
+            cr.stroke()
+            cr.set_source_rgb(*_hex_rgb(_LM_WARNING))
+            start = -math.pi / 2
+            end = start + 2 * math.pi * max(0.02, self._download_fraction)
+            cr.arc(cx, cy, r - 1, start, end)
+            cr.stroke()
+            return False
+
+        color = {
+            "checking": _LM_MUTED, "uptodate": _LM_SUCCESS,
+            "available": _LM_WARNING, "ready": _LM_SUCCESS,
+            "error": _LM_DANGER,
+        }.get(state, _LM_MUTED)
+        cr.set_source_rgb(*_hex_rgb(color))
+        cr.arc(cx, cy, r, 0, 2 * math.pi)
+        cr.fill()
+
+        if state == "available":
+            self._draw_download_icon(cr, cx, cy, r)
+        elif state == "ready":
+            self._draw_restart_icon(cr, cx, cy, r)
+        return False
+
+    def _draw_download_icon(self, cr, cx, cy, r):
+        import math
+        cr.set_source_rgb(*_hex_rgb(_LM_ON_ACCENT))
+        cr.set_line_width(1.4)
+        cr.set_line_cap(1)  # round
+        s = r * 0.45
+        cr.move_to(cx, cy - s)
+        cr.line_to(cx, cy + s * 0.5)
+        cr.stroke()
+        cr.move_to(cx - s * 0.6, cy)
+        cr.line_to(cx, cy + s * 0.5)
+        cr.line_to(cx + s * 0.6, cy)
+        cr.stroke()
+
+    def _draw_restart_icon(self, cr, cx, cy, r):
+        import math
+        cr.set_source_rgb(*_hex_rgb(_LM_ON_ACCENT))
+        cr.set_line_width(1.4)
+        cr.set_line_cap(1)
+        ir = r * 0.55
+        cr.arc(cx, cy, ir, -math.pi * 0.15, math.pi * 1.2)
+        cr.stroke()
+        tip_angle = math.pi * 1.2
+        tip_x = cx + ir * math.cos(tip_angle)
+        tip_y = cy + ir * math.sin(tip_angle)
+        cr.move_to(tip_x, tip_y)
+        cr.line_to(tip_x - r * 0.28, tip_y - r * 0.05)
+        cr.move_to(tip_x, tip_y)
+        cr.line_to(tip_x - r * 0.05, tip_y + r * 0.28)
+        cr.stroke()
 
     # -- general -----------------------------------------------------
 
@@ -1057,78 +1119,48 @@ class SettingsWindow(Gtk.Window):
         state = result.get("state")
         if state == "available":
             self._update_tag = result["latest"]
-            self._set_update_dot("available", "{} {}".format(
-                i18n.t("update.available"), result["latest"]))
-            self._show_update_available_dialog()
+            self._set_update_dot("available", i18n.t("update.available_tip"))
         elif state == "up-to-date":
             self._set_update_dot("uptodate", i18n.t("update.uptodate"))
         else:
-            detail = result.get("detail")
-            tooltip = i18n.t("update.error")
-            if detail:
-                tooltip = "{}: {}".format(tooltip, detail)
-            self._set_update_dot("error", tooltip)
+            self._set_update_dot("error", i18n.t("update.error"))
         return False
 
-    def _on_update_dot_clicked(self, _button):
-        # Any click re-checks; a click while an update is already known
-        # to be available re-opens the install prompt rather than
-        # applying silently — a whole new AppImage swapping itself in
-        # from one click with no confirmation is a bit much.
+    def _on_update_dot_clicked(self, _widget, _event):
+        # The dot is the whole interface: yellow starts the download,
+        # the ready state restarts. Every other state isn't clickable
+        # (per house spec) - checking/downloading are already in
+        # progress, and up-to-date/error need nothing from a click.
         if self._update_state == "available":
-            self._show_update_available_dialog()
-        else:
-            self._check_update()
-
-    def _show_update_available_dialog(self):
-        dialog = Gtk.MessageDialog(
-            transient_for=self, modal=True,
-            message_type=Gtk.MessageType.INFO,
-            text=i18n.t("update.popup_title"),
-            secondary_text=i18n.t("update.popup_body").format(
-                v=self._update_tag))
-        dialog.add_button(i18n.t("update.not_now"), Gtk.ResponseType.CANCEL)
-        dialog.add_button(
-            i18n.t("update.button").format(v=self._update_tag),
-            Gtk.ResponseType.OK)
-        dialog.set_default_response(Gtk.ResponseType.OK)
-        response = dialog.run()
-        dialog.destroy()
-        if response == Gtk.ResponseType.OK:
             self._apply_update()
+        elif self._update_state == "ready":
+            self.app_obj.restart()
 
     def _apply_update(self):
         from . import updater
-        self._set_update_dot("checking", i18n.t("update.installing"))
+        self._download_fraction = 0.0
+        self._set_update_dot("downloading", i18n.t("update.installing"))
+
+        def on_progress(fraction):
+            GLib.idle_add(self._set_download_progress, fraction)
 
         def run():
-            ok = updater.apply(self._update_tag)
+            ok = updater.apply(self._update_tag, on_progress=on_progress)
             GLib.idle_add(self._update_applied, ok)
         import threading
         threading.Thread(target=run, daemon=True).start()
 
-    def _update_applied(self, ok):
-        if ok:
-            self._set_update_dot("uptodate", i18n.t("update.ready_body"))
-            self._show_restart_dialog()
-        else:
-            self._set_update_dot("error", i18n.t("update.failed"))
+    def _set_download_progress(self, fraction):
+        self._download_fraction = fraction
+        self._update_dot.queue_draw()
         return False
 
-    def _show_restart_dialog(self):
-        dialog = Gtk.MessageDialog(
-            transient_for=self, modal=True,
-            message_type=Gtk.MessageType.INFO,
-            text=i18n.t("update.ready_title"),
-            secondary_text=i18n.t("update.ready_body"))
-        dialog.add_button(i18n.t("update.not_now"), Gtk.ResponseType.CANCEL)
-        dialog.add_button(
-            i18n.t("update.restart_now"), Gtk.ResponseType.OK)
-        dialog.set_default_response(Gtk.ResponseType.OK)
-        response = dialog.run()
-        dialog.destroy()
-        if response == Gtk.ResponseType.OK:
-            self.app_obj.restart()
+    def _update_applied(self, ok):
+        if ok:
+            self._set_update_dot("ready", i18n.t("update.restart_tip"))
+        else:
+            self._set_update_dot("error", i18n.t("update.error"))
+        return False
 
     # -- save / close ----------------------------------------------------
 

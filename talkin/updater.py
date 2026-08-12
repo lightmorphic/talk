@@ -102,16 +102,21 @@ def check():
     return {"state": "up-to-date", "current": __version__}
 
 
-def apply(tag):
-    """Update to `tag` and report success. Caller restarts on True."""
+def apply(tag, on_progress=None):
+    """Update to `tag` and report success. Caller restarts on True.
+
+    on_progress, when given, is called with a 0..1 fraction as the
+    AppImage downloads (source-checkout updates have no comparable
+    progress to report, so it's simply never called in that mode).
+    """
     if not _parse(tag):
         return False
     if is_packaged():
-        return _apply_appimage(tag)
+        return _apply_appimage(tag, on_progress)
     return _apply_source(tag)
 
 
-def _apply_appimage(tag):
+def _apply_appimage(tag, on_progress=None):
     appimage_path = os.environ.get("APPIMAGE")
     if not appimage_path:
         return False
@@ -121,11 +126,16 @@ def _apply_appimage(tag):
             _ASSET_URL.format(tag), headers={"User-Agent": "Talkin"})
         with urllib.request.urlopen(req, timeout=300) as resp, \
                 open(tmp_path, "wb") as f:
+            total = int(resp.headers.get("Content-Length") or 0)
+            written = 0
             while True:
                 chunk = resp.read(1024 * 1024)
                 if not chunk:
                     break
                 f.write(chunk)
+                written += len(chunk)
+                if on_progress and total:
+                    on_progress(min(1.0, written / total))
         if os.path.getsize(tmp_path) < _MIN_APPIMAGE_SIZE:
             raise ValueError("downloaded file is implausibly small")
         os.chmod(tmp_path, 0o755)

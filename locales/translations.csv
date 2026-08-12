@@ -91,17 +91,9 @@ notify.downloading,"Downloading the speech model — about 600 MB, once only.","
 notify.ready,Talkin is ready — hold your key and speak.,Talkin est prêt — maintenez votre touche et parlez.,Talkin ist bereit — Taste gedrückt halten und sprechen.,Talkin está listo — mantén tu tecla y habla.,Talkin è pronto — tieni premuto il tasto e parla.,Talkin is klaar — houd je toets ingedrukt en spreek.
 notify.title,Talkin,Talkin,Talkin,Talkin,Talkin,Talkin
 update.checking,Checking for updates…,Recherche de mises à jour…,Suche nach Updates…,Buscando actualizaciones…,Ricerca aggiornamenti…,Zoeken naar updates…
-update.uptodate,You're on the latest version,Vous avez la dernière version,Sie haben die neueste Version,Tienes la última versión,Hai l'ultima versione,Je hebt de nieuwste versie
-update.available,Update available:,Mise à jour disponible :,Update verfügbar:,Actualización disponible:,Aggiornamento disponibile:,Update beschikbaar:
-update.button,Update to {v},Mettre à jour vers {v},Auf {v} aktualisieren,Actualizar a {v},Aggiorna a {v},Bijwerken naar {v}
-update.download,Download {v},Télécharger {v},{v} herunterladen,Descargar {v},Scarica {v},{v} downloaden
+update.uptodate,Up to date,À jour,Aktuell,Actualizado,Aggiornato,Up-to-date
+update.available_tip,Update available — click to download,Mise à jour disponible — cliquez pour télécharger,Update verfügbar — zum Herunterladen klicken,Actualización disponible — haz clic para descargar,Aggiornamento disponibile — clicca per scaricare,Update beschikbaar — klik om te downloaden
 update.installing,Installing the update…,Installation de la mise à jour…,Update wird installiert…,Instalando la actualización…,Installazione dell'aggiornamento…,Update installeren…
-update.popup_title,Update available,Mise à jour disponible,Update verfügbar,Actualización disponible,Aggiornamento disponibile,Update beschikbaar
-update.popup_body,Talkin {v} is ready to install.,Talkin {v} est prêt à installer.,Talkin {v} ist bereit zur Installation.,Talkin {v} está listo para instalar.,Talkin {v} è pronto per l'installazione.,Talkin {v} is klaar om te installeren.
-update.not_now,Not now,Pas maintenant,Nicht jetzt,Ahora no,Non ora,Niet nu
-update.ready_title,Update installed,Mise à jour installée,Update installiert,Actualización instalada,Aggiornamento installato,Update geïnstalleerd
-update.ready_body,Restart Talkin to finish updating.,Redémarrez Talkin pour terminer la mise à jour.,"Starten Sie Talkin neu, um die Aktualisierung abzuschließen.",Reinicia Talkin para terminar de actualizar.,Riavvia Talkin per completare l'aggiornamento.,Herstart Talkin om de update te voltooien.
-update.restart_now,Restart now,Redémarrer maintenant,Jetzt neu starten,Reiniciar ahora,Riavvia ora,Nu herstarten
-update.error,Couldn't check for updates,Impossible de vérifier les mises à jour,Updates konnten nicht geprüft werden,No se pudieron comprobar las actualizaciones,Impossibile verificare gli aggiornamenti,Kon niet op updates controleren
-update.failed,The update failed. Open Settings → View log for details.,La mise à jour a échoué. Ouvrez Réglages → Voir le journal pour les détails.,Die Aktualisierung ist fehlgeschlagen. Öffnen Sie Einstellungen → Protokoll ansehen für Details.,La actualización falló. Abre Ajustes → Ver el registro para más detalles.,L'aggiornamento non è riuscito. Apri Impostazioni → Vedi il registro per i dettagli.,De update is mislukt. Open Instellingen → Logboek bekijken voor details.
+update.restart_tip,Click to restart the app,Cliquez pour redémarrer l'application,Zum Neustarten der App klicken,Haz clic para reiniciar la aplicación,Clicca per riavviare l'app,Klik om de app opnieuw te starten
+update.error,Can't connect to GitHub,Impossible de se connecter à GitHub,Keine Verbindung zu GitHub möglich,No se puede conectar con GitHub,Impossibile connettersi a GitHub,Kan geen verbinding maken met GitHub
 update.created_by,Created by,Créé par,Erstellt von,Creado por,Creato da,Gemaakt door
