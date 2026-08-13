@@ -35,7 +35,8 @@ _FIELD_GAP = 16
 
 # The update-widget dot: Lightmorphic palette exactly, per house spec
 # (do not substitute other greens/yellows/reds).
-_DOT_SIZE = 15
+_DOT_SIZE = 18  # ~20% bigger than the original 15px - easier to see the
+                # state (and the progress ring) actually change
 _LM_SUCCESS = "#4bae4f"
 _LM_WARNING = "#ffc006"
 _LM_DANGER = "#f34236"
@@ -497,10 +498,17 @@ class SettingsWindow(Gtk.Window):
         ver_row.set_halign(Gtk.Align.END)
         ver_row.set_valign(Gtk.Align.START)
 
-        ver_label = Gtk.Label(label="Talkin v{}".format(__version__))
-        ver_label.get_style_context().add_class("hint")
+        ver_text_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                               spacing=5)
+        name_label = Gtk.Label(label="Talkin")
+        name_label.get_style_context().add_class("hint")
+        ver_text_row.pack_start(name_label, False, False, 0)
+        ver_num_label = Gtk.Label(label="v{}".format(__version__))
+        ver_num_label.get_style_context().add_class("hint")
+        ver_text_row.pack_start(ver_num_label, False, False, 0)
+
         ver_event = Gtk.EventBox()
-        ver_event.add(ver_label)
+        ver_event.add(ver_text_row)
         ver_event.set_tooltip_text("talkin.lightmorphic.co.uk")
         ver_event.connect("button-press-event", self._on_version_clicked)
         ver_event.connect("realize", lambda w: w.get_window().set_cursor(
