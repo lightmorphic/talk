@@ -164,7 +164,19 @@ class TalkinApp:
 
     def restart(self):
         log.info("restarting")
-        subprocess.Popen([cfg.launcher_path()], cwd=cfg.BASE_DIR)
+        # The new process retries the single-instance socket bind for up
+        # to 10s before giving up silently (see main()) — releasing the
+        # lock here, before spawning, means it never has to race this
+        # process's own shutdown (model unload, audio teardown) at all.
+        global _single
+        try:
+            _single.close()
+        except Exception:
+            pass
+        # No cwd: the AppImage launcher resolves its own path via $0, and
+        # BASE_DIR would point at this instance's own ephemeral FUSE
+        # mount, which is on its way out right after this call anyway.
+        subprocess.Popen([cfg.launcher_path()])
         self.quit()
 
     def quit(self):
