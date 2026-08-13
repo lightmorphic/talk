@@ -190,14 +190,15 @@ window.talkin-settings {
 /* Buttons that are already accent-colored need a focus ring that
    actually contrasts against them, not more of the same yellow -
    otherwise clicking Save reads as a garish yellow-on-yellow flash.
-   A negative outline-offset here previously drew that ring INSET,
-   inside the button's own edge - which looked like a stray line
-   forming a small square inside the capsule, not a focus ring. A
-   small positive offset keeps it outside instead. */
+   `outline` doesn't follow border-radius in GTK, so on these rounded
+   capsules it drew a plain rectangle instead of hugging the curve -
+   first as a negative-offset square INSIDE the button, then (once
+   that offset was flipped positive) as a square OUTSIDE it. box-shadow
+   does follow border-radius, so it replaces outline entirely here. */
 .talkin-settings button.primary:focus,
 .talkin-settings .keycap:focus {
-  outline: 2px solid @lm_bg;
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 2px @lm_bg;
 }
 """
 
