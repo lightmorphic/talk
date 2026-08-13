@@ -92,10 +92,19 @@ window.talkin-settings {
   border-radius: 0.875rem;
   padding: 6px 14px;
 }
-.talkin-settings button.secondary {
+.talkin-settings button.icon-btn {
+  min-width: 34px; min-height: 34px;
+  padding: 0; margin: 0;
+  border-radius: 50%;
+  border: none;
   background-color: @lm_muted;
-  border: 1px solid @lm_border;
+  background-image: none;
   color: @lm_fg;
+}
+.talkin-settings button.icon-btn:hover { background-color: @lm_border; }
+.talkin-settings button.icon-btn.danger-armed {
+  background-color: @lm_danger_bg;
+  color: @lm_danger;
 }
 .talkin-settings button.primary {
   background-color: @lm_accent;
@@ -123,7 +132,6 @@ window.talkin-settings {
    set above - a direct match always beats inherited color in GTK's
    CSS cascade, regardless of specificity or source order. */
 .talkin-settings button.primary label { color: @lm_on_accent; }
-.talkin-settings button.secondary label { color: @lm_fg; }
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 .talkin-settings .keycap label { color: @lm_on_accent; }
 
@@ -403,22 +411,38 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(widget, True, True, 0)
         return row
 
-    def _secondary_button(self, label_text):
-        button = Gtk.Button(label=label_text)
-        button.get_style_context().add_class("secondary")
+    def _icon_button(self, icon_name, tooltip):
+        """A circular, icon-only action button — Charlie's house style
+        for secondary actions (matches the round-icon-row convention
+        used across his other apps' toolbars)."""
+        button = Gtk.Button.new_from_icon_name(
+            icon_name, Gtk.IconSize.BUTTON)
+        button.get_style_context().add_class("icon-btn")
+        button.set_tooltip_text(tooltip)
+        # Packed alone (not in a horizontal row) into a vertical box, a
+        # widget defaults to Align.FILL on the cross axis and stretches
+        # to the panel's full width - pinning halign here means every
+        # icon button stays a compact circle regardless of what kind of
+        # container it ends up in.
+        button.set_halign(Gtk.Align.START)
         return button
 
-    def _arm_destructive(self, button, action):
+    def _arm_destructive(self, button, action, armed_tooltip=None):
         """A destructive action never fires on one click: the button
         turns red and asks again in place, reverting after a few
-        seconds — never a confirm() dialog."""
-        original = button.get_label()
+        seconds — never a confirm() dialog. Works for both labelled
+        buttons (swaps the label) and icon-only ones (swaps the
+        tooltip instead, since there's no label to change)."""
+        original_label = button.get_label()
+        original_tooltip = button.get_tooltip_text()
         state = {"armed": False, "timeout": None}
 
         def revert():
             state["armed"] = False
             state["timeout"] = None
-            button.set_label(original)
+            if original_label is not None:
+                button.set_label(original_label)
+            button.set_tooltip_text(original_tooltip)
             button.get_style_context().remove_class("danger-armed")
             return False
 
@@ -430,7 +454,10 @@ class SettingsWindow(Gtk.Window):
                 action()
                 return
             state["armed"] = True
-            button.set_label(original + "?")
+            if original_label is not None:
+                button.set_label(original_label + "?")
+            button.set_tooltip_text(
+                armed_tooltip or ((original_tooltip or "") + "?"))
             button.get_style_context().add_class("danger-armed")
             state["timeout"] = GLib.timeout_add_seconds(4, revert)
 
@@ -636,10 +663,8 @@ class SettingsWindow(Gtk.Window):
             self._hotkey_buttons[field] = button
             row.pack_start(button, False, False, 0)
 
-            clear = Gtk.Button.new_from_icon_name(
-                "edit-clear-symbolic", Gtk.IconSize.BUTTON)
-            clear.get_style_context().add_class("secondary")
-            clear.set_tooltip_text(i18n.t("settings.clear_key"))
+            clear = self._icon_button(
+                "edit-clear-symbolic", i18n.t("settings.clear_key"))
             clear.connect("clicked", lambda *_r, f=field: self._clear_key(f))
             row.pack_start(clear, False, False, 0)
 
@@ -717,7 +742,8 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(self._row(i18n.t("settings.mic"), self._mic_combo),
                        False, False, 0)
 
-        test_btn = self._secondary_button(i18n.t("settings.mic_test"))
+        test_btn = self._icon_button(
+            "audio-input-microphone-symbolic", i18n.t("settings.mic_test"))
         test_btn.connect("clicked", self._on_mic_test)
         box.pack_start(test_btn, False, False, 0)
 
@@ -857,13 +883,16 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(entry_row, False, False, 0)
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
-        add_btn = self._secondary_button(i18n.t("settings.dict.add"))
+        add_btn = self._icon_button(
+            "list-add-symbolic", i18n.t("settings.dict.add"))
         add_btn.connect("clicked", self._on_dict_add)
         actions.pack_start(add_btn, False, False, 0)
-        export_btn = self._secondary_button(i18n.t("settings.dict.export"))
+        export_btn = self._icon_button(
+            "document-save-symbolic", i18n.t("settings.dict.export"))
         export_btn.connect("clicked", self._on_dict_export)
         actions.pack_start(export_btn, False, False, 0)
-        import_btn = self._secondary_button(i18n.t("settings.dict.import"))
+        import_btn = self._icon_button(
+            "document-open-symbolic", i18n.t("settings.dict.import"))
         import_btn.connect("clicked", self._on_dict_import)
         actions.pack_start(import_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
@@ -976,10 +1005,12 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(self._history_empty, False, False, 0)
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
-        export_btn = self._secondary_button(i18n.t("settings.history.export"))
+        export_btn = self._icon_button(
+            "document-save-symbolic", i18n.t("settings.history.export"))
         export_btn.connect("clicked", self._on_history_export)
         actions.pack_start(export_btn, False, False, 0)
-        clear_btn = self._secondary_button(i18n.t("settings.history.clear"))
+        clear_btn = self._icon_button(
+            "user-trash-symbolic", i18n.t("settings.history.clear"))
         self._arm_destructive(clear_btn, self._on_history_clear)
         actions.pack_start(clear_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
@@ -1023,16 +1054,19 @@ class SettingsWindow(Gtk.Window):
                             "settings.maintenance_help")
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
-        restart_btn = self._secondary_button(i18n.t("settings.restart"))
+        restart_btn = self._icon_button(
+            "view-refresh-symbolic", i18n.t("settings.restart"))
         restart_btn.connect(
             "clicked", lambda *_r: self.app_obj.restart())
         actions.pack_start(restart_btn, False, False, 0)
 
-        log_btn = self._secondary_button(i18n.t("settings.view_log"))
+        log_btn = self._icon_button(
+            "text-x-generic-symbolic", i18n.t("settings.view_log"))
         log_btn.connect("clicked", self._on_view_log)
         actions.pack_start(log_btn, False, False, 0)
 
-        export_btn = self._secondary_button(i18n.t("settings.export_all"))
+        export_btn = self._icon_button(
+            "package-x-generic-symbolic", i18n.t("settings.export_all"))
         export_btn.connect("clicked", self._on_export_all)
         actions.pack_start(export_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
