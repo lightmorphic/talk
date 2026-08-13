@@ -1168,13 +1168,17 @@ class SettingsWindow(Gtk.Window):
 
     def _on_update_dot_clicked(self, _widget, _event):
         # The dot is the whole interface: yellow starts the download,
-        # the ready state restarts. Every other state isn't clickable
-        # (per house spec) - checking/downloading are already in
-        # progress, and up-to-date/error need nothing from a click.
+        # the ready state restarts, and green/red re-check (green to
+        # confirm nothing new has shipped since the last check, red to
+        # retry after a connection blip - otherwise a stuck red dot
+        # would never resolve without closing Settings entirely).
+        # checking/downloading ignore clicks; already in progress.
         if self._update_state == "available":
             self._apply_update()
         elif self._update_state == "ready":
             self.app_obj.restart()
+        elif self._update_state in ("uptodate", "error"):
+            self._check_update()
 
     def _apply_update(self):
         from . import updater
