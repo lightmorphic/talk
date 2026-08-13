@@ -22,8 +22,6 @@ correction.no_selection,"Highlight the mistyped word first, then press the corre
 correction.saved,Learned! It will be spelt that way from now on.,Appris ! Il s'écrira ainsi désormais.,Gelernt! Ab jetzt wird es so geschrieben.,¡Aprendido! A partir de ahora se escribirá así.,Imparato! D'ora in poi verrà scritta così.,Geleerd! Vanaf nu wordt het zo gespeld.
 settings.title,Talkin Settings,Réglages de Talkin,Talkin-Einstellungen,Ajustes de Talkin,Impostazioni di Talkin,Talkin-instellingen
 settings.subtitle,Everything runs on this machine. Nothing is ever sent anywhere.,Tout fonctionne sur cette machine. Rien n'est jamais envoyé ailleurs.,Alles läuft auf diesem Rechner. Nichts wird jemals irgendwohin gesendet.,Todo funciona en esta máquina. Nunca se envía nada a ninguna parte.,Tutto funziona su questa macchina. Nulla viene mai inviato altrove.,Alles draait op deze machine. Er wordt nooit iets verstuurd.
-settings.saved,Saved,Enregistré,Gespeichert,Guardado,Salvato,Opgeslagen
-settings.save,Save changes,Enregistrer les modifications,Änderungen speichern,Guardar cambios,Salva le modifiche,Wijzigingen opslaan
 settings.section.general,General,Général,Allgemein,General,Generale,Algemeen
 settings.language,Language,Langue,Sprache,Idioma,Lingua,Taal
 settings.autostart,Start Talkin when the computer starts,Lancer Talkin au démarrage de l'ordinateur,Talkin beim Hochfahren des Rechners starten,Iniciar Talkin al encender el ordenador,Avvia Talkin all'accensione del computer,Talkin starten wanneer de computer opstart

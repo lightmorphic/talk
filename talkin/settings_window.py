@@ -183,21 +183,21 @@ window.talkin-settings {
   color: @lm_fg; font-weight: 600;
 }
 
+/* `outline` doesn't follow border-radius in GTK at all, on ANY
+   widget - it always draws a plain rectangle, never the rounded ring
+   it's meant to be. On round icon buttons and rounded capsules alike
+   that reads as a stray box sitting outside the widget's own edge,
+   which is what kept coming back here. box-shadow does follow
+   border-radius, so it replaces outline everywhere focus is shown,
+   not just on the couple of widgets it was visibly wrong on before. */
 .talkin-settings *:focus {
-  outline: 2px solid @lm_accent;
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px @lm_accent;
 }
 /* Buttons that are already accent-colored need a focus ring that
-   actually contrasts against them, not more of the same yellow -
-   otherwise clicking Save reads as a garish yellow-on-yellow flash.
-   `outline` doesn't follow border-radius in GTK, so on these rounded
-   capsules it drew a plain rectangle instead of hugging the curve -
-   first as a negative-offset square INSIDE the button, then (once
-   that offset was flipped positive) as a square OUTSIDE it. box-shadow
-   does follow border-radius, so it replaces outline entirely here. */
+   actually contrasts against them, not more of the same yellow. */
 .talkin-settings button.primary:focus,
 .talkin-settings .keycap:focus {
-  outline: none;
   box-shadow: 0 0 0 2px @lm_bg;
 }
 """
@@ -305,7 +305,6 @@ class SettingsWindow(Gtk.Window):
             log.warning("could not load settings window icon", exc_info=True)
         self.connect("delete-event", self._on_close)
 
-        self._pending = {}       # config changes not yet saved
         self._capture_field = None
         self._capture_button = None
         self.connect("key-press-event", self._on_window_key)
@@ -377,8 +376,6 @@ class SettingsWindow(Gtk.Window):
         sidebar.connect("row-selected", self._on_category_selected)
         split.pack_start(sidebar, False, False, 0)
         split.pack_start(self._stack, True, True, 0)
-
-        outer.pack_start(self._build_savebar(), False, False, 0)
 
         sidebar.select_row(sidebar.get_row_at_index(0))
         self._refresh_dictionary()
@@ -472,10 +469,18 @@ class SettingsWindow(Gtk.Window):
         button.connect("clicked", on_click)
 
     def _get(self, key):
-        return self._pending.get(key, self.config.get(key))
+        return self.config.get(key)
 
     def _set(self, key, value):
-        self._pending[key] = value
+        # No separate save step - every change lands on disk the moment
+        # it's made, same as ticking a checkbox in any normal settings
+        # app. Duplicate hotkeys are already rejected at capture time
+        # (_on_window_key), before this is ever called for that field.
+        self.config.update({key: value})
+        if key == "autostart":
+            from .config import set_autostart
+            set_autostart(value)
+        self.app_obj.apply_settings()
 
     # -- header ----------------------------------------------------------
 
@@ -1215,39 +1220,7 @@ class SettingsWindow(Gtk.Window):
             self._set_update_dot("error", i18n.t("update.error"))
         return False
 
-    # -- save / close ----------------------------------------------------
-
-    def _build_savebar(self):
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        bar.set_margin_top(8)
-        bar.set_margin_bottom(12)
-        bar.set_margin_start(24)
-        bar.set_margin_end(24)
-        self._save_status = Gtk.Label(xalign=0)
-        self._save_status.get_style_context().add_class("hint")
-        bar.pack_start(self._save_status, True, True, 0)
-        save_btn = Gtk.Button(label=i18n.t("settings.save"))
-        save_btn.get_style_context().add_class("primary")
-        save_btn.connect("clicked", self._on_save)
-        bar.pack_start(save_btn, False, False, 0)
-        return bar
-
-    def _on_save(self, _button):
-        if not self._pending:
-            return
-        combos = [self._get(f) for f, *_r in self._HOTKEY_FIELDS
-                 if self._get(f)]
-        if len(combos) != len(set(combos)):
-            self._save_status.set_text(i18n.t("settings.hotkey_duplicate"))
-            return
-        changes = dict(self._pending)
-        self._pending.clear()
-        self.config.update(changes)
-        if "autostart" in changes:
-            from .config import set_autostart
-            set_autostart(changes["autostart"])
-        self.app_obj.apply_settings()
-        self._save_status.set_text(i18n.t("settings.saved"))
+    # -- close -------------------------------------------------------------
 
     def _on_close(self, *_args):
         self.hide()
