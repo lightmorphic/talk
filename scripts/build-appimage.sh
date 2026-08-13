@@ -137,7 +137,11 @@ print(spec.origin if spec else '')
     pkgvenv/bin/pip install -q --ignore-installed --no-deps "$missing"
   fi
 done
-verify | grep -q CLEAN || { echo "!! dependency closure never converged" >&2; exit 1; }
+# Same `|| true` + capture-then-grep pattern as the loop above — piping
+# verify()'s live output straight into `grep -q` let grep exit the
+# instant it saw CLEAN, SIGPIPEing the still-writing verify() process.
+final="$(verify)" || true
+echo "$final" | grep -q CLEAN || { echo "!! dependency closure never converged" >&2; exit 1; }
 
 # sounddevice loads PortAudio via ctypes.util.find_library, which on
 # Linux shells out to ldconfig — invisible to linuxdeploy's normal
