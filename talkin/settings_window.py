@@ -54,10 +54,10 @@ def _hex_rgb(hexstr):
 # dark setting — there is no "light Talkin" any more than there's a
 # grey tray icon.
 _CSS = b"""
-@define-color lm_bg #050507;
+@define-color lm_bg #09090b;
 @define-color lm_fg #fafafa;
-@define-color lm_panel #24273a;
-@define-color lm_panel_border alpha(#ffffff, 0.16);
+@define-color lm_panel #1b1d29;
+@define-color lm_panel_border alpha(#ffffff, 0.09);
 @define-color lm_border #27272a;
 @define-color lm_muted #1c1c1f;
 @define-color lm_muted_fg #a1a1aa;
