@@ -150,7 +150,17 @@ echo "$final" | grep -q CLEAN || { echo "!! dependency closure never converged" 
 # inside the AppImage. So this needs bundling explicitly; the runtime
 # half of the fix (pointing find_library at this exact path) lives in
 # talkin/config.py's patch_library_lookup().
-PORTAUDIO_PATH="$(ldconfig -p | grep -m1 'libportaudio\.so\.2$' | awk '{print $NF}')"
+#
+# ldconfig's ~1300-line listing is written straight to a FILE, not
+# captured through a pipe (neither a literal `|` into grep, nor even
+# `$(ldconfig -p)` command substitution — that still funnels the
+# child's output through bash's own internal pipe). A burst that size
+# through any pipe in this environment reliably killed the whole
+# script with SIGPIPE right at this step, every time. Reading it back
+# with grep -m1 from a plain file has no live writer to SIGPIPE at all.
+LDCONFIG_CACHE="$BUILD_DIR/ldconfig-cache.txt"
+ldconfig -p > "$LDCONFIG_CACHE"
+PORTAUDIO_PATH="$(grep -m1 'libportaudio\.so\.2$' "$LDCONFIG_CACHE" | awk '{print $NF}')"
 if [ -z "$PORTAUDIO_PATH" ]; then
   echo "!! libportaudio2 not found — install it before building" >&2
   exit 1
@@ -173,8 +183,10 @@ find AppDir/usr/share/talkin -name "__pycache__" -exec rm -rf {} + 2>/dev/null |
 PY_BIN="$(readlink -f "$(command -v python$PY_VERSION)")"
 PY_LIB="$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LDLIBRARY'))")"
 # ldconfig resolves the real path regardless of multiarch subdirectory
-# layout (e.g. /usr/lib/x86_64-linux-gnu/ on Debian/Ubuntu).
-PY_LIB_PATH="$(ldconfig -p | grep -m1 "${PY_LIB}\.[0-9]" | awk '{print $NF}')"
+# layout (e.g. /usr/lib/x86_64-linux-gnu/ on Debian/Ubuntu). Same
+# capture-first pattern as PORTAUDIO_PATH above — `grep -m1` piped
+# directly onto a live ldconfig would risk SIGPIPEing it again.
+PY_LIB_PATH="$(grep -m1 "${PY_LIB}\.[0-9]" "$LDCONFIG_CACHE" | awk '{print $NF}')"
 if [ -z "$PY_LIB_PATH" ]; then
   echo "!! could not locate $PY_LIB via ldconfig" >&2
   exit 1
