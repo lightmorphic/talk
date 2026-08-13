@@ -91,6 +91,8 @@ window.talkin-settings {
 .talkin-settings button {
   border-radius: 0.875rem;
   padding: 6px 14px;
+  box-shadow: none;
+  -gtk-icon-shadow: none;
 }
 .talkin-settings button.icon-btn {
   min-width: 34px; min-height: 34px;
@@ -186,11 +188,15 @@ window.talkin-settings {
 }
 /* Buttons that are already accent-colored need a focus ring that
    actually contrasts against them, not more of the same yellow -
-   otherwise clicking Save reads as a garish yellow-on-yellow flash. */
+   otherwise clicking Save reads as a garish yellow-on-yellow flash.
+   A negative outline-offset here previously drew that ring INSET,
+   inside the button's own edge - which looked like a stray line
+   forming a small square inside the capsule, not a focus ring. A
+   small positive offset keeps it outside instead. */
 .talkin-settings button.primary:focus,
 .talkin-settings .keycap:focus {
   outline: 2px solid @lm_bg;
-  outline-offset: -4px;
+  outline-offset: 1px;
 }
 """
 
