@@ -29,11 +29,15 @@ from gi.repository import Gtk, Gdk, GLib, Pango, PangoCairo
 # Text is the brand navy (#111827), not an arbitrary dark grey.
 _BG = (0.98, 0.98, 0.98, 1.0)
 _FG = (0x11 / 255, 0x18 / 255, 0x27 / 255, 1.0)
-_RADIUS = 8
-_ARROW_W = 14
-_ARROW_H = 8
-_PAD_X = 12
-_PAD_Y = 7
+# 25% smaller across the board (radius/arrow/padding/font all scaled
+# down together, not just the text) so the bubble shrinks as a whole
+# rather than getting text that's cramped against unchanged padding.
+_RADIUS = 6
+_ARROW_W = 10.5
+_ARROW_H = 6
+_PAD_X = 9
+_PAD_Y = 5.25
+_FONT_SIZE_PT = 7.5
 _GAP = 6                 # gap between the anchor widget and the bubble tip
 _SCREEN_MARGIN = 8        # keep this far from the monitor's own edge
 _HOVER_DELAY_MS = 400
@@ -131,12 +135,18 @@ class _Bubble:
         work = monitor.get_workarea()
 
         layout = self.win.create_pango_layout(text)
-        layout.set_font_description(Pango.FontDescription("Manrope 10"))
+        font = Pango.FontDescription()
+        font.set_family("Manrope")
+        font.set_weight(Pango.Weight.BOLD)
+        # Fractional point size needs set_size() in Pango units - a
+        # "Manrope 7.5" string wouldn't parse the fraction.
+        font.set_size(int(_FONT_SIZE_PT * Pango.SCALE))
+        layout.set_font_description(font)
         text_w, text_h = layout.get_pixel_size()
         self._layout = layout
 
-        bubble_w = text_w + _PAD_X * 2
-        bubble_h = text_h + _PAD_Y * 2
+        bubble_w = text_w + int(_PAD_X * 2)
+        bubble_h = text_h + int(_PAD_Y * 2)
 
         arrow_up, win_x, win_y, arrow_x = _place(
             ax, ay, aw, ah, bubble_w, bubble_h,
