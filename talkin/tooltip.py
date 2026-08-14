@@ -24,8 +24,11 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango, PangoCairo
 
-_BG = (0.02, 0.02, 0.024, 1.0)
-_FG = (0.98, 0.98, 0.98, 1.0)
+# Light bubble, dark text - the inverse of Talkin's own dark chrome, so
+# the tooltip actually stands out against it instead of blending in.
+# Text is the brand navy (#111827), not an arbitrary dark grey.
+_BG = (0.98, 0.98, 0.98, 1.0)
+_FG = (0x11 / 255, 0x18 / 255, 0x27 / 255, 1.0)
 _RADIUS = 8
 _ARROW_W = 14
 _ARROW_H = 8
