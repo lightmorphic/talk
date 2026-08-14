@@ -152,10 +152,15 @@ window.talkin-settings {
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 .talkin-settings .keycap label { color: @lm_on_accent; }
 
-.talkin-settings entry, .talkin-settings combobox button,
-.talkin-settings treeview {
+.talkin-settings entry, .talkin-settings combobox,
+.talkin-settings combobox button, .talkin-settings treeview {
   border-radius: 0.875rem;
 }
+/* combobox is a composite widget: the OUTER widget (not the inner
+   button above) is what actually receives keyboard focus, so without
+   its own border-radius here, the box-shadow focus ring on it below
+   rendered as a sharp rectangle wrapped around the inner button's
+   rounded shape - a rounded box with a square ring around it. */
 .talkin-settings treeview {
   background-color: @lm_muted;
   border: 1px solid @lm_border;
@@ -676,6 +681,10 @@ class SettingsWindow(Gtk.Window):
                        False, False, 0)
 
         autostart = Gtk.CheckButton(label=i18n.t("settings.autostart"))
+        # Default halign is FILL, which stretches the whole row (and its
+        # focus ring) across the panel's full width instead of hugging
+        # the checkbox and its label - same class of fix as icon-btn's.
+        autostart.set_halign(Gtk.Align.START)
         autostart.set_active(bool(self.config.get("autostart")))
         autostart.connect(
             "toggled", lambda b: self._set("autostart", b.get_active()))
@@ -683,6 +692,7 @@ class SettingsWindow(Gtk.Window):
 
         history_enabled = Gtk.CheckButton(
             label=i18n.t("settings.history_enabled"))
+        history_enabled.set_halign(Gtk.Align.START)
         history_enabled.set_active(bool(self.config.get("history_enabled")))
         history_enabled.connect(
             "toggled",
@@ -880,6 +890,7 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(cleanup_title, False, False, 0)
 
         fillers = Gtk.CheckButton(label=i18n.t("settings.cleanup_fillers"))
+        fillers.set_halign(Gtk.Align.START)
         fillers.set_active(bool(self.config.get("cleanup_fillers")))
         fillers.connect(
             "toggled", lambda b: self._set("cleanup_fillers", b.get_active()))
@@ -887,6 +898,7 @@ class SettingsWindow(Gtk.Window):
 
         dict_toggle = Gtk.CheckButton(
             label=i18n.t("settings.cleanup_dictionary"))
+        dict_toggle.set_halign(Gtk.Align.START)
         dict_toggle.set_active(bool(self.config.get("cleanup_dictionary")))
         dict_toggle.connect(
             "toggled",
