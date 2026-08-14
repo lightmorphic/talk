@@ -3,8 +3,8 @@
 One Gtk.Window with every section from the original web settings page:
 general, hotkeys (native GDK key capture), microphone, output/cleanup,
 personal dictionary, history, and maintenance (restart/log/export/update).
-Changes are staged in memory and written out with the Save button, same
-as the page it replaces.
+Every change writes straight to disk the moment it's made - no Save
+button, nothing to remember to click.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -19,7 +19,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
 
-from . import cleanup, i18n
+from . import cleanup, i18n, tooltip
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
 from .hotkeys import MODIFIER_NAMES, combo_is_safe, parse_combo
@@ -416,14 +416,14 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(widget, True, True, 0)
         return row
 
-    def _icon_button(self, icon_name, tooltip):
+    def _icon_button(self, icon_name, tooltip_text):
         """A circular, icon-only action button — Charlie's house style
         for secondary actions (matches the round-icon-row convention
         used across his other apps' toolbars)."""
         button = Gtk.Button.new_from_icon_name(
             icon_name, Gtk.IconSize.BUTTON)
         button.get_style_context().add_class("icon-btn")
-        button.set_tooltip_text(tooltip)
+        tooltip.attach(button, tooltip_text)
         # Packed alone (not in a horizontal row) into a vertical box, a
         # widget defaults to Align.FILL on the cross axis and stretches
         # to the panel's full width - pinning halign here means every
@@ -439,7 +439,7 @@ class SettingsWindow(Gtk.Window):
         buttons (swaps the label) and icon-only ones (swaps the
         tooltip instead, since there's no label to change)."""
         original_label = button.get_label()
-        original_tooltip = button.get_tooltip_text()
+        original_tooltip = tooltip.get_text(button)
         state = {"armed": False, "timeout": None}
 
         def revert():
@@ -447,7 +447,7 @@ class SettingsWindow(Gtk.Window):
             state["timeout"] = None
             if original_label is not None:
                 button.set_label(original_label)
-            button.set_tooltip_text(original_tooltip)
+            tooltip.attach(button, original_tooltip)
             button.get_style_context().remove_class("danger-armed")
             return False
 
@@ -461,8 +461,8 @@ class SettingsWindow(Gtk.Window):
             state["armed"] = True
             if original_label is not None:
                 button.set_label(original_label + "?")
-            button.set_tooltip_text(
-                armed_tooltip or ((original_tooltip or "") + "?"))
+            tooltip.attach(
+                button, armed_tooltip or ((original_tooltip or "") + "?"))
             button.get_style_context().add_class("danger-armed")
             state["timeout"] = GLib.timeout_add_seconds(4, revert)
 
@@ -515,7 +515,7 @@ class SettingsWindow(Gtk.Window):
 
         ver_event = Gtk.EventBox()
         ver_event.add(ver_text_row)
-        ver_event.set_tooltip_text("talkin.lightmorphic.co.uk")
+        tooltip.attach(ver_event, "talkin.lightmorphic.co.uk")
         ver_event.connect("button-press-event", self._on_version_clicked)
         ver_event.connect("realize", lambda w: w.get_window().set_cursor(
             Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
@@ -546,9 +546,9 @@ class SettingsWindow(Gtk.Window):
         import webbrowser
         webbrowser.open("https://talkin.lightmorphic.co.uk")
 
-    def _set_update_dot(self, state, tooltip):
+    def _set_update_dot(self, state, tooltip_text):
         self._update_state = state
-        self._update_dot.set_tooltip_text(tooltip)
+        tooltip.attach(self._update_dot, tooltip_text)
         self._update_dot.queue_draw()
 
     def _draw_update_dot(self, widget, cr):
