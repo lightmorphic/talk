@@ -419,9 +419,25 @@ class SettingsWindow(Gtk.Window):
     def _icon_button(self, icon_name, tooltip_text):
         """A circular, icon-only action button — Charlie's house style
         for secondary actions (matches the round-icon-row convention
-        used across his other apps' toolbars)."""
-        button = Gtk.Button.new_from_icon_name(
-            icon_name, Gtk.IconSize.BUTTON)
+        used across his other apps' toolbars).
+
+        icon_name loads assets/icons/<icon_name>.png, bundled with the
+        app, rather than a theme icon name — the Lightmorphic house
+        style calls for self-contained icons, not ones whose glyph (or
+        even existence) depends on whatever icon theme happens to be
+        installed on the host system. PNG, not SVG, for the same reason
+        the window icon is PNG: SVG loads through a separate gdk-pixbuf/
+        librsvg plugin that isn't reliably bundled in the AppImage (the
+        .svg files alongside these are the editable source; only the
+        rasterized .png is ever loaded at runtime)."""
+        icon_path = os.path.join(ASSET_DIR, "icons", icon_name + ".png")
+        image = Gtk.Image.new_from_file(icon_path)
+        button = Gtk.Button()
+        button.set_image(image)
+        # Some GTK themes hide button images by default unless told
+        # otherwise - these buttons have no label, so without this an
+        # icon-only button could render completely blank.
+        button.set_always_show_image(True)
         button.get_style_context().add_class("icon-btn")
         tooltip.attach(button, tooltip_text)
         # Packed alone (not in a horizontal row) into a vertical box, a

@@ -35,6 +35,22 @@ def _resample(audio, orig_rate, target_rate):
     """
     if len(audio) == 0:
         return audio
+    # An FFT treats the buffer as periodic - it implicitly assumes the
+    # last sample wraps seamlessly back to the first. Live mic audio
+    # essentially never starts or ends at exactly zero, so that seam is
+    # a real discontinuity, which leaks into a broadband click right at
+    # the edges of the resampled output. Since this runs on almost
+    # every real audio device (most only do 44.1/48kHz natively), that
+    # click landed at the start of nearly every dictation, and got
+    # heard by the model as a stray consonant. A short taper on each
+    # edge removes the seam before it ever reaches the FFT - the first/
+    # last ~5ms of a push-to-talk recording is silence anyway.
+    taper = min(len(audio) // 2, max(1, int(orig_rate * 0.005)))
+    if taper > 1:
+        audio = audio.copy()
+        window = np.hanning(taper * 2)
+        audio[:taper] *= window[:taper]
+        audio[-taper:] *= window[taper:]
     n_target = int(round(len(audio) * target_rate / orig_rate))
     spectrum = np.fft.rfft(audio)
     n_freq_target = n_target // 2 + 1
