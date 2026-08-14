@@ -17,7 +17,8 @@ import zipfile
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gtk, Gdk, GLib, Pango
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
 from . import cleanup, i18n, tooltip
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
@@ -27,6 +28,11 @@ from .hotkeys import MODIFIER_NAMES, combo_is_safe, parse_combo
 log = logging.getLogger("talkin.settings")
 
 _YELLOW = "#fbc711"
+
+# The glyph size drawn inside every icon-only button (Gtk.IconSize.BUTTON
+# is the same ~16px a normal GTK toolbar icon renders at) - the source
+# PNGs are rasterized larger than this purely for HiDPI headroom.
+_ICON_PX = 16
 
 # One consistent gap between fields/rows/buttons everywhere in this
 # window — about 4mm at a standard 96dpi display (~15.1px), rounded to
@@ -61,6 +67,14 @@ _CSS = b"""
 @define-color lm_border #27272a;
 @define-color lm_muted #1c1c1f;
 @define-color lm_muted_fg #a1a1aa;
+/* @lm_muted (#1c1c1f) sits almost exactly on top of @lm_panel
+   (#1b1d29) - an icon button using it as its background was nearly
+   invisible against the panel it's placed on. This is deliberately
+   lighter than both so the button circle itself actually reads as a
+   distinct, clickable shape, not just an icon floating on the panel. */
+@define-color lm_icon_bg #42465f;
+@define-color lm_icon_bg_hover #52566f;
+@define-color lm_icon_border alpha(#ffffff, 0.14);
 @define-color lm_accent #fbc711;
 @define-color lm_accent_hover #ddaf0f;
 @define-color lm_on_accent #645007;
@@ -99,12 +113,12 @@ window.talkin-settings {
   min-width: 34px; min-height: 34px;
   padding: 0; margin: 0;
   border-radius: 50%;
-  border: none;
-  background-color: @lm_muted;
+  border: 1px solid @lm_icon_border;
+  background-color: @lm_icon_bg;
   background-image: none;
   color: @lm_fg;
 }
-.talkin-settings button.icon-btn:hover { background-color: @lm_border; }
+.talkin-settings button.icon-btn:hover { background-color: @lm_icon_bg_hover; }
 .talkin-settings button.icon-btn.danger-armed {
   background-color: @lm_danger_bg;
   color: @lm_danger;
@@ -429,9 +443,18 @@ class SettingsWindow(Gtk.Window):
         the window icon is PNG: SVG loads through a separate gdk-pixbuf/
         librsvg plugin that isn't reliably bundled in the AppImage (the
         .svg files alongside these are the editable source; only the
-        rasterized .png is ever loaded at runtime)."""
+        rasterized .png is ever loaded at runtime).
+
+        The source PNGs are rasterized at 64x64 for headroom on HiDPI
+        displays - loading them with plain new_from_file() rendered
+        them at that full native size instead of a normal small icon,
+        which is what made every button huge. Scaling explicitly down
+        to _ICON_PX here is what actually makes that headroom useful
+        instead of just oversized."""
         icon_path = os.path.join(ASSET_DIR, "icons", icon_name + ".png")
-        image = Gtk.Image.new_from_file(icon_path)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            icon_path, _ICON_PX, _ICON_PX, True)
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
         button = Gtk.Button()
         button.set_image(image)
         # Some GTK themes hide button images by default unless told
