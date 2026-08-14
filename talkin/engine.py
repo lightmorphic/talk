@@ -21,6 +21,7 @@ log = logging.getLogger("talkin.engine")
 SAMPLE_RATE = 16000
 MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
 MAX_SECONDS = 300  # hard cap on one dictation, keeps memory bounded
+WARMUP_SECONDS = 0.12  # discarded from the start of every recording
 
 
 def _resample(audio, orig_rate, target_rate):
@@ -199,6 +200,19 @@ class Recorder:
         if not chunks:
             return np.zeros(0, dtype=np.float32)
         audio = np.concatenate(chunks)
+        # PortAudio/ALSA streams commonly produce a brief click or pop
+        # in their first callback buffer(s) while the device is still
+        # settling right after open - a hardware/driver-level transient
+        # the FFT-periodicity taper in _resample() doesn't touch at all
+        # (that one only smooths the buffer's OWN edges, it can't remove
+        # a real artifact baked into the captured samples themselves).
+        # The model kept hearing that transient as a stray leading
+        # consonant. Push-to-talk users don't speak in the instant they
+        # press the key anyway, so discarding a small warm-up window
+        # up front is silent in practice and clears it at the source.
+        warmup = min(len(audio) // 3, int(native_rate * WARMUP_SECONDS))
+        if warmup > 0:
+            audio = audio[warmup:]
         if native_rate != SAMPLE_RATE:
             audio = _resample(audio, native_rate, SAMPLE_RATE)
         return audio
