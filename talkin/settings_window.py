@@ -48,6 +48,7 @@ _LM_WARNING = "#ffc006"
 _LM_DANGER = "#f34236"
 _LM_MUTED = "#a1a1aa"
 _LM_ON_ACCENT = "#645007"
+_LM_FG = "#fafafa"
 
 
 def _hex_rgb(hexstr):
@@ -176,9 +177,11 @@ window.talkin-settings {
   padding: 8px 10px;
   font-weight: 600;
 }
-.talkin-settings treeview:selected {
-  background-color: alpha(#fbc711, 0.14);
-}
+/* Selected-row colour is handled directly per-cell in Python
+   (_style_selectable_row), not here - GTK's own :selected state on
+   this system's theme rendered nearly-unreadable dark text no CSS
+   override actually won against, so this is bypassed entirely rather
+   than left in to (at best) do nothing or (at worst) fight it. */
 
 .talkin-settings .category-list {
   background-color: @lm_bg;
@@ -318,6 +321,17 @@ class SettingsWindow(Gtk.Window):
         self.get_style_context().add_class("talkin-settings")
         _load_bundled_font()
         self._apply_css()
+        # A combobox's dropdown list is a separate top-level popup, not
+        # a widget-tree descendant of this window - every ".talkin-
+        # settings ..."-scoped rule above requires that ancestry, so
+        # none of them ever reach the popup at all. It was rendering in
+        # the bare system theme (a plain white box, unstyled). This is
+        # the one thing that reaches it anyway: telling GTK itself to
+        # prefer its dark theme variant application-wide, so the popup
+        # inherits *a* coherent dark palette instead of the light
+        # default, even though it can't inherit the exact house colours.
+        Gtk.Settings.get_default().set_property(
+            "gtk-application-prefer-dark-theme", True)
         try:
             self.set_icon_from_file(os.path.join(ASSET_DIR, "talkin.png"))
         except GLib.GError:
@@ -434,6 +448,46 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(label, False, False, 0)
         row.pack_start(widget, True, True, 0)
         return row
+
+    def _style_selectable_row(self, tree, renderers, text_renderers=None):
+        """Explicit foreground/background for selected treeview rows,
+        bypassing GTK's own theme-driven :selected CSS state entirely -
+        in this environment that state rendered as barely-readable dark
+        text on a lightly tinted background, and no CSS override for it
+        actually won against the active system theme. Same "take direct
+        control instead of fighting the platform" approach already used
+        for the custom tooltip popup.
+
+        text_renderers (defaults to all of `renderers`) is the subset
+        that should also get the readable-white-text override on
+        selection - a renderer with its own intentional foreground
+        (like the dictionary's yellow "remove" column) should be left
+        out of it, since clearing foreground-set on deselect would wipe
+        that colour out rather than restore it."""
+        selection = tree.get_selection()
+        accent_r, accent_g, accent_b = _hex_rgb(_YELLOW)
+        fg_r, fg_g, fg_b = _hex_rgb(_LM_FG)
+        touch_fg = set(text_renderers) if text_renderers is not None \
+            else set(renderers)
+
+        def make_painter(renderer):
+            def paint(_column, r, _model, it, _data):
+                if selection.iter_is_selected(it):
+                    r.set_property(
+                        "cell-background-rgba",
+                        Gdk.RGBA(accent_r, accent_g, accent_b, 0.22))
+                    if renderer in touch_fg:
+                        r.set_property(
+                            "foreground-rgba", Gdk.RGBA(fg_r, fg_g, fg_b, 1.0))
+                else:
+                    r.set_property("cell-background-set", False)
+                    if renderer in touch_fg:
+                        r.set_property("foreground-set", False)
+            return paint
+
+        for column, renderer in zip(tree.get_columns(), renderers):
+            column.set_cell_data_func(renderer, make_painter(renderer))
+        selection.connect("changed", lambda _s: tree.queue_draw())
 
     def _icon_button(self, icon_name, tooltip_text):
         """A circular, icon-only action button — Charlie's house style
@@ -914,15 +968,25 @@ class SettingsWindow(Gtk.Window):
 
         self._dict_store = Gtk.ListStore(str, str)
         tree = Gtk.TreeView(model=self._dict_store)
+        # Same reasoning as the history treeview: mouse-driven (click
+        # the "remove" cell to delete a row), not keyboard-navigated -
+        # skip GTK's native per-cell focus indicator entirely.
+        tree.set_can_focus(False)
+        heard_renderer = Gtk.CellRendererText(xpad=10, ypad=6)
         tree.append_column(Gtk.TreeViewColumn(
-            i18n.t("settings.dict.heard"), Gtk.CellRendererText(), text=0))
+            i18n.t("settings.dict.heard"), heard_renderer, text=0))
+        say_renderer = Gtk.CellRendererText(xpad=10, ypad=6)
         tree.append_column(Gtk.TreeViewColumn(
-            i18n.t("settings.dict.say"), Gtk.CellRendererText(), text=1))
+            i18n.t("settings.dict.say"), say_renderer, text=1))
         remove_renderer = Gtk.CellRendererText(
-            text=i18n.t("settings.dict.remove"), foreground=_YELLOW)
+            text=i18n.t("settings.dict.remove"), foreground=_YELLOW,
+            xpad=10, ypad=6)
         remove_col = Gtk.TreeViewColumn("", remove_renderer)
         tree.append_column(remove_col)
         tree.connect("row-activated", self._on_dict_row_activated)
+        self._style_selectable_row(
+            tree, [heard_renderer, say_renderer, remove_renderer],
+            text_renderers=[heard_renderer, say_renderer])
 
         self._dict_scroller = Gtk.ScrolledWindow()
         self._dict_scroller.set_min_content_height(140)
@@ -1053,12 +1117,26 @@ class SettingsWindow(Gtk.Window):
 
         self._history_store = Gtk.ListStore(str, str)
         tree = Gtk.TreeView(model=self._history_store)
-        when_col = Gtk.TreeViewColumn(
-            "", Gtk.CellRendererText(), text=0)
+        # This is a mouse-driven, read-mostly list, not something meant
+        # for keyboard navigation - leaving it focusable only added a
+        # second, native "focused cell" indicator GTK draws internally
+        # (via gtk_render_focus(), entirely separate from and not
+        # reachable through the CSS box-shadow focus ring above) right
+        # on top of the selection highlight, reading as yet another
+        # stray line rather than useful affordance.
+        tree.set_can_focus(False)
+        # xpad/ypad give every cell real breathing room instead of text
+        # sitting flush against the row/column edge - the date column
+        # gets extra right-padding specifically so it reads as its own
+        # column instead of running straight into the text column.
+        when_renderer = Gtk.CellRendererText(xpad=10, ypad=6)
+        when_col = Gtk.TreeViewColumn("", when_renderer, text=0)
         tree.append_column(when_col)
         text_renderer = Gtk.CellRendererText(
-            wrap_width=360, wrap_mode=Pango.WrapMode.WORD_CHAR)
+            wrap_width=360, wrap_mode=Pango.WrapMode.WORD_CHAR,
+            xpad=10, ypad=6)
         tree.append_column(Gtk.TreeViewColumn("", text_renderer, text=1))
+        self._style_selectable_row(tree, [when_renderer, text_renderer])
 
         self._history_scroller = Gtk.ScrolledWindow()
         self._history_scroller.set_min_content_height(160)
