@@ -216,6 +216,16 @@ window.talkin-settings {
    not just on the couple of widgets it was visibly wrong on before. */
 .talkin-settings *:focus {
   outline: none;
+}
+/* The ring goes on whole interactive widgets ONLY, never `*` - GTK
+   propagates the FOCUSED state down into a widget's internal children,
+   so a blanket *:focus also matched e.g. the cellview INSIDE a focused
+   combobox and drew a second ring floating in the middle of the
+   control (the combobox's real focus node is its internal
+   ToggleButton, whose children inherit the state). */
+.talkin-settings button:focus,
+.talkin-settings entry:focus,
+.talkin-settings checkbutton:focus {
   box-shadow: 0 0 0 2px @lm_accent;
 }
 /* Buttons that are already accent-colored need a focus ring that
@@ -223,6 +233,14 @@ window.talkin-settings {
 .talkin-settings button.primary:focus,
 .talkin-settings .keycap:focus {
   box-shadow: 0 0 0 2px @lm_bg;
+}
+/* Comboboxes get their ring via this class, applied from Python when
+   the internal toggle button gains real focus (_wire_combo_focus_ring)
+   - the theme's own combobox styling swallowed every :focus-based rule
+   aimed anywhere inside the composite widget, while the OUTER node
+   renders a box-shadow flawlessly but never receives focus itself. */
+.talkin-settings combobox.focus-ring {
+  box-shadow: 0 0 0 2px @lm_accent;
 }
 """
 
@@ -451,21 +469,57 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(widget, True, True, 0)
         return row
 
+    def _wire_combo_focus_ring(self, combo):
+        """Focus ring for a combobox, driven from Python.
+
+        A combobox is a composite widget: keyboard focus lands on an
+        INTERNAL toggle button, and this theme's own combobox styling
+        swallowed every CSS :focus rule aimed anywhere inside it (while
+        the outer node renders a box-shadow perfectly but never gets
+        focus itself). So the internal button's real focus events
+        toggle a plain CSS class on the outer node instead - no
+        :focus matching involved anywhere.
+        """
+        ctx = combo.get_style_context()
+
+        def on_flags(widget, _previous):
+            # state-flags-changed, not focus-in/out-event: the internal
+            # toggle is a windowless widget, so the GdkEvent-based focus
+            # signals never fire for it at all.
+            if widget.get_state_flags() & Gtk.StateFlags.FOCUSED:
+                ctx.add_class("focus-ring")
+            else:
+                ctx.remove_class("focus-ring")
+
+        def wire(widget):
+            if isinstance(widget, Gtk.ToggleButton):
+                widget.connect("state-flags-changed", on_flags)
+            elif isinstance(widget, Gtk.Container):
+                kids = []
+                widget.forall(lambda w: kids.append(w))
+                for child in kids:
+                    wire(child)
+
+        wire(combo)
+        return combo
+
     def _style_selectable_row(self, tree, renderers, text_renderers=None):
-        """Explicit foreground/background for selected treeview rows,
-        bypassing GTK's own theme-driven :selected CSS state entirely -
-        in this environment that state rendered as barely-readable dark
-        text on a lightly tinted background, and no CSS override for it
-        actually won against the active system theme. Same "take direct
-        control instead of fighting the platform" approach already used
-        for the custom tooltip popup.
+        """Explicit foreground/background for treeview cells, selected
+        or not, bypassing GTK's theme-driven colours entirely.
+
+        Every cell's text colour is forced, not just the selected
+        row's: CellRendererText takes its default colour from the
+        active system theme, NOT from any of this window's own CSS -
+        so leaving unselected rows themed made them render dark-on-dark
+        on the very theme this app runs on (the earlier version of this
+        helper only fixed the selected row and left that hole open).
+        Same "take direct control instead of fighting the platform"
+        approach as the custom tooltip popup.
 
         text_renderers (defaults to all of `renderers`) is the subset
-        that should also get the readable-white-text override on
-        selection - a renderer with its own intentional foreground
-        (like the dictionary's yellow "remove" column) should be left
-        out of it, since clearing foreground-set on deselect would wipe
-        that colour out rather than restore it."""
+        whose text colour this owns - a renderer with its own
+        intentional foreground (the dictionary's yellow "remove"
+        column) is left alone entirely."""
         selection = tree.get_selection()
         accent_r, accent_g, accent_b = _hex_rgb(_YELLOW)
         fg_r, fg_g, fg_b = _hex_rgb(_LM_FG)
@@ -474,17 +528,15 @@ class SettingsWindow(Gtk.Window):
 
         def make_painter(renderer):
             def paint(_column, r, _model, it, _data):
+                if renderer in touch_fg:
+                    r.set_property(
+                        "foreground-rgba", Gdk.RGBA(fg_r, fg_g, fg_b, 1.0))
                 if selection.iter_is_selected(it):
                     r.set_property(
                         "cell-background-rgba",
                         Gdk.RGBA(accent_r, accent_g, accent_b, 0.22))
-                    if renderer in touch_fg:
-                        r.set_property(
-                            "foreground-rgba", Gdk.RGBA(fg_r, fg_g, fg_b, 1.0))
                 else:
                     r.set_property("cell-background-set", False)
-                    if renderer in touch_fg:
-                        r.set_property("foreground-set", False)
             return paint
 
         for column, renderer in zip(tree.get_columns(), renderers):
@@ -727,6 +779,7 @@ class SettingsWindow(Gtk.Window):
         box = self._section("settings.section.general")
 
         lang_combo = Gtk.ComboBoxText()
+        self._wire_combo_focus_ring(lang_combo)
         codes = []
         for code, name in i18n.available_languages():
             lang_combo.append_text(name)
@@ -854,6 +907,7 @@ class SettingsWindow(Gtk.Window):
     def _build_microphone(self):
         box = self._section("settings.section.microphone")
         self._mic_combo = Gtk.ComboBoxText()
+        self._wire_combo_focus_ring(self._mic_combo)
         self._mic_ids = []
         current = self.config.get("mic")
         active = 0
@@ -936,6 +990,7 @@ class SettingsWindow(Gtk.Window):
     def _build_output(self):
         box = self._section("settings.section.output")
         injection = Gtk.ComboBoxText()
+        self._wire_combo_focus_ring(injection)
         injection.append("paste", i18n.t("settings.injection.paste"))
         injection.append("type", i18n.t("settings.injection.type"))
         injection.set_active_id(self.config.get("injection"))
@@ -1131,6 +1186,9 @@ class SettingsWindow(Gtk.Window):
         # on top of the selection highlight, reading as yet another
         # stray line rather than useful affordance.
         tree.set_can_focus(False)
+        # Both columns are untitled, so the header row was just two
+        # empty dark blobs sitting above the list - dead chrome.
+        tree.set_headers_visible(False)
         # xpad/ypad give every cell real breathing room instead of text
         # sitting flush against the row/column edge - the date column
         # gets extra right-padding specifically so it reads as its own
