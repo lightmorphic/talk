@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Installed into usr/share/metainfo by scripts/build-appimage.sh,
+     which fills in @VERSION@ and @DATE@ from the source tree at build
+     time so this file can never quietly fall out of date. -->
+<component type="desktop-application">
+  <id>uk.co.lightmorphic.Talkin</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Lightmorphic Talkin</name>
+  <summary>Private, on-device dictation for the Linux desktop</summary>
+  <developer id="uk.co.lightmorphic">
+    <name>Lightmorphic</name>
+  </developer>
+  <description>
+    <p>
+      Talkin turns speech into text anywhere on the Linux desktop. Hold
+      a hotkey, talk, release - the words appear in whatever window has
+      focus, whether that is an email, a document, a chat box or a
+      terminal.
+    </p>
+    <p>
+      Everything runs on this machine. The speech model is downloaded
+      once on first run and every dictation after that is transcribed
+      locally - no account, no cloud service, nothing is ever sent
+      anywhere. A personal dictionary teaches it names and jargon, a
+      local-only history keeps what you dictated, and the whole app
+      ships as one self-contained AppImage.
+    </p>
+  </description>
+  <launchable type="desktop-id">talkin.desktop</launchable>
+  <url type="homepage">https://talkin.lightmorphic.co.uk</url>
+  <url type="bugtracker">https://github.com/lightmorphic/talkin/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://talkin.lightmorphic.co.uk/images/talkin-settings.png</image>
+      <caption>The Settings window: hotkeys, microphone, personal dictionary and local history</caption>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>Utility</category>
+    <category>Accessibility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>
