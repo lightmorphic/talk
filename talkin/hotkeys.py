@@ -1,4 +1,4 @@
-"""Global hotkeys via one pynput listener.
+"""Global hotkeys via one pynput listener plus X server key grabs.
 
 Three independent combos, each fully user-chosen (not picked from a
 preset list): hold-to-talk, toggle-dictation and correction. Any of
@@ -6,11 +6,26 @@ them can be any modifier(s)+key combination, or left unset entirely.
 A combo is represented as a canonical string like "alt+z", "ctrl+alt+c"
 or a bare special key like "f9" — see parse_combo(). Callbacks are
 marshalled onto the GTK main loop.
+
+The pynput listener only OBSERVES the global key stream (XRecord); it
+cannot stop a keystroke from also being delivered to whatever window
+has focus. For a combo like alt+z that means pressing it both started
+dictation AND handed alt+z to the focused app — which, depending on the
+app, inserted a literal "z" right where the transcript was about to go
+(others treat it as an unknown shortcut and swallow it, which is why
+the stray character only appeared sometimes). So any combo whose
+trigger is a printable character is ALSO grabbed at the X server level
+(XGrabKey): the server then delivers it to Talkin alone and the focused
+app never sees it. XRecord taps the stream regardless of grabs, so the
+pynput state machine below keeps working unchanged — both verified
+directly against a live GTK entry before this shipped.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+import queue
+import threading
 
 from gi.repository import GLib
 from pynput import keyboard
@@ -106,6 +121,88 @@ class _ComboWatch:
         return None
 
 
+class _ComboGrabber:
+    """Consumes printable-trigger combos at the X server so the focused
+    app never receives them (see the module docstring for why).
+
+    One dedicated X connection, touched only by its own daemon thread —
+    python-xlib is not thread-safe, so grab/ungrab requests from the
+    GTK side arrive through a queue and the thread applies them. Grabs
+    cover the NumLock/CapsLock mask variants, since X treats those as
+    part of the modifier state. If there is no X display to talk to
+    (Wayland session, headless), this quietly does nothing and hotkeys
+    simply keep their old observe-only behaviour.
+    """
+
+    def __init__(self):
+        self._commands = queue.Queue()
+        self._grabbed = []  # [(keycode, mask)] currently held grabs
+        threading.Thread(target=self._run, name="combo-grabber",
+                         daemon=True).start()
+
+    def set_combos(self, combos):
+        """combos: [(frozenset of modifier names, single-char trigger)]"""
+        self._commands.put(list(combos))
+
+    def _run(self):
+        try:
+            from Xlib import X, XK
+            from Xlib import display as xdisplay
+            from Xlib import error as xerror
+            disp = xdisplay.Display()
+        except Exception:
+            log.info("no X display for key grabs; combos stay observe-only")
+            return
+        root = disp.screen().root
+        mask_for = {"ctrl": X.ControlMask, "alt": X.Mod1Mask,
+                    "shift": X.ShiftMask}
+        lock_variants = (0, X.LockMask, X.Mod2Mask, X.LockMask | X.Mod2Mask)
+
+        def apply(combos):
+            catch = xerror.CatchError()
+            for keycode, mask in self._grabbed:
+                root.ungrab_key(keycode, mask, onerror=catch)
+            self._grabbed = []
+            for mods, trigger in combos:
+                # Latin-1 keysyms equal their code point, which covers
+                # every printable trigger _specific_token() can produce.
+                keysym = XK.string_to_keysym(trigger) or ord(trigger)
+                keycode = disp.keysym_to_keycode(keysym)
+                if not keycode:
+                    log.warning("no keycode for %r; cannot grab", trigger)
+                    continue
+                base = 0
+                for name in mods:
+                    base |= mask_for.get(name, 0)
+                for extra in lock_variants:
+                    root.grab_key(keycode, base | extra, 0,
+                                  X.GrabModeAsync, X.GrabModeAsync,
+                                  onerror=catch)
+                    self._grabbed.append((keycode, base | extra))
+                log.info("grabbed %s+%s at the X server",
+                         "+".join(sorted(mods)) or "(none)", trigger)
+            disp.sync()
+            if catch.get_error():
+                # Most likely another client already owns one of these
+                # combos - the hotkey still works (pynput observes it),
+                # it just can't be exclusively consumed.
+                log.warning("some key grabs failed: %s", catch.get_error())
+
+        while True:
+            # Delivered grab events only need draining; pynput is the
+            # one actually acting on key state.
+            try:
+                while disp.pending_events():
+                    disp.next_event()
+            except Exception:
+                log.exception("grab connection lost; combos observe-only")
+                return
+            try:
+                apply(self._commands.get(timeout=0.05))
+            except queue.Empty:
+                pass
+
+
 class Hotkeys:
     """Fires on_hold_press/on_hold_release while the hold combo is held,
     on_toggle each time the toggle combo is pressed, on_correction each
@@ -121,6 +218,7 @@ class Hotkeys:
         self._down_mods = set()
         self._down_others = set()
         self._watches = {}
+        self._grabber = _ComboGrabber()
         self.reload()
         self._listener = keyboard.Listener(
             on_press=self._pressed, on_release=self._released)
@@ -134,6 +232,14 @@ class Hotkeys:
             "toggle": _ComboWatch(self.config.get("hotkey_toggle")),
             "correction": _ComboWatch(self.config.get("correction_hotkey")),
         }
+        # Only printable triggers leak text into the focused app; bare
+        # non-printing keys (ctrl_r, f9...) type nothing and stay
+        # ungrabbed so they keep working even where a grab would fail.
+        self._grabber.set_combos([
+            (watch.mods, watch.trigger)
+            for watch in self._watches.values()
+            if watch.enabled and watch.trigger not in NON_PRINTING_KEYS
+            and len(watch.trigger) == 1])
 
     def _pressed(self, key):
         specific = _specific_token(key)

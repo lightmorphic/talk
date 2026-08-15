@@ -48,6 +48,8 @@ _LM_WARNING = "#ffc006"
 _LM_DANGER = "#f34236"
 _LM_MUTED = "#a1a1aa"
 _LM_ON_ACCENT = "#645007"
+_LM_READY = "#2295f1"     # palette Blue: update downloaded, restart me
+_LM_ON_READY = "#0a2a43"  # Blue's own contrast-checked on-accent
 _LM_FG = "#fafafa"
 
 
@@ -669,9 +671,13 @@ class SettingsWindow(Gtk.Window):
             cr.stroke()
             return False
 
+        # Ready is palette Blue per the house update-widget spec, not a
+        # second green - otherwise "downloaded, click to restart" and
+        # "you're up to date" were the same colour and only the tiny
+        # overlay icon told them apart.
         color = {
             "checking": _LM_MUTED, "uptodate": _LM_SUCCESS,
-            "available": _LM_WARNING, "ready": _LM_SUCCESS,
+            "available": _LM_WARNING, "ready": _LM_READY,
             "error": _LM_DANGER,
         }.get(state, _LM_MUTED)
         cr.set_source_rgb(*_hex_rgb(color))
@@ -700,7 +706,7 @@ class SettingsWindow(Gtk.Window):
 
     def _draw_restart_icon(self, cr, cx, cy, r):
         import math
-        cr.set_source_rgb(*_hex_rgb(_LM_ON_ACCENT))
+        cr.set_source_rgb(*_hex_rgb(_LM_ON_READY))
         cr.set_line_width(1.4)
         cr.set_line_cap(1)
         ir = r * 0.55

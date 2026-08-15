@@ -218,6 +218,30 @@ StartupWMClass=talkin
 EOF
 cp AppDir/talkin.desktop AppDir/usr/share/applications/talkin.desktop
 
+# AppStream metadata: what software centers and AppImage catalogs read
+# to show the app properly (name, description, screenshot) instead of
+# an anonymous binary. Version/date are stamped from the source tree at
+# build time so the file can't quietly go stale between releases.
+APP_VERSION="$(grep -oP '__version__ = "\K[^"]+' "$REPO_ROOT/talkin/__init__.py")"
+mkdir -p AppDir/usr/share/metainfo
+# Installed under the AppStream component id's name, NOT the desktop
+# file's basename appimagetool looks for. Deliberate: when appimagetool
+# finds a file at its expected name it runs its own NETWORKED
+# validation and treats any warning as fatal - including a transient
+# 404 on the screenshot URL - which would leave every future release
+# hostage to the website being reachable mid-build. Catalog tools read
+# everything in usr/share/metainfo/ regardless of filename, so the only
+# cost is one cosmetic "metadata is missing" line in appimagetool's
+# output. Validation still happens, offline and on our terms, below.
+sed "s/@VERSION@/$APP_VERSION/; s/@DATE@/$(date +%F)/" \
+  "$REPO_ROOT/packaging/uk.co.lightmorphic.Talkin.appdata.xml" \
+  > AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkin.appdata.xml
+if command -v appstreamcli >/dev/null 2>&1; then
+  appstreamcli validate --no-net \
+    AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkin.appdata.xml \
+    || { echo "!! AppStream metadata failed validation" >&2; exit 1; }
+fi
+
 cat > AppDir/usr/bin/talkin <<'LAUNCHER'
 #!/bin/bash
 # Talkin's real entry point inside the AppImage. APPDIR is set by
