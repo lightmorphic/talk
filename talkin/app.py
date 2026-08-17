@@ -15,7 +15,6 @@ from gi.repository import Gtk, GLib
 from . import cleanup, config as cfg, correction, i18n, injector
 from .engine import Recorder, Transcriber
 from .hotkeys import Hotkeys
-from .overlay import Overlay
 from .settings_window import open_settings
 from .tray import Tray
 
@@ -31,14 +30,19 @@ class TalkinApp:
         i18n.set_language(self.config.get("language"))
 
         self.state = "loading"
-        self.overlay = Overlay()
+        # Left-clicking the tray icon starts a dictation and clicking
+        # again stops it - same semantics as the toggle hotkey, so they
+        # share _toggle(). The old mid-screen overlay circle is gone;
+        # the tray icon itself animates while listening/transcribing,
+        # fed the live mic level below.
         self.tray = Tray(
             on_settings=self.open_settings,
             on_toggle_pause=self.toggle_pause,
             on_restart=self.restart,
-            on_quit=self.quit)
+            on_quit=self.quit,
+            on_activate=self._toggle)
 
-        self.recorder = Recorder(self.config, on_level=self.overlay.push_level)
+        self.recorder = Recorder(self.config, on_level=self.tray.set_level)
         self.transcriber = Transcriber(
             on_ready=lambda: GLib.idle_add(self._model_ready),
             on_error=lambda key: GLib.idle_add(self._fail, key),
@@ -58,12 +62,6 @@ class TalkinApp:
     def _set_state(self, state):
         self.state = state
         self.tray.set_state(state)
-        if state == "listening":
-            self.overlay.show_listening()
-        elif state == "thinking":
-            self.overlay.show_thinking()
-        else:
-            self.overlay.hide_overlay()
 
     def _model_ready(self):
         if self.state in ("loading", "downloading"):
@@ -204,7 +202,7 @@ def main():
     # process identity — which is literally "__main__.py" when running
     # via `python -m talkin`, and that's what desktop environments show
     # as the tray icon's hover tooltip. Must run before any GTK/GLib
-    # object (Tray, Overlay, dialogs) is created.
+    # object (Tray, dialogs) is created.
     GLib.set_prgname("talkin")
     GLib.set_application_name("Lightmorphic Talkin")
 
