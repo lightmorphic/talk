@@ -29,18 +29,33 @@ echo "repo:  $REPO_ROOT"
 echo "build: $BUILD_DIR"
 echo "python: $PY_VERSION"
 
-rm -rf "$BUILD_DIR"
+# Wipe everything EXCEPT tools/ - the downloaded packaging tools are
+# byte-identical between runs, and re-fetching them on every build is
+# exactly what got local builds 429-rate-limited by GitHub after a day
+# of releases. (CI starts from an empty workspace either way.)
 mkdir -p "$BUILD_DIR/tools"
+find "$BUILD_DIR" -mindepth 1 -maxdepth 1 ! -name tools -exec rm -rf {} +
 cd "$BUILD_DIR"
 
 # -- 1. fetch packaging tools -------------------------------------------
 
 echo "-- fetching packaging tools --"
-curl -fsSL -o tools/linuxdeploy-x86_64.AppImage \
+# Skipped for any tool already sitting in tools/ from a previous build:
+# repeated local builds were getting 429-rate-limited by GitHub over
+# re-downloading identical binaries. CI always starts from an empty
+# tools/ dir, so it still fetches fresh ones every release.
+fetch() {
+  # Download to a temp name and move only on success, so an aborted
+  # run can never leave a truncated file that then gets "skipped" as
+  # if it were complete.
+  [ -s "tools/$1" ] || { curl -fsSL -o "tools/$1.part" "$2" \
+    && mv "tools/$1.part" "tools/$1"; }
+}
+fetch linuxdeploy-x86_64.AppImage \
   "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-curl -fsSL -o tools/linuxdeploy-plugin-gtk.sh \
+fetch linuxdeploy-plugin-gtk.sh \
   "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
-curl -fsSL -o tools/appimagetool-x86_64.AppImage \
+fetch appimagetool-x86_64.AppImage \
   "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 chmod +x tools/*.AppImage tools/*.sh
 

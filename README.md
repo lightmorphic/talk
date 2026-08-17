@@ -8,9 +8,10 @@ voice never leaves your machine.
 
 ## How it works
 
-- Hold **Right Ctrl** (configurable) and speak. A small circle shows a
-  live waveform while Talkin hears you, and a revolving spinner while
-  it thinks. Release, and the text appears where your cursor is.
+- Hold **Right Ctrl** (configurable) and speak, or left-click the tray
+  icon to start and stop. The tray icon shows a live waveform while
+  Talkin hears you, and a revolving spinner while it thinks. Release
+  (or click again), and the text appears where your cursor is.
 - Speech recognition runs locally on your CPU using NVIDIA's
   [Parakeet TDT 0.6b v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
   model (CC-BY-4.0) via [onnx-asr](https://github.com/istupakov/onnx-asr),
