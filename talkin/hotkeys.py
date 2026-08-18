@@ -218,6 +218,8 @@ class Hotkeys:
         self._down_mods = set()
         self._down_others = set()
         self._watches = {}
+        self._pending_release = {}
+        self._debounce_lock = threading.Lock()
         self._grabber = _ComboGrabber()
         self.reload()
         self._listener = keyboard.Listener(
@@ -241,10 +243,31 @@ class Hotkeys:
             if watch.enabled and watch.trigger not in NON_PRINTING_KEYS
             and len(watch.trigger) == 1])
 
+    # X keyboard auto-repeat delivers a RELEASE+press pair (~1ms apart,
+    # ~30x/second) for every held non-modifier key. Taken at face value
+    # each pair made a held combo like alt+z flap released/pressed for
+    # as long as the key was down - hold-to-talk stopped the recording
+    # on every spurious release, transcribed the fragment, restarted on
+    # the re-press, and everything said in the gaps was lost ("it shows
+    # listening but only half of what I said appears"). The old default
+    # hold key never showed it because modifiers don't auto-repeat. So
+    # a release only counts if the same key isn't pressed again within
+    # this window: repeat pairs arrive ~1ms apart, real finger lifts
+    # never re-press this fast. Costs that many ms of latency on the
+    # real release - imperceptible next to ~300ms of transcription.
+    _RELEASE_DEBOUNCE_S = 0.04
+
     def _pressed(self, key):
         specific = _specific_token(key)
         if specific is None:
             return
+        with self._debounce_lock:
+            timer = self._pending_release.pop(specific, None)
+            if timer is not None:
+                # Auto-repeat pair: swallow the release AND this press -
+                # the key never really left the down state.
+                timer.cancel()
+                return
         self._down_others.add(specific)
         mod = _modifier_category(key)
         if mod:
@@ -255,6 +278,20 @@ class Hotkeys:
         specific = _specific_token(key)
         if specific is None:
             return
+        with self._debounce_lock:
+            old = self._pending_release.pop(specific, None)
+            if old is not None:
+                old.cancel()
+            timer = threading.Timer(
+                self._RELEASE_DEBOUNCE_S, self._commit_release, [key, specific])
+            timer.daemon = True
+            self._pending_release[specific] = timer
+            timer.start()
+
+    def _commit_release(self, key, specific):
+        with self._debounce_lock:
+            if self._pending_release.pop(specific, None) is None:
+                return  # already swallowed by a repeat press
         self._down_others.discard(specific)
         mod = _modifier_category(key)
         if mod:
