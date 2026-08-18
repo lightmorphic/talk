@@ -142,6 +142,8 @@ class Recorder:
         self.on_level = on_level  # called with 0..1 RMS from audio thread
         self._stream = None
         self._chunks = []
+        self._frames = 0
+        self._warned = False
         self._native_rate = SAMPLE_RATE
         self._lock = threading.Lock()
 
@@ -171,14 +173,36 @@ class Recorder:
             if self._stream is not None:
                 return
             self._chunks = []
+            self._frames = 0
+            self._warned = False
             device = self._device()
             self._native_rate = self._device_rate(device)
             cap_frames = self._native_rate * MAX_SECONDS
 
             def callback(indata, frames, time_info, status):
+                # The MAX_SECONDS cap compares ACTUAL captured frames,
+                # counted as they arrive. It used to be estimated as
+                # len(chunks) * this callback's frame count - but with
+                # no fixed blocksize requested, PipeWire/PortAudio
+                # delivers wildly variable buffer sizes, so every large
+                # buffer made that product spuriously exceed the cap
+                # and silently DROP the chunk (then a small buffer
+                # would shrink the estimate and appending resumed).
+                # The result was holes punched all through longer
+                # dictations - stream live, level meter moving, words
+                # missing. Measured at 3-15%+ of audio lost on a
+                # realistic small-quantum-with-spikes buffer pattern.
+                # A real driver-side overflow ALSO loses audio - log the
+                # first one per recording so the two causes can never be
+                # confused again if words go missing.
+                if status and not self._warned:
+                    self._warned = True
+                    log.warning("audio callback status: %s", status)
                 with self._lock:
-                    if len(self._chunks) * frames < cap_frames:
-                        self._chunks.append(indata[:, 0].copy())
+                    if self._frames < cap_frames:
+                        chunk = indata[:, 0].copy()
+                        self._chunks.append(chunk)
+                        self._frames += len(chunk)
                 if self.on_level is not None:
                     rms = float(np.sqrt(np.mean(indata ** 2)))
                     self.on_level(min(1.0, rms * 8))
