@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Talkin: private, on-device dictation for Linux</title>
-<meta name="description" content="Hold a key, speak, let go. Your words appear in any app. Speech recognition runs entirely on your machine. No cloud, no accounts, no audio ever sent anywhere. Free and open source.">
+<meta name="description" content="Hold a key, speak, let go. Your words appear in any app. Speech recognition runs entirely on your machine. No cloud, no accounts, no audio ever sent anywhere. Free and open source. Requires an X11 (Xorg) session — not compatible with Wayland.">
 <link rel="canonical" href="https://talkin.lightmorphic.co.uk/">
 <link rel="icon" href="images/talkin.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/talkin-512.png">
@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="style.css">
 <meta name="theme-color" content="#111827">
 <meta property="og:title" content="Talkin: private, on-device dictation for Linux">
-<meta property="og:description" content="Hold a key, speak, let go. Your voice never leaves your machine.">
+<meta property="og:description" content="Hold a key, speak, let go. Your voice never leaves your machine. X11 (Xorg) sessions only — not Wayland compatible.">
 <meta property="og:url" content="https://talkin.lightmorphic.co.uk/">
 <meta property="og:image" content="https://talkin.lightmorphic.co.uk/images/talkin-512.png">
 <meta property="og:image:width" content="512">
@@ -20,16 +20,16 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Talkin: private, on-device dictation for Linux">
-<meta name="twitter:description" content="Hold a key, speak, let go. Your voice never leaves your machine.">
+<meta name="twitter:description" content="Hold a key, speak, let go. Your voice never leaves your machine. X11 (Xorg) sessions only — not Wayland compatible.">
 <meta name="twitter:image" content="https://talkin.lightmorphic.co.uk/images/talkin-512.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Talkin",
-  "operatingSystem": "Linux",
+  "operatingSystem": "Linux (X11/Xorg session; not Wayland)",
   "applicationCategory": "UtilitiesApplication",
-  "description": "Private, on-device dictation for the Linux desktop. Hold a key, speak, let go. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine.",
+  "description": "Private, on-device dictation for the Linux desktop. Hold a key, speak, let go. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. Requires an X11 (Xorg) session; not compatible with Wayland.",
   "url": "https://talkin.lightmorphic.co.uk/",
   "downloadUrl": "https://github.com/lightmorphic/talkin/releases/latest",
   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "GBP"},
@@ -40,6 +40,22 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+
+<!-- Compatibility notice. Deliberately the first thing on the page and
+     above the nav: Talkin needs a global hotkey and the ability to type
+     into other apps, neither of which Wayland permits, so a Wayland user
+     downloading this would get an app that starts and then does nothing. -->
+<div class="compat-banner" role="note">
+  <div class="wrap compat-inner">
+    <span class="compat-badge">X11 only</span>
+    <p class="compat-text">
+      <strong>Talkin works on X11 (Xorg) sessions only — it is not Wayland compatible.</strong>
+      On a Wayland session the hotkey will not fire and no text will be typed.
+      Check yours with <code>echo $XDG_SESSION_TYPE</code> — it must say <code>x11</code>.
+      <a href="#requirements">What this means</a>
+    </p>
+  </div>
+</div>
 
 <nav class="topnav">
   <div class="wrap topnav-inner">
@@ -65,6 +81,7 @@
       <a href="#features-title">Features</a>
       <a href="#privacy-title">Privacy</a>
       <a href="#family-title">From Lightmorphic</a>
+      <a href="#requirements">Requirements</a>
       <a class="topnav-cta" href="#download">Download</a>
     </div>
   </div>
@@ -192,8 +209,27 @@
         <span class="dl-meta">x86_64 · ~93&nbsp;MB · GPL-3.0-or-later</span>
       </div>
       <p class="dl-help">First run: mark the file executable (right-click, Properties, "Allow executing" on most desktops), then open it. It downloads the speech model once, then works fully offline, and checks for updates itself, right there in Settings.</p>
+      <p class="dl-help"><strong>Before you download: Talkin needs an X11 (Xorg) session and will not work on Wayland.</strong> See <a href="#requirements">requirements</a>.</p>
     </div>
     <p class="install-note">Every release, with notes and checksums, is on <a href="https://github.com/lightmorphic/talkin/releases">GitHub</a>.</p>
+  </div>
+</section>
+
+<section class="requirements" id="requirements" aria-labelledby="requirements-title">
+  <div class="wrap">
+    <h2 id="requirements-title">Requirements</h2>
+    <div class="req-card">
+      <p><strong>Talkin runs on Linux desktops using an X11 (Xorg) session. It is not compatible with Wayland.</strong></p>
+      <p>Talkin has to do two things that Wayland deliberately does not allow: listen for a hotkey while you are working in another app, and type text into that app. On a Wayland session Talkin will start, but the hotkey will never fire and nothing will be typed.</p>
+      <p>To check which session you are in, run:</p>
+      <pre><code>echo $XDG_SESSION_TYPE</code></pre>
+      <ul>
+        <li><code>x11</code> — Talkin will work.</li>
+        <li><code>wayland</code> — Talkin will not work. Log out and pick an X11 session if your desktop offers one.</li>
+      </ul>
+      <p>KDE Plasma, Cinnamon, Xfce and MATE still offer an X11 session at the login screen. GNOME defaults to Wayland from version 45, and <strong>GNOME 50 removed the X11 session altogether</strong>, so recent GNOME is not supported.</p>
+      <p>You will also need PipeWire or PulseAudio for microphone input, and a 64-bit (x86_64) machine.</p>
+    </div>
   </div>
 </section>
 
