@@ -1,14 +1,18 @@
 # Talkin
 
-> ## ⚠️ Works on X11 only — not compatible with Wayland
+> ## ⚠️ Works on X11 only — on Wayland, use [Twalkin](https://twalkin.lightmorphic.co.uk)
 >
 > **Talkin requires an X11 (Xorg) desktop session. It will not work on a
-> Wayland session.**
+> Wayland session.** For Wayland there is a sister project,
+> **[Twalkin](https://twalkin.lightmorphic.co.uk)**, built for Wayland
+> from the ground up.
 >
 > Talkin listens for a global hotkey and types text into whatever app you
 > are using. Wayland does not permit either of those things the way X11
 > does, so on a Wayland session the app will start but the hotkey will
-> never fire and no text will be typed.
+> never fire and no text will be typed. That difference runs deep enough
+> that each display server gets its own app, rather than one app that
+> half-works on both.
 >
 > **How to check which one you are using** — run this in a terminal:
 >
@@ -16,12 +20,13 @@
 > echo $XDG_SESSION_TYPE
 > ```
 >
-> `x11` means Talkin will work. `wayland` means it will not.
+> `x11` → Talkin (this project).
+> `wayland` → [Twalkin](https://twalkin.lightmorphic.co.uk).
 >
 > Many desktops (KDE Plasma, Cinnamon, Xfce, MATE) still offer an X11
 > session on the login screen. Note that **GNOME 45+ defaults to Wayland,
-> and GNOME 50 removed the X11 session entirely**, so recent GNOME is not
-> supported.
+> and GNOME 50 removed the X11 session entirely**, so on recent GNOME you
+> want Twalkin.
 
 Private, on-device dictation for the Linux desktop. Hold a key, speak,
 let go. Your words are typed into whatever app you're using, and your
