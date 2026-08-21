@@ -51,6 +51,10 @@ DEFAULTS = {
     "cleanup_dictionary": True,
     "history_enabled": True,
     "autostart": True,
+    # Wayland only: the RemoteDesktop portal's permission token. Storing it
+    # turns "approve input access on every launch" into a one-off prompt.
+    # Not user-facing and never shown in Settings.
+    "wayland_restore_token": "",
 }
 
 _lock = threading.RLock()

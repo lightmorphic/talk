@@ -203,6 +203,43 @@ class _ComboGrabber:
                 pass
 
 
+def create_hotkeys(config, on_hold_press, on_hold_release, on_toggle,
+                   on_correction, on_problem=None):
+    """Build the right hotkey backend for this session.
+
+    X11 gets the observer-plus-grab implementation below. Wayland gets the
+    GlobalShortcuts portal, because a compositor only delivers keys to the
+    focused surface — an observer there sees nothing precisely when
+    another app has focus, which is whenever dictation is wanted.
+
+    If we are on Wayland but the portal has no GlobalShortcuts support
+    (older xdg-desktop-portal, or a backend that does not implement it) we
+    fall back to the X11 path: under XWayland it at least still works for
+    X11 apps, which beats no hotkeys at all.
+    """
+    # Imported here, not at module scope: hotkeys_portal imports names
+    # from this module, so a top-level import would be circular.
+    from . import portal, session
+
+    if session.is_wayland():
+        if portal.available() and portal.has_interface(
+                "org.freedesktop.portal.GlobalShortcuts"):
+            from .hotkeys_portal import PortalHotkeys
+            log.info("hotkey backend: GlobalShortcuts portal (%s)",
+                     session.describe())
+            return PortalHotkeys(config, on_hold_press, on_hold_release,
+                                 on_toggle, on_correction,
+                                 on_problem=on_problem)
+        log.warning("Wayland session but no GlobalShortcuts portal; hotkeys "
+                    "will only reach XWayland apps")
+    else:
+        log.info("hotkey backend: XRecord + XGrabKey (%s)",
+                 session.describe())
+
+    return Hotkeys(config, on_hold_press, on_hold_release, on_toggle,
+                   on_correction)
+
+
 class Hotkeys:
     """Fires on_hold_press/on_hold_release while the hold combo is held,
     on_toggle each time the toggle combo is pressed, on_correction each

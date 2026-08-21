@@ -23,7 +23,9 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 from . import cleanup, i18n, tooltip
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
+from . import session
 from .hotkeys import MODIFIER_NAMES, combo_is_safe, parse_combo
+from .hotkeys_portal import combo_is_bindable
 
 log = logging.getLogger("talkin.settings")
 
@@ -852,6 +854,15 @@ class SettingsWindow(Gtk.Window):
 
             box.pack_start(row, False, False, 0)
 
+        # Wayland hands shortcut ownership to the compositor, so the rules
+        # here are genuinely different. Say so rather than letting the
+        # picker imply any key will work.
+        if session.is_wayland():
+            note = Gtk.Label(label=i18n.t("settings.hotkey_wayland_note"),
+                             xalign=0, wrap=True)
+            note.get_style_context().add_class("hint")
+            box.pack_start(note, False, False, 0)
+
         self._hotkey_status = Gtk.Label(xalign=0, wrap=True)
         self._hotkey_status.get_style_context().add_class("hint")
         box.pack_start(self._hotkey_status, False, False, 0)
@@ -893,6 +904,14 @@ class SettingsWindow(Gtk.Window):
         field = self._capture_field
         if not combo_is_safe(combo):
             self._hotkey_status.set_text(i18n.t("settings.hotkey_unsafe"))
+            return True
+        # On Wayland the compositor owns the binding and refuses some
+        # combos outright — notably bare modifiers, which it drops without
+        # error. Reject them here rather than storing a key that would
+        # never fire and look like a Talkin bug.
+        if session.is_wayland() and not combo_is_bindable(combo):
+            self._hotkey_status.set_text(
+                i18n.t("settings.hotkey_wayland_invalid"))
             return True
         others = [f for f, *_r in self._HOTKEY_FIELDS if f != field]
         if combo in (self._get(f) for f in others):

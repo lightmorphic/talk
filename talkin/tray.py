@@ -212,19 +212,33 @@ class Tray:
         log.info("tray: status icon never embedded; "
                  "falling back to AppIndicator (menu only)")
         self._icon.set_visible(False)
+        # Importing AppIndicator is NOT proof that it works. Only the
+        # typelib ships with the bundle; the matching shared library is
+        # always the host's, and a GI typelib dlopen()s that library
+        # lazily — on the first real call, not at import. So a machine
+        # without libayatana-appindicator3 imports cleanly and then throws
+        # GError here. Everything through the first call must be guarded,
+        # or the tray dies with a traceback and Talkin runs invisibly.
         try:
             gi.require_version("AyatanaAppIndicator3", "0.1")
             from gi.repository import AyatanaAppIndicator3 as AppIndicator
-        except (ImportError, ValueError):
-            log.warning("no AppIndicator either; tray unavailable")
+            indicator = AppIndicator.Indicator.new(
+                "talkin", "talkin-idle",
+                AppIndicator.IndicatorCategory.APPLICATION_STATUS)
+            indicator.set_icon_theme_path(ASSET_DIR)
+            indicator.set_title("Lightmorphic Talkin")
+            indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+            indicator.set_menu(self._menu)
+        except (ImportError, ValueError, GLib.GError, TypeError, AttributeError):
+            log.warning(
+                "tray unavailable: this desktop does not embed status icons "
+                "and libayatana-appindicator3 is missing. Talkin still works "
+                "from its hotkeys; install libayatana-appindicator3 (and, on "
+                "GNOME, the AppIndicator extension) to get the tray icon back.")
+            self._indicator = None
             return False
-        self._indicator = AppIndicator.Indicator.new(
-            "talkin", "talkin-idle",
-            AppIndicator.IndicatorCategory.APPLICATION_STATUS)
-        self._indicator.set_icon_theme_path(ASSET_DIR)
-        self._indicator.set_title("Lightmorphic Talkin")
-        self._indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-        self._indicator.set_menu(self._menu)
+
+        self._indicator = indicator
         self._set_indicator_state(self._state)
         return False
 
