@@ -12,9 +12,10 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
-from . import cleanup, config as cfg, correction, i18n, injector
+from . import cleanup, config as cfg, correction, i18n, injector, session
 from .engine import Recorder, Transcriber
-from .hotkeys import Hotkeys
+from .hotkeys import create_hotkeys
+from .hotkeys_portal import WAYLAND_DEFAULT_HOLD, combo_is_bindable
 from .settings_window import open_settings
 from .tray import Tray
 
@@ -47,13 +48,19 @@ class TalkinApp:
             on_ready=lambda: GLib.idle_add(self._model_ready),
             on_error=lambda key: GLib.idle_add(self._fail, key),
             on_downloading=lambda: GLib.idle_add(self._downloading))
-        self.hotkeys = Hotkeys(
+        self._migrate_wayland_hotkey()
+        self.hotkeys = create_hotkeys(
             self.config,
             on_hold_press=self._hold_press,
             on_hold_release=self._hold_release,
             on_toggle=self._toggle,
-            on_correction=self._correction)
+            on_correction=self._correction,
+            on_problem=self._hotkey_problem)
         self._recording_via = None  # "hold" | "toggle" | None
+
+        # Picks XTEST or the RemoteDesktop portal, and on Wayland puts
+        # the consent prompt here at startup rather than mid-sentence.
+        injector.setup(self.config)
 
         cfg.set_autostart(self.config.get("autostart"))
 
@@ -135,6 +142,35 @@ class TalkinApp:
 
     # -- correction --------------------------------------------------
 
+    def _migrate_wayland_hotkey(self):
+        """Replace a hold key that can never bind on this session.
+
+        The shipped default is Right Ctrl, a bare modifier — fine on X11,
+        impossible on Wayland, where the compositor drops it silently. A
+        user who switches to Wayland would otherwise find hold-to-talk
+        simply dead, with nothing to explain why. Only the unusable value
+        is changed, and only once.
+        """
+        if not session.is_wayland():
+            return
+        combo = self.config.get("hotkey_hold")
+        if not combo or combo_is_bindable(combo):
+            return
+        self.config.update({"hotkey_hold": WAYLAND_DEFAULT_HOLD})
+        log.info("hold key %r cannot bind on Wayland; migrated to %r",
+                 combo, WAYLAND_DEFAULT_HOLD)
+        GLib.idle_add(
+            lambda: (self.notify(i18n.t("hotkey.wayland_migrated")), False)[1])
+
+    def _hotkey_problem(self, action, combo):
+        """A hotkey the compositor refused to bind (Wayland only).
+
+        Surfaced to the user because the alternative is a hotkey that
+        simply never fires, with nothing on screen to explain why.
+        """
+        log.warning("hotkey %r (%s) is inactive in this session", combo, action)
+        self.notify(i18n.t("hotkey.wayland_unbindable"))
+
     def _correction(self):
         if self.state in ("listening", "thinking"):
             return
@@ -180,6 +216,10 @@ class TalkinApp:
     def quit(self):
         try:
             self.hotkeys.stop()
+        except Exception:
+            pass
+        try:
+            injector.shutdown()
         except Exception:
             pass
         Gtk.main_quit()

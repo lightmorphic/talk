@@ -65,10 +65,25 @@ jobs:
       # exact name — so the site never needs editing for a new version),
       # and the versioned name is there so anyone browsing the Releases
       # page directly can tell what they downloaded.
+      # Every run keeps the build as a downloadable artifact, tagged or
+      # not. This is what makes a branch testable: a manual (or branch)
+      # run produces a real AppImage to try on a real desktop without
+      # publishing anything to the Releases page.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Talkin-AppImage-${{ github.sha }}
+          path: Talkin-x86_64.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Create versioned copy
+        if: startsWith(github.ref, 'refs/tags/')
         run: cp Talkin-x86_64.AppImage "Talkin-${{ github.ref_name }}-x86_64.AppImage"
 
+      # Tags only: a workflow_dispatch run must never create a release.
       - name: Upload release assets
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
