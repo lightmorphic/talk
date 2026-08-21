@@ -1,5 +1,28 @@
 # Talkin
 
+> ## ⚠️ Works on X11 only — not compatible with Wayland
+>
+> **Talkin requires an X11 (Xorg) desktop session. It will not work on a
+> Wayland session.**
+>
+> Talkin listens for a global hotkey and types text into whatever app you
+> are using. Wayland does not permit either of those things the way X11
+> does, so on a Wayland session the app will start but the hotkey will
+> never fire and no text will be typed.
+>
+> **How to check which one you are using** — run this in a terminal:
+>
+> ```bash
+> echo $XDG_SESSION_TYPE
+> ```
+>
+> `x11` means Talkin will work. `wayland` means it will not.
+>
+> Many desktops (KDE Plasma, Cinnamon, Xfce, MATE) still offer an X11
+> session on the login screen. Note that **GNOME 45+ defaults to Wayland,
+> and GNOME 50 removed the X11 session entirely**, so recent GNOME is not
+> supported.
+
 Private, on-device dictation for the Linux desktop. Hold a key, speak,
 let go. Your words are typed into whatever app you're using, and your
 voice never leaves your machine.
@@ -36,8 +59,10 @@ chmod +x Talkin-x86_64.AppImage
 ```
 
 The speech model (~600 MB) downloads once on first run, then the app
-is pinned hard-offline. Nothing else to install. Requirements: Linux
-with X11 and PipeWire/PulseAudio.
+is pinned hard-offline. Nothing else to install.
+
+**Requirements: Linux running an X11 (Xorg) session — not Wayland — plus
+PipeWire or PulseAudio.** See the notice at the top of this file.
 
 ## Building from source
 

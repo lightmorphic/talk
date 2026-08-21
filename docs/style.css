@@ -485,3 +485,63 @@ footer {
   font-size: 0.8125rem;
 }
 .credit img { display: block; }
+
+/* ---- X11-only compatibility banner -------------------------------- */
+/* Brand yellow on navy rather than a red alert: this is a compatibility
+   fact people must read before downloading, not an error. It sits above
+   the nav, is not dismissible, and keeps its contrast in both themes
+   because both colours are set explicitly. */
+.compat-banner {
+  background: var(--yellow);
+  color: var(--navy);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.25);
+}
+.compat-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+.compat-badge {
+  flex: none;
+  background: var(--navy);
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.875rem;
+  white-space: nowrap;
+}
+.compat-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--navy);
+}
+.compat-text strong { font-weight: 700; }
+.compat-text code {
+  background: rgba(17, 24, 39, 0.12);
+  color: var(--navy);
+  padding: 0.05em 0.35em;
+  border-radius: 0.35rem;
+  font-size: 0.9em;
+}
+.compat-text a { color: var(--navy); text-decoration: underline; font-weight: 600; }
+.compat-text a:hover { text-decoration: none; }
+
+@media (max-width: 640px) {
+  .compat-inner { flex-direction: column; gap: 0.5rem; }
+}
+
+/* ---- Requirements section ----------------------------------------- */
+.requirements { padding: 2.5rem 0; }
+.requirements .req-card {
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 1.375rem;
+  padding: 1.5rem;
+}
+.requirements ul { margin: 0.75rem 0 0; padding-left: 1.15rem; }
+.requirements li { margin-bottom: 0.4rem; }
