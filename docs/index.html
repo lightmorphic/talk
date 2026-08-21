@@ -50,8 +50,9 @@
     <span class="compat-badge">X11 only</span>
     <p class="compat-text">
       <strong>Talkin works on X11 (Xorg) sessions only — it is not Wayland compatible.</strong>
-      On a Wayland session the hotkey will not fire and no text will be typed.
-      Check yours with <code>echo $XDG_SESSION_TYPE</code> — it must say <code>x11</code>.
+      On Wayland, use its sister project <a href="https://twalkin.lightmorphic.co.uk"><strong>Twalkin</strong></a>,
+      built for Wayland from the ground up.
+      Check which you have with <code>echo $XDG_SESSION_TYPE</code> — <code>x11</code> for Talkin, <code>wayland</code> for Twalkin.
       <a href="#requirements">What this means</a>
     </p>
   </div>
@@ -225,9 +226,10 @@
       <pre><code>echo $XDG_SESSION_TYPE</code></pre>
       <ul>
         <li><code>x11</code> — Talkin will work.</li>
-        <li><code>wayland</code> — Talkin will not work. Log out and pick an X11 session if your desktop offers one.</li>
+        <li><code>wayland</code> — use <a href="https://twalkin.lightmorphic.co.uk">Twalkin</a> instead, the Wayland edition of this app. Or log out and pick an X11 session if your desktop still offers one.</li>
       </ul>
-      <p>KDE Plasma, Cinnamon, Xfce and MATE still offer an X11 session at the login screen. GNOME defaults to Wayland from version 45, and <strong>GNOME 50 removed the X11 session altogether</strong>, so recent GNOME is not supported.</p>
+      <p>KDE Plasma, Cinnamon, Xfce and MATE still offer an X11 session at the login screen. GNOME defaults to Wayland from version 45, and <strong>GNOME 50 removed the X11 session altogether</strong>, so on recent GNOME you want Twalkin.</p>
+      <p class="req-sibling"><strong>Two apps, one job.</strong> Talkin and <a href="https://twalkin.lightmorphic.co.uk">Twalkin</a> do the same thing — hold a key, speak, let go — but a global hotkey and typing into another app work completely differently on X11 and Wayland. Rather than one app that half-works on both, each is built properly for its own display server.</p>
       <p>You will also need PipeWire or PulseAudio for microphone input, and a 64-bit (x86_64) machine.</p>
     </div>
   </div>
