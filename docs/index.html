@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Talkin: private, on-device dictation for Linux</title>
-<meta name="description" content="Hold a key, speak, let go. Your words appear in any app. Speech recognition runs entirely on your machine. No cloud, no accounts, no audio ever sent anywhere. Free and open source. Requires an X11 (Xorg) session — not compatible with Wayland.">
+<meta name="description" content="Click, speak, click again. Your words are typed into any app. Speech recognition runs entirely on your machine — no cloud, no accounts, no audio sent anywhere. Works on Wayland and on X11.">
 <link rel="canonical" href="https://talkin.lightmorphic.co.uk/">
 <link rel="icon" href="images/talkin.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="images/talkin-512.png">
@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="style.css">
 <meta name="theme-color" content="#111827">
 <meta property="og:title" content="Talkin: private, on-device dictation for Linux">
-<meta property="og:description" content="Hold a key, speak, let go. Your voice never leaves your machine. X11 (Xorg) sessions only — not Wayland compatible.">
+<meta property="og:description" content="Click, speak, click again. Your voice never leaves your machine. Wayland and X11 alike.">
 <meta property="og:url" content="https://talkin.lightmorphic.co.uk/">
 <meta property="og:image" content="https://talkin.lightmorphic.co.uk/images/talkin-512.png">
 <meta property="og:image:width" content="512">
@@ -20,16 +20,16 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Talkin: private, on-device dictation for Linux">
-<meta name="twitter:description" content="Hold a key, speak, let go. Your voice never leaves your machine. X11 (Xorg) sessions only — not Wayland compatible.">
+<meta name="twitter:description" content="Click, speak, click again. Your voice never leaves your machine. Wayland and X11 alike.">
 <meta name="twitter:image" content="https://talkin.lightmorphic.co.uk/images/talkin-512.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Talkin",
-  "operatingSystem": "Linux (X11/Xorg session; not Wayland)",
+  "operatingSystem": "Linux (Wayland or X11)",
   "applicationCategory": "UtilitiesApplication",
-  "description": "Private, on-device dictation for the Linux desktop. Hold a key, speak, let go. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. Requires an X11 (Xorg) session; not compatible with Wayland.",
+  "description": "Private, on-device dictation for Linux. Click the button, speak, click again. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. On Wayland it types through the XDG RemoteDesktop portal (GNOME 45+ or KDE Plasma 5.27+); on X11 it types directly, on any desktop.",
   "url": "https://talkin.lightmorphic.co.uk/",
   "downloadUrl": "https://github.com/lightmorphic/talkin/releases/latest",
   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "GBP"},
@@ -41,26 +41,9 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<!-- Compatibility notice. Deliberately the first thing on the page and
-     above the nav: Talkin needs a global hotkey and the ability to type
-     into other apps, neither of which Wayland permits, so a Wayland user
-     downloading this would get an app that starts and then does nothing. -->
-<div class="compat-banner" role="note">
-  <div class="wrap compat-inner">
-    <span class="compat-badge">X11 only</span>
-    <p class="compat-text">
-      <strong>Talkin works on X11 (Xorg) sessions only — it is not Wayland compatible.</strong>
-      On Wayland, use its sister project <a href="https://twalkin.lightmorphic.co.uk"><strong>Twalkin</strong></a>,
-      built for Wayland from the ground up.
-      Check which you have with <code>echo $XDG_SESSION_TYPE</code> — <code>x11</code> for Talkin, <code>wayland</code> for Twalkin.
-      <a href="#requirements">What this means</a>
-    </p>
-  </div>
-</div>
-
 <nav class="topnav">
   <div class="wrap topnav-inner">
-    <a class="topnav-brand" href="#top">
+    <a class="brand" href="#top">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
         <circle cx="12" cy="12" r="11" fill="#111827"/>
         <g stroke="#fbc711" stroke-width="1.9" stroke-linecap="round">
@@ -73,196 +56,168 @@
       </svg>
       Talkin
     </a>
-    <button class="topnav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
-      <span></span><span></span><span></span>
-      <span class="sr-only">Menu</span>
-    </button>
-    <div class="topnav-links" id="nav-links">
-      <a href="#how-title">How it works</a>
-      <a href="#features-title">Features</a>
-      <a href="#privacy-title">Privacy</a>
-      <a href="#family-title">From Lightmorphic</a>
+    <div class="nav-links">
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#wayland">Wayland &amp; X11</a>
       <a href="#requirements">Requirements</a>
-      <a class="topnav-cta" href="#download">Download</a>
+      <a href="#download">Download</a>
     </div>
   </div>
 </nav>
 
 <header class="hero" id="top">
-  <div class="wrap">
-    <div class="hero-circle" aria-hidden="true">
-      <svg viewBox="0 0 120 120" width="120" height="120">
-        <circle cx="60" cy="60" r="57" class="hc-bg"/>
-        <circle cx="60" cy="60" r="55" class="hc-ring"/>
-        <g class="hc-wave">
-          <line x1="32" y1="50" x2="32" y2="70"/>
-          <line x1="46" y1="40" x2="46" y2="80"/>
-          <line x1="60" y1="32" x2="60" y2="88"/>
-          <line x1="74" y1="42" x2="74" y2="78"/>
-          <line x1="88" y1="52" x2="88" y2="68"/>
-        </g>
-      </svg>
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Talk to any window.<br>Nothing leaves the&nbsp;machine.</h1>
+      <p class="lede">Click the button, speak, click again. Your words are typed wherever your cursor is. Recognition runs on your own CPU — no cloud, no account, no audio sent anywhere.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#download">Download</a>
+      </div>
+      <p class="hero-note">Free &amp; open source · GPL-3.0 · No telemetry, ever</p>
     </div>
-    <h1>Speak anywhere.<br>Your voice never leaves your&nbsp;machine.</h1>
-    <p class="lede">Talkin is dictation for the Linux desktop. Hold a key, speak, let go. Your words appear wherever your cursor is. Recognition runs entirely on your own computer.</p>
-    <div class="cta">
-      <a class="btn primary" href="#download">Download Talkin</a>
-      <a class="btn ghost" href="https://github.com/lightmorphic/talkin">View on GitHub</a>
-    </div>
-    <p class="hero-note">Free &amp; open source · GPL-3.0 · No cloud, no accounts, no telemetry</p>
+
+    <!-- Both session types are supported, so this states what each one
+         means rather than gatekeeping the download. -->
+    <aside class="check" aria-label="What it runs on">
+      <p class="check-title">Runs on your desktop</p>
+      <div class="check-row">
+        <span class="tag yes">wayland</span>
+        <span>GNOME 45+ or KDE Plasma 5.27+. Typing is done by the compositor, which you allow once.</span>
+      </div>
+      <div class="check-row">
+        <span class="tag yes">x11</span>
+        <span>Any desktop — Cinnamon, XFCE, MATE, GNOME, KDE, or a bare window manager. Nothing to allow.</span>
+      </div>
+      <p class="check-note">One download covers both. It works out which it is on and behaves accordingly.</p>
+    </aside>
   </div>
 </header>
 
 <main id="main">
 
-<section class="steps" aria-labelledby="how-title">
+<section id="how" aria-labelledby="how-title">
   <div class="wrap">
-    <h2 id="how-title">One key. Three moments.</h2>
-    <ol class="step-grid">
-      <li>
-        <span class="step-num" aria-hidden="true">1</span>
-        <h3>Hold</h3>
-        <p>Hold Right&nbsp;Ctrl (or any key you choose) in any app, or left-click the tray icon: email, editor, browser, terminal.</p>
-      </li>
-      <li>
-        <span class="step-num" aria-hidden="true">2</span>
-        <h3>Speak</h3>
-        <p>The tray icon shows a live waveform while Talkin hears you, and a revolving spinner while it thinks.</p>
-      </li>
-      <li>
-        <span class="step-num" aria-hidden="true">3</span>
-        <h3>Let go</h3>
-        <p>Your words are typed where your cursor is, cleaned up and correctly spelt, in about a third of a second.</p>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<section class="features" aria-labelledby="features-title">
-  <div class="wrap">
-    <h2 id="features-title">Built for people who think faster than they type</h2>
-    <div class="feature-grid">
-      <article>
-        <h3>Private by design</h3>
-        <p>Speech recognition runs on your CPU with NVIDIA's open Parakeet model. After install, the app is pinned hard-offline. Unplug the internet and Talkin won't notice.</p>
-      </article>
-      <article>
-        <h3>Teach it your words</h3>
-        <p>Highlight any word it mistyped, press the correction key, type the right spelling once. Never see the mistake again. Export your dictionary and take it anywhere.</p>
-      </article>
-      <article>
-        <h3>Cleans up after you</h3>
-        <p>Ums, uhs and false starts are removed before the text lands. What you meant, not every noise you made.</p>
-      </article>
-      <article>
-        <h3>Works everywhere you type</h3>
-        <p>It types like a keyboard, so every app is covered. Push-to-talk or toggle, your choice of key, any microphone.</p>
-      </article>
-      <article>
-        <h3>Speaks your language</h3>
-        <p>Every word of the interface lives in one spreadsheet-friendly file. Six languages included; add your own with one column.</p>
-      </article>
-      <article>
-        <h3>Yours, permanently</h3>
-        <p>GPL-3.0 licensed. History, settings and dictionary are plain local files with one-click export. Updates come straight from GitHub, when you ask, never behind your back.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="privacy" aria-labelledby="privacy-title">
-  <div class="wrap">
-    <h2 id="privacy-title">The whole privacy policy, in full</h2>
-    <p class="privacy-line">Talkin sends nothing, to no one, ever. There is nothing else to disclose.</p>
-    <p class="privacy-detail">No analytics, no telemetry, no crash reporting, no cookies on this site. The app makes exactly two kinds of network request, both of which you can see happen: downloading the speech model once on first run, and checking GitHub for updates when you open Settings. Nothing else, ever.</p>
-  </div>
-</section>
-
-<section class="family" aria-labelledby="family-title">
-  <div class="wrap">
-    <h2 id="family-title">From the same studio</h2>
-    <p class="family-lede">Talkin is one small part of what Lightmorphic builds. Two places to see the rest.</p>
-    <div class="family-grid">
-      <article class="family-card">
-        <p class="family-kicker">Websites &amp; hosting</p>
-        <h3>lightmorphic.co.uk</h3>
-        <p>Fast, accessible websites for real businesses, no bloat, no cookie banners, no dark patterns. Built to load instantly, rank well, and still make sense to edit in five years. If your current site feels slow, cluttered, or like it's fighting you, this is who fixes that.</p>
-        <a class="btn ghost dark" href="https://lightmorphic.co.uk">Visit lightmorphic.co.uk</a>
-      </article>
-      <article class="family-card">
-        <p class="family-kicker">Free, open-source tools</p>
-        <h3>code.lightmorphic.co.uk</h3>
-        <p>The developer side of the studio: self-hosted, privacy-first tools like this one, built to solve a real problem and then given away, source included, nothing phoning home. If you liked how Talkin thinks, there's more where it came from.</p>
-        <a class="btn ghost dark" href="https://code.lightmorphic.co.uk">Visit code.lightmorphic.co.uk</a>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="install" id="download" aria-labelledby="download-title">
-  <div class="wrap">
-    <h2 id="download-title">Download</h2>
-    <div class="download-card">
-      <p class="dl-title">Linux AppImage</p>
-      <p class="dl-sub">One file, no installer, nothing else to set up.</p>
-      <div class="dl-row">
-        <a class="btn primary dl-btn" href="https://github.com/lightmorphic/talkin/releases/latest/download/Talkin-x86_64.AppImage">Download AppImage</a>
-        <span class="dl-meta">x86_64 · ~93&nbsp;MB · GPL-3.0-or-later</span>
+    <h2 id="how-title">Click. Speak. Click.</h2>
+    <p class="section-intro">One button, three moments, about a third of a second of thinking.</p>
+    <div class="flow-track">
+      <div class="flow-step">
+        <h3>Click</h3>
+        <p>Click the floating button, or the icon in your tray, from any app: email, editor, browser, terminal.</p>
       </div>
-      <p class="dl-help">First run: mark the file executable (right-click, Properties, "Allow executing" on most desktops), then open it. It downloads the speech model once, then works fully offline, and checks for updates itself, right there in Settings.</p>
-      <p class="dl-help"><strong>Before you download: Talkin needs an X11 (Xorg) session and will not work on Wayland.</strong> See <a href="#requirements">requirements</a>.</p>
+      <div class="flow-step">
+        <h3>Speak</h3>
+        <p>Say the thing. The button shows a live waveform while it listens, and a turning arc while it thinks.</p>
+      </div>
+      <div class="flow-step">
+        <h3>Click again</h3>
+        <p>Your words appear where the cursor is, filler words trimmed and your own spellings applied.</p>
+      </div>
     </div>
-    <p class="install-note">Every release, with notes and checksums, is on <a href="https://github.com/lightmorphic/talkin/releases">GitHub</a>.</p>
   </div>
 </section>
 
-<section class="requirements" id="requirements" aria-labelledby="requirements-title">
+<section aria-labelledby="built-title">
+  <div class="wrap">
+    <h2 id="built-title">Built for people who think faster than they type</h2>
+    <div class="bento">
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
+          Private by design
+        </h3>
+        <p>Speech recognition runs on your CPU using NVIDIA's open Parakeet model. After the one-time model download, the app pins itself offline — unplug the internet and Talkin will not notice. It makes exactly two kinds of network request in its whole life: fetching the model once, and checking for updates when you ask it to.</p>
+      </article>
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+          Teach it your words
+        </h3>
+        <p>Click the small button beside it, type what it misheard and the right spelling once. Never see that mistake again. Your dictionary exports and imports as a file.</p>
+      </article>
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
+          Six languages
+        </h3>
+        <p>English, French, German, Spanish, Italian and Dutch. Every visible string lives in one editable file — add a column, get a language.</p>
+      </article>
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M5 12a7 7 0 0 0 14 0"/><path d="M9 21h6"/></svg>
+          Better than the dictation in your editor
+        </h3>
+        <p>Claude Code has voice input built in. Talkin is clearer and more accurate in everyday use, and it is not confined to one window: it types into an email, a terminal, a form in the browser, anywhere your cursor is. Built and used daily by someone who dictates for a living.</p>
+      </article>
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+          One file, no installer
+        </h3>
+        <p>A single AppImage. Mark it executable and run it. It updates itself from Settings, only when you press the button.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="wayland" aria-labelledby="wayland-title">
+  <div class="wrap">
+    <h2 id="wayland-title">Wayland and X11</h2>
+    <p class="section-intro">One download, two very different jobs underneath. Typing into another app is something a Wayland compositor guards closely, and rightly, so there Talkin asks through the standard desktop portal and the compositor stays in charge — no <code>ydotool</code>, no joining the <code>input</code> group, no udev rules. On X11 no permission exists to ask for, so it simply types. Talkin works out which it is on and picks its own way in; you are told plainly if a desktop cannot support it.</p>
+    <div class="diff">
+      <article class="panel">
+        <h3>You click instead of holding a key</h3>
+        <p>Keyboard shortcuts are gone. On Wayland the compositor's press and release signals proved unreliable enough to lose whole dictations, and one habit that works everywhere beats two that differ. So there is a floating button you can drag anywhere, plus the tray icon. A click has nothing to go wrong.</p>
+      </article>
+      <article class="panel">
+        <h3>Corrections are typed on Wayland</h3>
+        <p>On X11 you can highlight a misheard word and open the correction popup with it already filled in. Wayland does not let a background app read your selection — deliberately — so there the popup asks you to type the word instead.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="requirements" class="req" aria-labelledby="requirements-title">
   <div class="wrap">
     <h2 id="requirements-title">Requirements</h2>
-    <div class="req-card">
-      <p><strong>Talkin runs on Linux desktops using an X11 (Xorg) session. It is not compatible with Wayland.</strong></p>
-      <p>Talkin has to do two things that Wayland deliberately does not allow: listen for a hotkey while you are working in another app, and type text into that app. On a Wayland session Talkin will start, but the hotkey will never fire and nothing will be typed.</p>
-      <p>To check which session you are in, run:</p>
+    <div class="panel">
+      <p><strong>Talkin runs on Wayland and on X11.</strong> It is one AppImage; there is nothing to choose between.</p>
+      <p>What it needs depends on which you are in. To see which:</p>
       <pre><code>echo $XDG_SESSION_TYPE</code></pre>
       <ul>
-        <li><code>x11</code> — Talkin will work.</li>
-        <li><code>wayland</code> — use <a href="https://twalkin.lightmorphic.co.uk">Twalkin</a> instead, the Wayland edition of this app. Or log out and pick an X11 session if your desktop still offers one.</li>
+        <li><code>wayland</code> — your desktop must provide the <strong>RemoteDesktop</strong> portal, which is how Talkin is allowed to type: <strong>GNOME 45+</strong> or <strong>KDE Plasma 5.27+</strong>. You approve it once, on first run.</li>
+        <li><code>x11</code> — any desktop at all, including Cinnamon, XFCE, MATE and bare window managers. Nothing to install and nothing to approve.</li>
       </ul>
-      <p>KDE Plasma, Cinnamon, Xfce and MATE still offer an X11 session at the login screen. GNOME defaults to Wayland from version 45, and <strong>GNOME 50 removed the X11 session altogether</strong>, so on recent GNOME you want Twalkin.</p>
-      <p class="req-sibling"><strong>Two apps, one job.</strong> Talkin and <a href="https://twalkin.lightmorphic.co.uk">Twalkin</a> do the same thing — hold a key, speak, let go — but a global hotkey and typing into another app work completely differently on X11 and Wayland. Rather than one app that half-works on both, each is built properly for its own display server.</p>
-      <p>You will also need PipeWire or PulseAudio for microphone input, and a 64-bit (x86_64) machine.</p>
+      <p style="margin-top:1rem">Talkin says so plainly if a desktop cannot support it, rather than failing quietly. You will also need PipeWire or PulseAudio for the microphone, and a 64-bit (x86_64) machine.</p>
+    </div>
+  </div>
+</section>
+
+<section id="download" class="download" aria-labelledby="download-title">
+  <div class="wrap">
+    <h2 id="download-title">Download</h2>
+    <div class="panel">
+      <div class="dl-row">
+        <a class="btn primary" href="https://github.com/lightmorphic/talkin/releases/latest/download/Talkin-x86_64.AppImage">Download AppImage</a>
+        <span class="dl-meta">x86_64 · ~92&nbsp;MB · GPL-3.0-or-later</span>
+      </div>
+      <p class="dl-help">Mark the file executable (right-click → Properties → “Allow executing” on most desktops), then open it. On first run it downloads the speech model once, about 600 MB, and works fully offline afterwards. Your desktop will ask once for permission to type into other windows — that is the portal doing its job.</p>
     </div>
   </div>
 </section>
 
 </main>
 
-<footer>
-  <div class="wrap foot">
-    <p>Talkin · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0 licence</a> · <a href="https://github.com/lightmorphic/talkin">Source on GitHub</a></p>
-    <a class="credit" href="https://lightmorphic.co.uk">
-      <span>Created by</span>
-      <picture>
-        <source srcset="images/lightmorphic-badge-dark.webp" media="(prefers-color-scheme: dark)">
-        <img src="images/lightmorphic-badge.webp" alt="Lightmorphic" width="88" height="18" loading="lazy">
-      </picture>
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <a class="badge" href="https://lightmorphic.co.uk" aria-label="Created by Lightmorphic">
+      <img class="light-only" src="images/lightmorphic-badge.webp" alt="Created by Lightmorphic" width="120" height="34" loading="lazy">
+      <img class="dark-only" src="images/lightmorphic-badge-dark.webp" alt="Created by Lightmorphic" width="120" height="34" loading="lazy">
     </a>
+    <div class="foot-links">
+      <a href="https://github.com/lightmorphic/talkin">Source</a>
+      <a href="https://github.com/lightmorphic/talkin/releases">Releases</a>
+    </div>
   </div>
 </footer>
-
-<script>
-(() => {
-  const toggle = document.getElementById("nav-toggle");
-  const links = document.getElementById("nav-links");
-  toggle.addEventListener("click", () => {
-    const open = links.classList.toggle("open");
-    toggle.setAttribute("aria-expanded", String(open));
-  });
-  links.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => {
-    links.classList.remove("open");
-    toggle.setAttribute("aria-expanded", "false");
-  }));
-})();
-</script>
 </body>
 </html>

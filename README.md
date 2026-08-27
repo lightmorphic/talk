@@ -1,43 +1,19 @@
 # Talkin
 
-> ## ⚠️ Works on X11 only — on Wayland, use [Twalkin](https://twalkin.lightmorphic.co.uk)
->
-> **Talkin requires an X11 (Xorg) desktop session. It will not work on a
-> Wayland session.** For Wayland there is a sister project,
-> **[Twalkin](https://twalkin.lightmorphic.co.uk)**, built for Wayland
-> from the ground up.
->
-> Talkin listens for a global hotkey and types text into whatever app you
-> are using. Wayland does not permit either of those things the way X11
-> does, so on a Wayland session the app will start but the hotkey will
-> never fire and no text will be typed. That difference runs deep enough
-> that each display server gets its own app, rather than one app that
-> half-works on both.
->
-> **How to check which one you are using** — run this in a terminal:
->
-> ```bash
-> echo $XDG_SESSION_TYPE
-> ```
->
-> `x11` → Talkin (this project).
-> `wayland` → [Twalkin](https://twalkin.lightmorphic.co.uk).
->
-> Many desktops (KDE Plasma, Cinnamon, Xfce, MATE) still offer an X11
-> session on the login screen. Note that **GNOME 45+ defaults to Wayland,
-> and GNOME 50 removed the X11 session entirely**, so on recent GNOME you
-> want Twalkin.
+Private, on-device dictation for Linux. Click, speak, click again. Your
+words are typed into whatever app you're using, and your voice never
+leaves your machine.
 
-Private, on-device dictation for the Linux desktop. Hold a key, speak,
-let go. Your words are typed into whatever app you're using, and your
-voice never leaves your machine.
-
-**Website:** [talkin.lightmorphic.co.uk](https://talkin.lightmorphic.co.uk)
+Works on Wayland and on X11 from the same AppImage. On Wayland it types
+through the desktop's RemoteDesktop portal, which needs GNOME 45+ or KDE
+Plasma 5.27+ and is approved once on first run. On X11 it types directly
+and works on any desktop — Cinnamon, XFCE, MATE, GNOME, KDE, or a bare
+window manager — with nothing to approve.
 
 ## How it works
 
-- Hold **Right Ctrl** (configurable) and speak, or left-click the tray
-  icon to start and stop. The tray icon shows a live waveform while
+- Click the floating button, or the tray icon, and speak. Click again to
+  stop. The tray icon shows a live waveform while
   Talkin hears you, and a revolving spinner while it thinks. Release
   (or click again), and the text appears where your cursor is.
 - Speech recognition runs locally on your CPU using NVIDIA's
@@ -46,8 +22,8 @@ voice never leaves your machine.
   with no cloud, no accounts, and no audio ever sent anywhere.
 - A cleanup pass removes filler words (um, uh, etc.) and applies your
   personal dictionary.
-- Teach it words: highlight any word Talkin mistyped, press
-  **Ctrl+Alt+C**, type the right spelling once. Never see the mistake
+- Teach it words: click the small button beside the record button, type
+  the word it got wrong and the right spelling once. Never see the mistake
   again. Your dictionary can be exported and imported as a file.
 - Every visible string lives in `locales/translations.csv`, one
   human-editable file. Add a column, get a new language.
@@ -66,8 +42,9 @@ chmod +x Talkin-x86_64.AppImage
 The speech model (~600 MB) downloads once on first run, then the app
 is pinned hard-offline. Nothing else to install.
 
-**Requirements: Linux running an X11 (Xorg) session — not Wayland — plus
-PipeWire or PulseAudio.** See the notice at the top of this file.
+**Requirements: a Wayland session on GNOME 45+ or KDE Plasma 5.27+
+(needs the RemoteDesktop portal), plus PipeWire or
+PulseAudio.** See the notice at the top of this file.
 
 ## Building from source
 
@@ -86,7 +63,7 @@ is pinned hard-offline.
 
 ## Settings
 
-Right-click the tray icon → Settings, a native window with hotkeys,
+Right-click the tray icon → Settings, a native window with
 microphone, cleanup, dictionary, history, translations, updates and
 maintenance.
 
