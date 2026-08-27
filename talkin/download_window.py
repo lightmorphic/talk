@@ -87,6 +87,13 @@ window.talkin-firstrun {
 }
 .talkin-firstrun .warning-card label { color: #f34236; font-weight: 600; }
 .talkin-firstrun .status { color: #a1a1aa; font-size: 0.875rem; }
+.talkin-firstrun button.lang {
+  color: #a1a1aa; font-size: 0.8125rem; font-weight: 600;
+  background: none; border: none; box-shadow: none;
+  padding: 2px 8px; min-height: 0;
+}
+.talkin-firstrun button.lang:hover { color: #fafafa; }
+.talkin-firstrun button.lang-current { color: #fbc711; }
 """
 
 
@@ -294,13 +301,14 @@ class DownloadWindow(Gtk.Window):
     """A small, quiet notice that a one-time download is running."""
 
     def __init__(self, config, on_progress=None, on_dismissed=None,
-                 on_quit=None, is_ready=None):
+                 on_quit=None, is_ready=None, on_language_changed=None):
         super().__init__(title=t("download.title"))
         self.config = config
         self.on_progress = on_progress
         self.on_dismissed = on_dismissed
         self.on_quit = on_quit
         self.is_ready = is_ready
+        self.on_language_changed = on_language_changed
         self._armed = None      # timer while "click again to quit" stands
         self._failed = False
         self.on_retry = None
@@ -333,6 +341,12 @@ class DownloadWindow(Gtk.Window):
         circle_holder.set_halign(Gtk.Align.CENTER)
         circle_holder.pack_start(self.circle, False, False, 0)
         box.pack_start(circle_holder, False, False, 4)
+
+        # The language chooser belongs here, not only in Settings. This
+        # window is the first thing anyone sees, it is the one that must
+        # be understood — it carries the permission step — and Settings
+        # is not reachable until it is done with.
+        box.pack_start(self._language_row(), False, False, 0)
 
         title = Gtk.Label(label=t("download.heading"), xalign=0.5)
         title.get_style_context().add_class("title")
@@ -383,6 +397,35 @@ class DownloadWindow(Gtk.Window):
         self._timer = GLib.timeout_add(_POLL_MS, self._update)
         self.show_all()
 
+    def _language_row(self):
+        """A quiet row of language links across the top."""
+        from . import i18n
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_halign(Gtk.Align.CENTER)
+        flow.set_max_children_per_line(9)
+        flow.get_style_context().add_class("langs")
+        current = self.config.get("language")
+        for code, name in i18n.available_languages():
+            button = Gtk.Button(label=name)
+            button.set_relief(Gtk.ReliefStyle.NONE)
+            button.get_style_context().add_class("lang")
+            if code == current:
+                button.get_style_context().add_class("lang-current")
+            button.connect("clicked", self._on_language, code)
+            flow.add(button)
+        return flow
+
+    def _on_language(self, _button, code):
+        """Switch language and redraw this window in it."""
+        from . import i18n
+        if code == self.config.get("language"):
+            return
+        self.config.update({"language": code})
+        i18n.set_language(code)
+        if self.on_language_changed is not None:
+            self.on_language_changed()
+
     @property
     def needs_permission(self):
         """Whether this desktop has a permission step at all."""
@@ -403,6 +446,17 @@ class DownloadWindow(Gtk.Window):
         if self.is_ready is None:
             return bool(self.config.get(RESTORE_TOKEN_KEY))
         return bool(self.is_ready())
+
+    def snapshot(self):
+        """What a rebuilt window needs in order to carry on unchanged."""
+        return {"complete": self._complete, "failed": self._failed,
+                "fraction": self.circle.fraction, "retry": self.on_retry}
+
+    def restore(self, state):
+        self._complete = state["complete"]
+        self.circle.fraction = state["fraction"]
+        if state["failed"]:
+            self.fail(t("download.failed"), state["retry"])
 
     def _dismiss(self, *_args):
         # Closing before granting permission leaves an app that hears
