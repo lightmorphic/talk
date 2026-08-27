@@ -34,7 +34,10 @@ BUTTON_SIZE = 56       # the round record button
 SIDE_SIZE = 26         # the little pronunciation button beside it
 _FPS_MS = 100
 
-_BOTTOM_GAP = 48      # clear of the panel and of any dock
+# Right at the bottom edge of the usable area. The work area already
+# excludes panels and docks, so this is a hair of breathing room rather
+# than a margin.
+_BOTTOM_GAP = 6
 
 _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 
@@ -149,10 +152,19 @@ class FloatButton(Gtk.Window):
                        or display.get_monitor(0))
             area = monitor.get_workarea()
             width, height = self.get_size()
+            if width < 2 or height < 2:      # not yet realised
+                width = BUTTON_SIZE + SIDE_SIZE + 12
+                height = BUTTON_SIZE
             x = area.x + (area.width - width) // 2
             y = area.y + area.height - height - _BOTTOM_GAP
             self.move(x, y)
             log.info("floating button placed at %s,%s", x, y)
+            # And again once the window manager has finished mapping it.
+            # A move issued in the same breath as the map is routinely
+            # overridden by the placement the window manager had already
+            # decided on, which is what put it back in the middle every
+            # time it was re-shown.
+            GLib.timeout_add(180, lambda: (self.move(x, y), False)[1])
         except Exception:
             log.debug("could not place the floating button", exc_info=True)
 
