@@ -20,9 +20,10 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
-from . import cleanup, i18n, tooltip
+from . import cleanup, i18n, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
+from . import session
 from .hotkeys import MODIFIER_NAMES, combo_is_safe, parse_combo
 
 log = logging.getLogger("talkin.settings")
@@ -146,6 +147,15 @@ window.talkin-settings {
   border: none; border-radius: 0.875rem;
 }
 .talkin-settings .keycap.capturing { background: #ffffff; }
+/* The Wayland rows show what the compositor bound; they are not buttons,
+   so they read as a keycap without inviting a click. */
+.talkin-settings .keycap-static {
+  color: @lm_accent; font-weight: 600;
+  background: alpha(@lm_accent, 0.12);
+  border: 1px solid alpha(@lm_accent, 0.35);
+  border-radius: 0.875rem;
+  padding: 4px 12px;
+}
 
 /* A plain ".talkin-settings label" rule would otherwise reach straight
    into these buttons' internal label widget and win over the color
@@ -264,8 +274,9 @@ def _load_bundled_font():
     except OSError:
         log.warning("could not register bundled font", exc_info=True)
 
-# Gdk key name -> the token hotkeys.py's pynput-based listener would
-# produce for the same physical key, so a combo captured here fires later.
+# Gdk key name -> Talkin's own combo token for the same physical key, so
+# a combo captured here is written in the form parse_combo() and the
+# portal's trigger builder both understand.
 _GDK_NAME_TO_TOKEN = {
     "Control_L": "ctrl_l", "Control_R": "ctrl_r",
     "Alt_L": "alt_l", "Alt_R": "alt_r", "ISO_Level3_Shift": "alt_r",
@@ -335,6 +346,7 @@ class SettingsWindow(Gtk.Window):
         self.app_obj = app_obj
         self.config = app_obj.config
         self.dictionary = app_obj.dictionary
+        self._switches = {}
         self.history = app_obj.history
 
         self.set_default_size(760, 560)
@@ -382,7 +394,6 @@ class SettingsWindow(Gtk.Window):
 
         categories = [
             ("general", "settings.section.general", self._build_general),
-            ("hotkey", "settings.section.hotkey", self._build_hotkeys),
             ("microphone", "settings.section.microphone",
              self._build_microphone),
             ("output", "settings.section.output", self._build_output),
@@ -620,6 +631,53 @@ class SettingsWindow(Gtk.Window):
 
         button.connect("clicked", on_click)
 
+    def _on_uninstall(self):
+        """Remove every trace of Talkin, then quit."""
+        problems = uninstall.run()
+        if problems:
+            log.warning("uninstall left things behind: %s", problems)
+        self.app_obj.notify(i18n.t("settings.uninstall_done"))
+        GLib.timeout_add_seconds(2, lambda: (self.app_obj.quit(), False)[1])
+
+
+    def _switch_row(self, key, label_key, hint_key=None, on_change=None):
+        """A labelled toggle bound to a config key.
+
+        Switches, not tick boxes: a switch says on or off at a glance,
+        which suits settings that change how the app behaves. Every
+        switch built for the same key is remembered, so the same setting
+        shown on two pages stays in step instead of one going stale.
+        """
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
+        labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title = Gtk.Label(label=i18n.t(label_key), xalign=0)
+        title.get_style_context().add_class("field-label")
+        labels.pack_start(title, False, False, 0)
+        if hint_key:
+            hint = Gtk.Label(label=i18n.t(hint_key), xalign=0, wrap=True)
+            hint.get_style_context().add_class("hint")
+            labels.pack_start(hint, False, False, 0)
+        row.pack_start(labels, True, True, 0)
+
+        switch = Gtk.Switch()
+        switch.set_valign(Gtk.Align.START)
+        switch.set_active(bool(self.config.get(key)))
+        switch.connect("notify::active", self._on_switch, key, on_change)
+        self._switches.setdefault(key, []).append(switch)
+        row.pack_start(switch, False, False, 0)
+        return row
+
+    def _on_switch(self, switch, _param, key, on_change):
+        value = switch.get_active()
+        if bool(self.config.get(key)) == value:
+            return   # echo from syncing the twin; nothing to do
+        self._set(key, value)
+        for other in self._switches.get(key, []):
+            if other is not switch and other.get_active() != value:
+                other.set_active(value)
+        if on_change is not None:
+            on_change(value)
+
     def _get(self, key):
         return self.config.get(key)
 
@@ -632,6 +690,23 @@ class SettingsWindow(Gtk.Window):
         if key == "autostart":
             from .config import set_autostart
             set_autostart(value)
+        if key == "float_button":
+            # Show or hide it now rather than at next launch: a setting
+            # that appears to do nothing until a restart reads as broken.
+            app = self.app_obj
+            if value and app.float_button is None:
+                from .float_button import FloatButton
+                app.float_button = FloatButton(
+                    on_toggle=app._toggle, on_correction=app._correction)
+                app.float_button.set_state(app.state)
+            elif not value and app.float_button is not None:
+                app.float_button.stop()
+                app.float_button = None
+        if key == "sounds" and value:
+            # Play it on the spot, so the switch says what it does
+            # instead of describing it.
+            from . import sounds
+            sounds.play("start")
         self.app_obj.apply_settings()
 
     # -- header ----------------------------------------------------------
@@ -793,24 +868,29 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(self._row(i18n.t("settings.language"), lang_combo),
                        False, False, 0)
 
-        autostart = Gtk.CheckButton(label=i18n.t("settings.autostart"))
-        # Default halign is FILL, which stretches the whole row (and its
-        # focus ring) across the panel's full width instead of hugging
-        # the checkbox and its label - same class of fix as icon-btn's.
-        autostart.set_halign(Gtk.Align.START)
-        autostart.set_active(bool(self.config.get("autostart")))
-        autostart.connect(
-            "toggled", lambda b: self._set("autostart", b.get_active()))
-        box.pack_start(autostart, False, False, 0)
+        box.pack_start(self._switch_row("autostart", "settings.autostart"),
+                       False, False, 0)
 
-        history_enabled = Gtk.CheckButton(
-            label=i18n.t("settings.history_enabled"))
-        history_enabled.set_halign(Gtk.Align.START)
-        history_enabled.set_active(bool(self.config.get("history_enabled")))
-        history_enabled.connect(
-            "toggled",
-            lambda b: self._set("history_enabled", b.get_active()))
-        box.pack_start(history_enabled, False, False, 0)
+        # The floating button is the click route: no shortcut signal to
+        # arrive late or early, so it works where the keyboard does not.
+        box.pack_start(
+            self._switch_row("float_button", "settings.float_button"),
+            False, False, 0)
+
+        # While dictating you are looking at the document, not at the
+        # button, so a sound is the only cue that reaches you.
+        box.pack_start(
+            self._switch_row("sounds", "settings.sounds",
+                             "settings.sounds_help"),
+            False, False, 0)
+
+        # The same switch appears on the History page. Someone thinking
+        # about what is kept will look there; someone scanning settings
+        # will look here. Both are legitimate, so it is in both places.
+        box.pack_start(
+            self._switch_row("history_enabled", "settings.history_enabled",
+                             "settings.history_enabled_help"),
+            False, False, 0)
 
         return box
 
@@ -824,7 +904,106 @@ class SettingsWindow(Gtk.Window):
          "settings.correction_hotkey_help"),
     ]
 
+    # Which portal shortcut id each config field corresponds to.
+    _HOTKEY_ACTIONS = {
+        "hotkey_hold": "hold",
+        "hotkey_toggle": "toggle",
+        "correction_hotkey": "correction",
+    }
+
     def _build_hotkeys(self):
+        if session.is_wayland():
+            return self._build_hotkeys_wayland()
+        return self._build_hotkeys_captured()
+
+    def _build_hotkeys_wayland(self):
+        """Read-only list plus a button into the desktop's own editor.
+
+        Capturing a keystroke here cannot work on Wayland: the compositor
+        owns the bound combo and fires the shortcut instead of passing the
+        key to this window, so the field would either see nothing or start
+        a dictation while you were trying to set it. The desktop's editor
+        is the one place a shortcut can actually be changed, so Settings
+        shows what is bound and opens that.
+        """
+        box = self._section("settings.section.hotkey",
+                            "settings.hotkey_intro_wayland")
+        self._hotkey_value_labels = {}
+
+        for field, title_key, help_key in self._HOTKEY_FIELDS:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                          spacing=_FIELD_GAP)
+            labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            labels.set_size_request(220, -1)
+            title = Gtk.Label(label=i18n.t(title_key), xalign=0)
+            title.get_style_context().add_class("field-label")
+            labels.pack_start(title, False, False, 0)
+            hint = Gtk.Label(label=i18n.t(help_key), xalign=0, wrap=True)
+            hint.get_style_context().add_class("hint")
+            labels.pack_start(hint, False, False, 0)
+            row.pack_start(labels, True, True, 0)
+
+            value = Gtk.Label(label=i18n.t("settings.hotkey_unset"), xalign=1)
+            value.get_style_context().add_class("keycap-static")
+            self._hotkey_value_labels[field] = value
+            row.pack_start(value, False, False, 0)
+
+            box.pack_start(row, False, False, 0)
+
+        # Only offer the button where the desktop can actually honour it.
+        # ConfigureShortcuts needs GlobalShortcuts version 2; on version 1
+        # the method exists on the interface and answers UnknownMethod, so
+        # a button here would fail every single time.
+        hotkeys = getattr(self.app_obj, "hotkeys", None)
+        can_configure = hotkeys is not None and hasattr(hotkeys, "can_configure") \
+            and hotkeys.can_configure()
+        if can_configure:
+            change = Gtk.Button(label=i18n.t("settings.hotkey_change"))
+            change.get_style_context().add_class("primary")
+            change.connect("clicked", lambda *_a: self._open_shortcut_editor())
+            holder = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            holder.pack_start(change, False, False, 0)
+            box.pack_start(holder, False, False, 0)
+        else:
+            where = Gtk.Label(label=i18n.t("settings.hotkey_where"),
+                              xalign=0, wrap=True)
+            where.get_style_context().add_class("hint")
+            box.pack_start(where, False, False, 0)
+
+        self._hotkey_status = Gtk.Label(xalign=0, wrap=True)
+        self._hotkey_status.get_style_context().add_class("hint")
+        box.pack_start(self._hotkey_status, False, False, 0)
+
+        self._refresh_bound_hotkeys()
+        hotkeys = getattr(self.app_obj, "hotkeys", None)
+        if hotkeys is not None and hasattr(hotkeys, "set_on_change"):
+            # The desktop's editor applies changes immediately, so mirror
+            # them here rather than showing a stale value until reopen.
+            hotkeys.set_on_change(
+                lambda: GLib.idle_add(self._refresh_bound_hotkeys))
+        return box
+
+    def _refresh_bound_hotkeys(self):
+        hotkeys = getattr(self.app_obj, "hotkeys", None)
+        bound = hotkeys.bound_triggers() if hotkeys is not None and \
+            hasattr(hotkeys, "bound_triggers") else {}
+        for field, label in getattr(self, "_hotkey_value_labels", {}).items():
+            trigger = bound.get(self._HOTKEY_ACTIONS[field], "")
+            label.set_text(trigger or i18n.t("settings.hotkey_unset"))
+        if not bound:
+            self._hotkey_status.set_text(i18n.t("settings.hotkey_none_bound"))
+        else:
+            self._hotkey_status.set_text("")
+        return False
+
+    def _open_shortcut_editor(self):
+        hotkeys = getattr(self.app_obj, "hotkeys", None)
+        if hotkeys is None or not hasattr(hotkeys, "configure") \
+                or not hotkeys.configure():
+            self._hotkey_status.set_text(
+                i18n.t("settings.hotkey_editor_failed"))
+
+    def _build_hotkeys_captured(self):
         box = self._section("settings.section.hotkey",
                             "settings.hotkey_intro")
         self._hotkey_buttons = {}
@@ -928,7 +1107,12 @@ class SettingsWindow(Gtk.Window):
         test_btn = self._icon_button(
             "audio-input-microphone-symbolic", i18n.t("settings.mic_test"))
         test_btn.connect("clicked", self._on_mic_test)
-        box.pack_start(test_btn, False, False, 0)
+        test_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        test_row.pack_start(test_btn, False, False, 0)
+        test_label = Gtk.Label(label=i18n.t("settings.mic_test_label"),
+                               xalign=0)
+        test_row.pack_start(test_label, False, False, 0)
+        box.pack_start(test_row, False, False, 0)
 
         self._mic_result = Gtk.Label(xalign=0, wrap=True)
         self._mic_result.get_style_context().add_class("hint")
@@ -1004,21 +1188,13 @@ class SettingsWindow(Gtk.Window):
         cleanup_title.get_style_context().add_class("section-title")
         box.pack_start(cleanup_title, False, False, 0)
 
-        fillers = Gtk.CheckButton(label=i18n.t("settings.cleanup_fillers"))
-        fillers.set_halign(Gtk.Align.START)
-        fillers.set_active(bool(self.config.get("cleanup_fillers")))
-        fillers.connect(
-            "toggled", lambda b: self._set("cleanup_fillers", b.get_active()))
-        box.pack_start(fillers, False, False, 0)
-
-        dict_toggle = Gtk.CheckButton(
-            label=i18n.t("settings.cleanup_dictionary"))
-        dict_toggle.set_halign(Gtk.Align.START)
-        dict_toggle.set_active(bool(self.config.get("cleanup_dictionary")))
-        dict_toggle.connect(
-            "toggled",
-            lambda b: self._set("cleanup_dictionary", b.get_active()))
-        box.pack_start(dict_toggle, False, False, 0)
+        box.pack_start(
+            self._switch_row("cleanup_fillers", "settings.cleanup_fillers"),
+            False, False, 0)
+        box.pack_start(
+            self._switch_row("cleanup_dictionary",
+                             "settings.cleanup_dictionary"),
+            False, False, 0)
         return box
 
     # -- dictionary ------------------------------------------------------
@@ -1176,6 +1352,13 @@ class SettingsWindow(Gtk.Window):
         box = self._section("settings.section.history",
                             "settings.history_help")
 
+        # The switch belongs here, not buried on the General page: this
+        # is where someone goes when they think about what is being kept.
+        box.pack_start(
+            self._switch_row("history_enabled", "settings.history_enabled",
+                             "settings.history_enabled_help"),
+            False, False, 0)
+
         self._history_store = Gtk.ListStore(str, str)
         tree = Gtk.TreeView(model=self._history_store)
         # This is a mouse-driven, read-mostly list, not something meant
@@ -1283,6 +1466,25 @@ class SettingsWindow(Gtk.Window):
         export_btn.connect("clicked", self._on_export_all)
         actions.pack_start(export_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
+
+        # Deleting the AppImage leaves the 600 MB model, the settings and
+        # the menu entry behind, so "removed" does not mean removed. This
+        # is the only thing that can honestly take it all away.
+        removable = uninstall.total_bytes()
+        uninstall_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        uninstall_label = Gtk.Label(
+            label=i18n.t("settings.uninstall_help").format(
+                mb=int(removable / (1024 * 1024))),
+            xalign=0, wrap=True)
+        uninstall_label.get_style_context().add_class("hint")
+        uninstall_row.pack_start(uninstall_label, False, False, 0)
+
+        uninstall_btn = Gtk.Button(label=i18n.t("settings.uninstall"))
+        holder = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        holder.pack_start(uninstall_btn, False, False, 0)
+        uninstall_row.pack_start(holder, False, False, 0)
+        self._arm_destructive(uninstall_btn, self._on_uninstall)
+        box.pack_start(uninstall_row, False, False, 0)
 
         stats_title = Gtk.Label(label=i18n.t("settings.stats"), xalign=0)
         stats_title.get_style_context().add_class("section-title")

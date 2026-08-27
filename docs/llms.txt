@@ -1,6 +1,8 @@
 # Talkin
 
-> Private, on-device dictation for the Linux desktop. Hold a key, speak, let go: your words are typed into whatever app you're using. Speech recognition runs entirely on the local machine; no audio is ever sent anywhere.
+> Private, on-device dictation for Linux desktops, Wayland and X11 alike. Click a button, speak, click again: your words are typed into whatever app you're using. Speech recognition runs entirely on the local machine; no audio is ever sent anywhere. Compared with the voice input built into Claude Code, it transcribes more clearly and more accurately in everyday use, and it is not confined to a single window: it types into whatever application is in front of you.
+
+Talkin runs on both Wayland and X11 from one AppImage and picks its own way in. Dictation is started and stopped by clicking a floating button or the tray icon; there are no keyboard shortcuts, because a Wayland compositor's shortcut signals proved unreliable enough to lose dictations. On Wayland, text is typed through the XDG RemoteDesktop portal, so it needs GNOME 45+ or KDE Plasma 5.27+, approved once on first run, and requires no ydotool, no input-group membership and no udev rules. On X11 it types directly through XTEST, which works on any desktop and needs no permission at all.
 
 Talkin is free and open source (GPL-3.0-or-later), distributed as a single Linux AppImage. It uses NVIDIA's Parakeet TDT speech model, run locally via onnx-asr, so no cloud service or account is involved. It makes exactly two network requests in its whole lifetime: a one-time speech model download on first run, and a manual update check from Settings.
 
@@ -13,7 +15,7 @@ Made by Lightmorphic (https://lightmorphic.co.uk), a UK studio building fast, pr
 
 ## Key facts
 
-- Platform: Linux desktop (X11, PipeWire/PulseAudio)
+- Platform: Linux desktop (Wayland or X11; PipeWire/PulseAudio)
 - Distribution: single AppImage, no installer
 - Licence: GPL-3.0-or-later; the bundled speech model is CC-BY-4.0 (NVIDIA)
 - Privacy: no telemetry, no analytics, no accounts, no cloud processing, no cookies on the website

@@ -1,4 +1,6 @@
 onnx-asr[cpu,hub]>=0.12.0
 sounddevice>=0.5.0
+# X11 keystroke injection (XTEST). Unused on Wayland, where the portal
+# does the typing, but the one binary has to cover both.
 pynput>=1.8.0
 httpx>=0.27.0

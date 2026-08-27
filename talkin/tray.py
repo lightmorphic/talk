@@ -34,6 +34,18 @@ from .i18n import t
 log = logging.getLogger("talkin.tray")
 
 _FPS_MS = 100          # animation frame interval while listening/thinking
+# How much of the panel's icon box the design fills. The disc touches the
+# edges at 1.14; the rest is asked for on top of the box.
+_TRAY_FILL = 1.14
+
+# ...and how much larger a pixbuf than the panel asked for. A panel is
+# free to scale this back down to the box it offered, in which case
+# nothing changes and nothing breaks; some do honour it, and on those the
+# icon comes out the extra fifth larger. It is the only lever an
+# application has here — the size of a tray icon is the panel's decision,
+# not ours.
+_TRAY_OVERSIZE = 1.2
+
 _EMBED_GRACE_S = 4     # how long to wait before falling back to AppIndicator
 
 _NAVY = (0x1c / 255, 0x1e / 255, 0x23 / 255)
@@ -60,13 +72,28 @@ _SVG_ICONS = {
 }
 
 
-def _draw_frame(size, state, phase, level):
-    """One tray frame as a pixbuf: the SVG design, animated."""
+def _draw_frame(size, state, phase, level, progress=0.0, fill=1.0,
+                bold_ring=False):
+    """One frame as a pixbuf: the SVG design, animated.
+
+    `fill` scales the whole design about the centre. The design leaves a
+    margin inside its box, which is right for the floating button — it is
+    a window of its own with nothing around it — but wrong in a panel,
+    where the icon is already small and that margin is wasted space. A
+    fill of 1.14 puts the disc against the edges of the box, which is as
+    large as it can be drawn without the sides being cut off.
+
+    `bold_ring` brightens and thickens the outline. At panel size the
+    faint ring the button uses all but vanished against a dark panel.
+    """
     import cairo
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
     cr = cairo.Context(surface)
-    s = size / 24.0
-    cx = cy = size / 2.0
+    s = size / 24.0 * fill
+    # Work in the original 24-unit design space, re-centred, so every
+    # coordinate below is untouched by the scaling.
+    cr.translate(size / 2.0 - 12 * s, size / 2.0 - 12 * s)
+    cx = cy = 12 * s
 
     cr.set_source_rgb(*_NAVY)
     cr.arc(cx, cy, 10.5 * s, 0, 2 * math.pi)
@@ -74,7 +101,10 @@ def _draw_frame(size, state, phase, level):
 
     if state == "listening":
         cr.set_source_rgba(*_YELLOW, 0.9)
-        cr.set_line_width(1.4 * s)
+        cr.set_line_width((1.9 if bold_ring else 1.4) * s)
+    elif bold_ring:
+        cr.set_source_rgba(*_WHITE, 0.42)
+        cr.set_line_width(1.9 * s)
     else:
         cr.set_source_rgba(*_WHITE, 0.18)
         cr.set_line_width(1.2 * s)
@@ -83,13 +113,34 @@ def _draw_frame(size, state, phase, level):
 
     cr.set_line_cap(cairo.LINE_CAP_ROUND)
     if state == "paused":
-        cr.set_source_rgba(*_YELLOW, 0.55)
+        # Grey, not yellow: paused sat next to idle as two similar sets of
+        # yellow bars, and a waveform of vertical lines reads as a pause
+        # symbol at 22 pixels. Colour is what separates them at a glance.
+        cr.set_source_rgba(*_WHITE, 0.45)
         cr.set_line_width(2.6 * s)
         for x in (9.5, 14.5):
             cr.move_to(x * s, 8 * s)
             cr.line_to(x * s, 16 * s)
             cr.stroke()
-    elif state in ("thinking", "loading", "downloading"):
+    elif state == "downloading":
+        # A filling ring, not a spinner. A spinner conveys "busy" and
+        # nothing else; during a 600 MB download the one thing worth
+        # knowing is how far along it is, and whether it is moving at
+        # all. The arc grows clockwise from the top until it closes.
+        cr.set_source_rgba(*_YELLOW, 0.22)
+        cr.set_line_width(2.2 * s)
+        cr.arc(cx, cy, 8.5 * s, 0, 2 * math.pi)
+        cr.stroke()
+        if progress > 0:
+            cr.set_source_rgba(*_YELLOW, 1.0)
+            cr.set_line_width(2.2 * s)
+            top = -math.pi / 2
+            cr.arc(cx, cy, 8.5 * s, top, top + 2 * math.pi * min(1.0, progress))
+            cr.stroke()
+        cr.set_source_rgba(*_YELLOW, 1.0)
+        cr.arc(cx, cy, 2.2 * s, 0, 2 * math.pi)
+        cr.fill()
+    elif state in ("thinking", "loading"):
         cr.set_source_rgba(*_YELLOW, 1.0)
         cr.set_line_width(2.2 * s)
         start = phase * 1.6
@@ -108,8 +159,8 @@ def _draw_frame(size, state, phase, level):
             cr.move_to(x * s, (12 - half) * s)
             cr.line_to(x * s, (12 + half) * s)
             cr.stroke()
-    else:  # idle
-        cr.set_source_rgba(*_YELLOW, 0.75)
+    else:  # idle — drawn as something you can click, not something inert
+        cr.set_source_rgba(*_YELLOW, 0.9)
         cr.set_line_width(1.8 * s)
         for i, x in enumerate(_BAR_X):
             half = _IDLE_HALF[i]
@@ -126,12 +177,14 @@ class Tray:
     right-click menu exactly as before."""
 
     def __init__(self, on_settings, on_toggle_pause, on_restart, on_quit,
-                 on_activate=None):
+                 on_activate=None, on_show_button=None):
         self.on_toggle_pause = on_toggle_pause
         self.on_activate = on_activate
+        self.on_show_button = on_show_button
         self._state = "loading"
         self._phase = 0.0
         self._level = 0.0
+        self._progress = 0.0   # 0..1 while downloading; fills the ring
         self._level_lock = threading.Lock()
         self._timer = None
         self._size = 24
@@ -141,7 +194,7 @@ class Tray:
             on_settings, on_toggle_pause, on_restart, on_quit)
 
         self._icon = Gtk.StatusIcon()
-        self._icon.set_title("Lightmorphic Talkin")
+        self._icon.set_title("Talkin")
         self._icon.connect("activate", self._on_left_click)
         self._icon.connect("popup-menu", self._on_right_click)
         self._icon.connect("size-changed", self._on_size_changed)
@@ -156,12 +209,24 @@ class Tray:
             self._set_indicator_state(state)
         else:
             self._icon.set_tooltip_text(
-                "Lightmorphic Talkin — " + t("tray.status." + state))
+                "Talkin — " + t("tray.status." + state))
             self._render()
         self._status_item.set_label(t("tray.status." + state))
         self._pause_item.set_label(
             t("tray.resume") if state == "paused" else t("tray.pause"))
         self._sync_timer()
+
+    def set_progress(self, fraction):
+        """How full the download ring should be (0..1).
+
+        Also written into the tooltip: a ring shows roughly how far along
+        it is, but "how long left?" needs a number, and hovering is where
+        people look for one.
+        """
+        self._progress = max(0.0, min(1.0, fraction))
+        if self._state == "downloading" and self._indicator is None:
+            self._icon.set_tooltip_text("Talkin — {} {}%".format(
+                t("tray.status.downloading"), int(self._progress * 100)))
 
     def set_level(self, level):
         """Live mic level from the audio thread; drives the waveform."""
@@ -169,6 +234,22 @@ class Tray:
             self._level = level
 
     # -- backends ----------------------------------------------------
+
+    def hide(self):
+        """Take the icon off the panel now, before anything else.
+
+        Quit has to unload the speech model, and that is not instant. An
+        icon still sitting there afterwards looks like an app that
+        ignored being asked to close.
+        """
+        try:
+            if self._indicator is not None:
+                from gi.repository import AyatanaAppIndicator3 as AppIndicator
+                self._indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE)
+            else:
+                self._icon.set_visible(False)
+        except Exception:
+            log.debug("could not hide the tray icon", exc_info=True)
 
     def _build_menu(self, on_settings, on_toggle_pause, on_restart, on_quit):
         menu = Gtk.Menu()
@@ -179,6 +260,10 @@ class Tray:
         settings_item = Gtk.MenuItem(label=t("tray.open_settings"))
         settings_item.connect("activate", lambda *_: on_settings())
         menu.append(settings_item)
+        if self.on_show_button is not None:
+            show_item = Gtk.MenuItem(label=t("tray.show_button"))
+            show_item.connect("activate", lambda *_: self.on_show_button())
+            menu.append(show_item)
         self._pause_item = Gtk.MenuItem(label=t("tray.pause"))
         self._pause_item.connect("activate", lambda *_: on_toggle_pause())
         menu.append(self._pause_item)
@@ -226,7 +311,7 @@ class Tray:
                 "talkin", "talkin-idle",
                 AppIndicator.IndicatorCategory.APPLICATION_STATUS)
             indicator.set_icon_theme_path(ASSET_DIR)
-            indicator.set_title("Lightmorphic Talkin")
+            indicator.set_title("Talkin")
             indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             indicator.set_menu(self._menu)
         except (ImportError, ValueError, GLib.GError, TypeError, AttributeError):
@@ -246,7 +331,7 @@ class Tray:
         icon = _SVG_ICONS.get(state, "talkin-idle")
         icon_path = os.path.join(ASSET_DIR, icon + ".svg")
         self._indicator.set_icon_full(
-            icon_path, "Lightmorphic Talkin — " + t("tray.status." + state))
+            icon_path, "Talkin — " + t("tray.status." + state))
 
     # -- animation ---------------------------------------------------
 
@@ -269,5 +354,7 @@ class Tray:
     def _render(self):
         with self._level_lock:
             level = self._level
+        size = max(16, int(round(self._size * _TRAY_OVERSIZE)))
         self._icon.set_from_pixbuf(
-            _draw_frame(self._size, self._state, self._phase, level))
+            _draw_frame(size, self._state, self._phase, level,
+                        self._progress, fill=_TRAY_FILL, bold_ring=True))

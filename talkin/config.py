@@ -38,7 +38,12 @@ MODEL_DIR = os.path.join(_WRITABLE_ROOT, "models", "hf-cache")
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 DICT_PATH = os.path.join(DATA_DIR, "dictionary.json")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.jsonl")
-LOG_PATH = os.path.join(DATA_DIR, "talkin.log")
+# TALKIN_LOG_DIR redirects only the log, leaving settings, history and
+# the 600 MB model cache where they are. It exists so a log can be written
+# somewhere a helper can actually read when diagnosing a fault, without
+# disturbing the install.
+_LOG_DIR = os.environ.get("TALKIN_LOG_DIR") or DATA_DIR
+LOG_PATH = os.path.join(_LOG_DIR, "talkin.log")
 
 DEFAULTS = {
     "language": "en",
@@ -51,6 +56,28 @@ DEFAULTS = {
     "cleanup_dictionary": True,
     "history_enabled": True,
     "autostart": True,
+    # The floating record button. On by default: clicking has never
+    # suffered the mis-timed shortcut releases the keyboard route does.
+    "float_button": True,
+    # A short blip when the microphone opens and another when it closes.
+    # The button changes colour too, but nobody is looking at the button
+    # while dictating — they are looking at what they are dictating into.
+    "sounds": True,
+    # Keyboard shortcuts are gone from the interface. The compositor's
+    # press and release signals arrived both too late and too early, and
+    # every dictation failure seen in use came from a key while none came
+    # from a click, so the floating button and the tray icon are the whole
+    # story now. The flag stays only so an existing config mentioning it
+    # is not treated as corrupt; nothing turns it back on.
+    "hotkeys_enabled": False,
+    # Cleared until the first-run notice has been shown once. The notice
+    # carries the permission step, which silently breaks everything if
+    # skipped, so it must appear even when the model is already cached.
+    "first_run_seen": False,
+    # Wayland only: the RemoteDesktop portal's permission token. Storing it
+    # turns "approve input access on every launch" into a one-off prompt.
+    # Not user-facing and never shown in Settings.
+    "wayland_restore_token": "",
 }
 
 _lock = threading.RLock()
@@ -212,6 +239,43 @@ def patch_library_lookup():
     ctypes.util.find_library = find_library
 
 
+def prefer_x11():
+    """Re-launch under XWayland, before any window has been created.
+
+    Wayland deliberately gives applications no way to position a window
+    or to put one in front. That is right for the desktop and wrong for a
+    small button that has to sit somewhere predictable and stay visible:
+    it opens in the middle of the screen, over whatever is there.
+    XWayland restores both, at the cost of slightly softer edges on a
+    scaled display.
+
+    The AppImage already runs this way — its GTK bundle sets the backend
+    before we get a say — so this only affects running from source, where
+    the two would otherwise behave differently and only one of them ever
+    gets tested.
+
+    It has to happen before GTK opens a display connection, so it
+    replaces the process rather than changing anything in it.
+    """
+    if os.environ.get("GDK_BACKEND"):
+        return                      # someone has already chosen
+    if not os.environ.get("WAYLAND_DISPLAY"):
+        return                      # already on X11
+    if not os.environ.get("DISPLAY"):
+        return                      # no XWayland to fall back to
+    import sys
+    os.environ["GDK_BACKEND"] = "x11"
+    argv = [sys.executable]
+    if sys.flags.no_site:
+        argv.append("-S")
+    argv += ["-m", "talkin"] + sys.argv[1:]
+    try:
+        os.execv(sys.executable, argv)
+    except OSError:
+        # Carry on natively rather than not starting at all.
+        os.environ.pop("GDK_BACKEND", None)
+
+
 def launcher_path():
     """The command that relaunches Talkin exactly as it's running now."""
     appimage = os.environ.get("APPIMAGE")
@@ -221,6 +285,9 @@ def launcher_path():
 def set_autostart(enabled):
     """Write or remove the desktop-autostart entry for Talkin."""
     autostart_dir = os.path.expanduser("~/.config/autostart")
+    # Named for THIS app. Talkin writes talkin.desktop, and sharing the
+    # filename would mean whichever of the two was configured last
+    # silently replaced the other's autostart entry.
     path = os.path.join(autostart_dir, "talkin.desktop")
     if not enabled:
         try:
@@ -233,7 +300,7 @@ def set_autostart(enabled):
     with open(path, "w", encoding="utf-8") as f:
         f.write("[Desktop Entry]\n"
                 "Type=Application\n"
-                "Name=Lightmorphic Talkin\n"
+                "Name=Talkin\n"
                 "Comment=Private on-device dictation\n"
                 f"Exec={launcher}\n"
                 f"Icon={os.path.join(ASSET_DIR, 'talkin-idle.svg')}\n"
@@ -243,6 +310,7 @@ def set_autostart(enabled):
 
 def setup_logging():
     os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(_LOG_DIR, exist_ok=True)
     handler = logging.handlers.RotatingFileHandler(
         LOG_PATH, maxBytes=512 * 1024, backupCount=2, encoding="utf-8")
     handler.setFormatter(logging.Formatter(

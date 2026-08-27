@@ -5,3 +5,10 @@ __pycache__/
 *.pyc
 build-appimage/
 Talkin-x86_64.AppImage
+runtime/
+tools/
+build/
+models
+debug/
+vendor/
+*.AppImage
