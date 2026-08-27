@@ -742,7 +742,7 @@ class SettingsWindow(Gtk.Window):
 
         ver_event = Gtk.EventBox()
         ver_event.add(ver_text_row)
-        tooltip.attach(ver_event, "talkin.lightmorphic.co.uk")
+        tooltip.attach(ver_event, "talkin.lightmorphic.com")
         ver_event.connect("button-press-event", self._on_version_clicked)
         ver_event.connect("realize", lambda w: w.get_window().set_cursor(
             Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
@@ -771,7 +771,7 @@ class SettingsWindow(Gtk.Window):
 
     def _on_version_clicked(self, _widget, _event):
         import webbrowser
-        webbrowser.open("https://talkin.lightmorphic.co.uk")
+        webbrowser.open("https://talkin.lightmorphic.com")
 
     def _set_update_dot(self, state, tooltip_text):
         self._update_state = state

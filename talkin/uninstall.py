@@ -134,10 +134,33 @@ def _cleanup_paths():
 
 def install_cleanup_hook():
     """Leave a login-time watcher that removes everything if we vanish."""
+    script, entry = _cleanup_paths()
     appimage = os.environ.get("APPIMAGE")
     if not appimage:
+        # Running from source, so there is no AppImage for a watcher to
+        # watch. Any watcher still lying about is from an install that
+        # has gone, and it would delete the model and settings of THIS
+        # one at the next login. Take it out.
+        for path in (script, entry):
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    log.info("removed a stale cleanup watcher: %s", path)
+                except OSError as exc:
+                    log.warning("could not remove %s: %s", path, exc)
         return None
-    script, entry = _cleanup_paths()
+
+    # Never watch a copy running from a temporary location. A watcher
+    # points at one exact path and deletes the model, settings and
+    # history when that path goes; aimed at /tmp it is a delayed
+    # accident, because the path is guaranteed to disappear and the
+    # deletion then hits the real install's data.
+    real = os.path.realpath(appimage)
+    if any(real.startswith(bad + os.sep)
+           for bad in ("/tmp", "/var/tmp", "/dev/shm", "/run")):
+        log.info("not installing a cleanup watcher for a temporary copy: %s",
+                 real)
+        return None
     apps = _applications_dir()
     autostart_entry = os.path.join(
         os.path.expanduser("~"), ".config", "autostart", "talkin.desktop")
