@@ -1480,6 +1480,12 @@ class SettingsWindow(Gtk.Window):
         uninstall_row.pack_start(uninstall_label, False, False, 0)
 
         uninstall_btn = Gtk.Button(label=i18n.t("settings.uninstall"))
+        # Accent, with dark text on it. Left to the desktop theme this
+        # came out near-white lettering on a near-white button, which is
+        # unreadable — and this is the one button in the app nobody
+        # should press by accident. Arming it on the first click still
+        # turns it red.
+        uninstall_btn.get_style_context().add_class("primary")
         holder = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         holder.pack_start(uninstall_btn, False, False, 0)
         uninstall_row.pack_start(holder, False, False, 0)
