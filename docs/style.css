@@ -263,7 +263,7 @@ section { padding: 2.5rem 0; }
   padding: 2rem 0 3rem;
   color: var(--muted-fg); font-size: .875rem;
 }
-.foot-inner { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.foot-inner { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
 .foot-links { margin-left: auto; display: flex; gap: 1.25rem; flex-wrap: wrap; }
 .badge img { display: block; height: 34px; width: auto; }
 .badge .dark-only { display: none; }
@@ -273,3 +273,24 @@ section { padding: 2.5rem 0; }
 }
 :root[data-theme="dark"] .badge .light-only { display: none; }
 :root[data-theme="dark"] .badge .dark-only { display: block; }
+
+/* ---- questions ------------------------------------------------------ */
+
+.faq-item { border-top: 1px solid var(--panel-border); }
+.faq-item:first-child { border-top: none; }
+.faq-item h3 { margin: 0; font-size: 1rem; }
+.faq-item summary {
+  cursor: pointer; padding: .85rem 0; list-style: none;
+  display: flex; justify-content: space-between; gap: 1rem;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; color: var(--muted-fg); font-weight: 400; }
+.faq-item[open] summary::after { content: "\2013"; }
+.faq-item p {
+  color: var(--muted-fg); font-size: .9375rem;
+  margin: 0 0 .95rem; max-width: 68ch;
+}
+
+.foot-meta { max-width: 46ch; }
+.foot-meta p { color: var(--muted-fg); font-size: .875rem; margin: 0 0 .4rem; }
+.foot-updated { font-size: .8125rem; }

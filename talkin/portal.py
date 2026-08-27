@@ -1,7 +1,7 @@
 """Shared plumbing for the XDG desktop portals.
 
 The portals are how a Wayland app asks the compositor for things it is no
-longer allowed to just take: global hotkeys and synthetic keystrokes. Every
+longer allowed to just take: synthetic keystrokes. Every
 portal call follows the same awkward shape, so it lives here once:
 
   1. you pick a handle_token,
@@ -28,6 +28,8 @@ import sys
 
 from gi.repository import Gio, GLib
 
+from .config import desktop_exec
+
 log = logging.getLogger("talkin.portal")
 
 BUS_NAME = "org.freedesktop.portal.Desktop"
@@ -53,7 +55,7 @@ class PortalError(Exception):
 # connection — with a new unique name — once the previous one has no
 # references left. Dropping it meant the id was registered on a
 # connection that no longer existed by the time a session was requested,
-# so GlobalShortcuts answered "an app id is required" and every hotkey
+# so the portal answered "an app id is required" and the input session
 # died. It also came and went with timing, which is what made this look
 # like general instability rather than one missing reference.
 _conn = [None]
@@ -65,10 +67,10 @@ def _connection():
 
     ORDER MATTERS. The portal associates a connection with an app id on
     first contact, and a Register afterwards answers "Connection already
-    associated with an application ID" while GlobalShortcuts keeps
-    refusing with "an app id is required". Probing the portal first —
-    even just reading a version property — is enough to pin the
-    connection anonymously and lose every hotkey. So registration is
+    associated with an application ID" while the portal keeps refusing
+    with "an app id is required". Probing the portal first — even just
+    reading a version property — is enough to pin the connection
+    anonymously and lose our identity for good. So registration is
     bootstrapped here, on the first use of the bus, rather than left to
     whichever caller happens to run first.
     """
@@ -101,7 +103,7 @@ def _register_first(conn):
         except Exception as exc:
             _registered["tried"].append(candidate)
             log.debug("app id %r rejected: %s", candidate, exc)
-    log.warning("no app id could be registered; hotkeys will be refused")
+    log.warning("no app id could be registered; the portal may refuse us")
     return None
 
 
@@ -118,24 +120,6 @@ def available():
         log.info("no session bus or portal; portal backends unavailable")
         return False
     return True
-
-
-def interface_version(iface):
-    """The portal's version of `iface`, or 0 if it is not exported.
-
-    Worth checking before using anything newer than version 1: a method
-    can be listed in the interface and still answer UnknownMethod,
-    because the published interface describes the newest version while
-    the running backend may implement an older one.
-    """
-    try:
-        result = _connection().call_sync(
-            BUS_NAME, OBJECT_PATH, "org.freedesktop.DBus.Properties", "Get",
-            GLib.Variant("(ss)", (iface, "version")), GLib.VariantType("(v)"),
-            Gio.DBusCallFlags.NONE, 2000, None)
-        return int(result.unpack()[0])
-    except Exception:
-        return 0
 
 
 def has_interface(iface):
@@ -221,8 +205,9 @@ def ensure_desktop_entry():
     Identity-gated portals (GlobalShortcuts) validate an app id against
     installed .desktop files and refuse anything they cannot find. An
     AppImage that the user has not "integrated" has no entry at all, so
-    without this the hotkeys simply never work — and the failure is a
-    single line in a log, which is exactly how it went unnoticed.
+    without this the portal can refuse the input session outright — and
+    the failure is a single line in a log, which is exactly how it went
+    unnoticed.
 
     Writing one is what desktop integration would have done anyway. Only
     ever writes our own file, and only when running as an AppImage (a
@@ -273,7 +258,7 @@ def ensure_desktop_entry():
              "Icon={}\n"
              "Categories=Utility;Accessibility;\n"
              "Terminal=false\n"
-             "StartupWMClass=talkin\n").format(appimage, icon)
+             "StartupWMClass=talkin\n").format(desktop_exec(appimage), icon)
     try:
         os.makedirs(directory, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
@@ -348,18 +333,6 @@ def registered_app_id():
     return _registered["id"]
 
 
-def register_next_app_id():
-    """Claim the next candidate after the one currently registered.
-
-    Registration succeeding does not prove the id is usable — see above —
-    so callers that get refused anyway can walk down the list.
-    """
-    remaining = [c for c in app_id_candidates() if c not in _registered["tried"]]
-    if not remaining:
-        return None
-    return register_app_id(remaining[0])
-
-
 def app_id():
     """The single best id to claim (first candidate)."""
     return app_id_candidates()[0]
@@ -376,8 +349,9 @@ def register_app_id(name=None):
     no Registry at all, so a failure must not stop the rest of Talkin.
     """
     # Create our own entry before looking for one, so a fresh AppImage on
-    # a machine with no desktop integration still has an identity to claim
-    # — without it GlobalShortcuts refuses us and every hotkey is dead.
+    # a machine with no desktop integration still has an identity to
+    # claim — without it the portal has nothing to file the permission
+    # against, and asks again on every launch.
     ensure_desktop_entry()
     names = [name] if name else app_id_candidates()
     last_error = None

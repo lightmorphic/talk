@@ -1,4 +1,4 @@
-"""The Talkin application: wires hotkeys, audio, model, UI together."""
+"""The Talkin application: wires audio, model and UI together."""
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -14,7 +14,6 @@ from gi.repository import Gtk, GLib
 
 from . import cleanup, config as cfg, correction, i18n, injector, session, uninstall
 from .engine import Recorder, Transcriber
-from .hotkeys import HotkeysUnavailable, create_hotkeys
 from .download_window import DownloadWindow
 from .float_button import FloatButton
 from . import sounds
@@ -34,7 +33,7 @@ class TalkinApp:
 
         self.state = "loading"
         # Left-clicking the tray icon starts a dictation and clicking
-        # again stops it - same semantics as the toggle hotkey, so they
+        # again stops it, so the button and the tray icon behave
         # share _toggle(). The old mid-screen overlay circle is gone;
         # the tray icon itself animates while listening/transcribing,
         # fed the live mic level below.
@@ -59,25 +58,7 @@ class TalkinApp:
             on_ready=lambda: GLib.idle_add(self._model_ready),
             on_error=lambda key: GLib.idle_add(self._fail, key),
             on_downloading=lambda: GLib.idle_add(self._downloading))
-        # Off by default and absent from Settings; the flag is honoured
-        # for anyone who sets it by hand. Failing here keeps the tray
-        # alive with a message rather than dying at startup.
-        self.hotkeys = None
-        try:
-            if self.config.get("hotkeys_enabled"):
-                self.hotkeys = create_hotkeys(
-                    self.config,
-                    on_hold_press=self._hold_press,
-                    on_hold_release=self._hold_release,
-                    on_toggle=self._toggle,
-                    on_correction=self._correction,
-                    on_problem=self._hotkey_problem)
-        except HotkeysUnavailable as exc:
-            log.error("no global shortcuts available: %s", exc)
-            self.hotkeys = None
-            GLib.idle_add(lambda: (
-                self.notify(i18n.t("error.no_shortcuts_portal")), False)[1])
-        self._recording_via = None  # "hold" | "toggle" | None
+        self._listening = False
 
         # On Wayland this opens the portal session now, so the consent
         # prompt lands at startup rather than mid-sentence on the first
@@ -200,14 +181,6 @@ class TalkinApp:
     def _can_start(self):
         return self.state == "idle" and self.transcriber.ready
 
-    def _hold_press(self):
-        if self._can_start():
-            self._start_recording("hold")
-
-    def _hold_release(self):
-        if self.state == "listening" and self._recording_via == "hold":
-            self._finish_recording()
-
     def _blip(self, which):
         if self.config.get("sounds"):
             sounds.play(which)
@@ -270,26 +243,26 @@ class TalkinApp:
             log.exception("could not re-show the floating button")
 
     def _toggle(self):
-        if self.state == "listening" and self._recording_via == "toggle":
+        if self.state == "listening" and self._listening:
             self._finish_recording()
         elif self._can_start():
-            self._start_recording("toggle")
+            self._start_recording()
 
-    def _start_recording(self, via):
+    def _start_recording(self):
         try:
             self.recorder.start()
         except Exception:
             log.exception("could not open microphone")
             self.notify(i18n.t("error.mic"))
             return
-        self._recording_via = via
+        self._listening = True
         self._blip("start")
-        log.info("listening (mic open, via %s)", via)
+        log.info("listening: microphone open")
         self._set_state("listening")
 
     def _finish_recording(self):
         audio = self.recorder.stop()
-        self._recording_via = None
+        self._listening = False
         self._blip("stop")
         log.info("recorded %.1fs, transcribing", len(audio) / 16000)
         self._set_state("thinking")
@@ -347,15 +320,6 @@ class TalkinApp:
         """
         self.notify(i18n.t("error.input_permission_lost"))
 
-    def _hotkey_problem(self, action, combo):
-        """A hotkey the compositor refused to bind (Wayland only).
-
-        Surfaced to the user because the alternative is a hotkey that
-        simply never fires, with nothing on screen to explain why.
-        """
-        log.warning("hotkey %r (%s) is inactive in this session", combo, action)
-        self.notify(i18n.t("hotkey.wayland_unbindable"))
-
     def _correction(self):
         if self.state in ("listening", "thinking"):
             return
@@ -377,17 +341,15 @@ class TalkinApp:
         else:
             if self.recorder.recording:
                 self.recorder.stop()
-                self._recording_via = None
+                self._listening = False
             self._set_state("paused")
 
     def open_settings(self):
         open_settings(self)
 
     def apply_settings(self):
-        """Called by the web server after config changes."""
+        """Re-read anything that can change while Talkin is running."""
         i18n.set_language(self.config.get("language"))
-        if self.hotkeys is not None:
-            self.hotkeys.reload()
         return True
 
     def restart(self):
@@ -415,16 +377,6 @@ class TalkinApp:
         # visible parts go now and the rest follows.
         try:
             self.tray.hide()
-        except Exception:
-            pass
-        try:
-            if self.float_button is not None:
-                self.float_button.hide()
-        except Exception:
-            pass
-        try:
-            if self.hotkeys is not None:
-                self.hotkeys.stop()
         except Exception:
             pass
         try:

@@ -13,6 +13,8 @@ import logging.handlers
 import os
 import threading
 
+log = logging.getLogger("talkin.config")
+
 APP_NAME = "talkin"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -47,29 +49,21 @@ LOG_PATH = os.path.join(_LOG_DIR, "talkin.log")
 
 DEFAULTS = {
     "language": "en",
-    "hotkey_hold": "ctrl_r",
-    "hotkey_toggle": "",
-    "correction_hotkey": "ctrl+alt+c",
     "injection": "paste",  # paste | type
     "mic": "default",
     "cleanup_fillers": True,
     "cleanup_dictionary": True,
     "history_enabled": True,
     "autostart": True,
-    # The floating record button. On by default: clicking has never
-    # suffered the mis-timed shortcut releases the keyboard route does.
+    # The floating record button. Talkin has no keyboard shortcuts —
+    # a compositor's press and release signals lost dictations, and a
+    # click has no such signal to get wrong — so this and the tray icon
+    # are the only ways in.
     "float_button": True,
     # A short blip when the microphone opens and another when it closes.
     # The button changes colour too, but nobody is looking at the button
     # while dictating — they are looking at what they are dictating into.
     "sounds": True,
-    # Keyboard shortcuts are gone from the interface. The compositor's
-    # press and release signals arrived both too late and too early, and
-    # every dictation failure seen in use came from a key while none came
-    # from a click, so the floating button and the tray icon are the whole
-    # story now. The flag stays only so an existing config mentioning it
-    # is not treated as corrupt; nothing turns it back on.
-    "hotkeys_enabled": False,
     # Cleared until the first-run notice has been shown once. The notice
     # carries the permission step, which silently breaks everything if
     # skipped, so it must appear even when the model is already cached.
@@ -91,10 +85,37 @@ def _read_json(path, fallback):
         return fallback
 
 
+# Everything Talkin keeps is private to the person who dictated it: the
+# history is the text of what they said, and config.json holds the
+# portal permission token. Left at the default mode both are readable by
+# every other account on the machine, so the directory is 0700 and the
+# files inside it 0600.
+_DIR_MODE = 0o700
+_FILE_MODE = 0o600
+
+
+def _private_dir(path):
+    os.makedirs(path, exist_ok=True)
+    try:
+        os.chmod(path, _DIR_MODE)
+    except OSError:
+        log.debug("could not tighten permissions on %s", path)
+    return path
+
+
+def _private_file(path):
+    try:
+        os.chmod(path, _FILE_MODE)
+    except OSError:
+        log.debug("could not tighten permissions on %s", path)
+    return path
+
+
 def _write_json(path, value):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False, indent=2)
+    _private_file(tmp)
     os.replace(tmp, path)
 
 
@@ -102,7 +123,7 @@ class Config:
     """Thread-safe view of config.json with defaults filled in."""
 
     def __init__(self):
-        os.makedirs(DATA_DIR, exist_ok=True)
+        _private_dir(DATA_DIR)
         with _lock:
             stored = _read_json(CONFIG_PATH, {})
             # Keep only keys DEFAULTS still defines — settings removed in
@@ -131,7 +152,7 @@ class Dictionary:
     """The personal dictionary: a list of {heard, say} pairs."""
 
     def __init__(self):
-        os.makedirs(DATA_DIR, exist_ok=True)
+        _private_dir(DATA_DIR)
 
     def entries(self):
         with _lock:
@@ -173,7 +194,7 @@ class History:
 
     def __init__(self, config):
         self.config = config
-        os.makedirs(DATA_DIR, exist_ok=True)
+        _private_dir(DATA_DIR)
 
     def add(self, raw, clean):
         if not self.config.get("history_enabled"):
@@ -181,8 +202,11 @@ class History:
         import time
         entry = {"ts": int(time.time()), "raw": raw, "clean": clean}
         with _lock:
+            new = not os.path.exists(HISTORY_PATH)
             with open(HISTORY_PATH, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            if new:
+                _private_file(HISTORY_PATH)
 
     def entries(self, limit=200):
         with _lock:
@@ -282,12 +306,21 @@ def launcher_path():
     return appimage if appimage else os.path.join(BASE_DIR, "scripts", "talkin.sh")
 
 
+def desktop_exec(path):
+    """A path as the Exec value of a desktop entry.
+
+    Quoted, because an AppImage lives wherever its owner put it and
+    "~/My Apps/talkin.appimage" is an ordinary enough place. Unquoted,
+    the launcher reads that as two arguments and the entry silently does
+    nothing.
+    """
+    escaped = path.replace("\\", "\\\\").replace('"', '\\"')
+    return '"{}"'.format(escaped)
+
+
 def set_autostart(enabled):
     """Write or remove the desktop-autostart entry for Talkin."""
     autostart_dir = os.path.expanduser("~/.config/autostart")
-    # Named for THIS app. Talkin writes talkin.desktop, and sharing the
-    # filename would mean whichever of the two was configured last
-    # silently replaced the other's autostart entry.
     path = os.path.join(autostart_dir, "talkin.desktop")
     if not enabled:
         try:
@@ -302,17 +335,18 @@ def set_autostart(enabled):
                 "Type=Application\n"
                 "Name=Talkin\n"
                 "Comment=Private on-device dictation\n"
-                f"Exec={launcher}\n"
+                f"Exec={desktop_exec(launcher)}\n"
                 f"Icon={os.path.join(ASSET_DIR, 'talkin-idle.svg')}\n"
                 "StartupWMClass=talkin\n"
                 "X-GNOME-Autostart-enabled=true\n")
 
 
 def setup_logging():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(_LOG_DIR, exist_ok=True)
+    _private_dir(DATA_DIR)
+    _private_dir(_LOG_DIR)
     handler = logging.handlers.RotatingFileHandler(
         LOG_PATH, maxBytes=512 * 1024, backupCount=2, encoding="utf-8")
+    _private_file(LOG_PATH)
     handler.setFormatter(logging.Formatter(
         "%(asctime)s %(levelname)s %(name)s: %(message)s"))
     root = logging.getLogger()

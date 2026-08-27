@@ -317,9 +317,9 @@ class Tray:
         except (ImportError, ValueError, GLib.GError, TypeError, AttributeError):
             log.warning(
                 "tray unavailable: this desktop does not embed status icons "
-                "and libayatana-appindicator3 is missing. Talkin still works "
-                "from its hotkeys; install libayatana-appindicator3 (and, on "
-                "GNOME, the AppIndicator extension) to get the tray icon back.")
+                "and libayatana-appindicator3 is missing. The floating button still "
+                "works; install libayatana-appindicator3 (and, on GNOME, the "
+                "AppIndicator extension) to get the tray icon back.")
             self._indicator = None
             return False
 

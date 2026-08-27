@@ -1,8 +1,8 @@
-"""The native Settings window — replaces the old browser-based page.
+"""The Settings window.
 
 One Gtk.Window with every section from the original web settings page:
-general, hotkeys (native GDK key capture), microphone, output/cleanup,
-personal dictionary, history, and maintenance (restart/log/export/update).
+general, microphone, output/cleanup, personal dictionary, history, and
+maintenance (restart/log/export/update).
 Every change writes straight to disk the moment it's made - no Save
 button, nothing to remember to click.
 """
@@ -24,7 +24,6 @@ from . import cleanup, i18n, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
 from . import session
-from .hotkeys import MODIFIER_NAMES, combo_is_safe, parse_combo
 
 log = logging.getLogger("talkin.settings")
 
@@ -142,28 +141,12 @@ window.talkin-settings {
   font-weight: 600;
 }
 
-.talkin-settings .keycap {
-  color: @lm_on_accent; background: @lm_accent; font-weight: 600;
-  border: none; border-radius: 0.875rem;
-}
-.talkin-settings .keycap.capturing { background: #ffffff; }
-/* The Wayland rows show what the compositor bound; they are not buttons,
-   so they read as a keycap without inviting a click. */
-.talkin-settings .keycap-static {
-  color: @lm_accent; font-weight: 600;
-  background: alpha(@lm_accent, 0.12);
-  border: 1px solid alpha(@lm_accent, 0.35);
-  border-radius: 0.875rem;
-  padding: 4px 12px;
-}
-
 /* A plain ".talkin-settings label" rule would otherwise reach straight
    into these buttons' internal label widget and win over the color
    set above - a direct match always beats inherited color in GTK's
    CSS cascade, regardless of specificity or source order. */
 .talkin-settings button.primary label { color: @lm_on_accent; }
 .talkin-settings button.danger-armed label { color: @lm_danger; }
-.talkin-settings .keycap label { color: @lm_on_accent; }
 
 .talkin-settings entry, .talkin-settings combobox,
 .talkin-settings combobox button, .talkin-settings treeview {
@@ -240,8 +223,7 @@ window.talkin-settings {
 }
 /* Buttons that are already accent-colored need a focus ring that
    actually contrasts against them, not more of the same yellow. */
-.talkin-settings button.primary:focus,
-.talkin-settings .keycap:focus {
+.talkin-settings button.primary:focus {
   box-shadow: 0 0 0 2px @lm_bg;
 }
 /* Comboboxes get their ring via this class, applied from Python when
@@ -274,68 +256,24 @@ def _load_bundled_font():
     except OSError:
         log.warning("could not register bundled font", exc_info=True)
 
-# Gdk key name -> Talkin's own combo token for the same physical key, so
-# a combo captured here is written in the form parse_combo() and the
-# portal's trigger builder both understand.
-_GDK_NAME_TO_TOKEN = {
-    "Control_L": "ctrl_l", "Control_R": "ctrl_r",
-    "Alt_L": "alt_l", "Alt_R": "alt_r", "ISO_Level3_Shift": "alt_r",
-    "Shift_L": "shift_l", "Shift_R": "shift_r",
-    "Escape": "escape", "Tab": "tab", "ISO_Left_Tab": "tab",
-    "Insert": "insert", "Delete": "delete", "Home": "home", "End": "end",
-    "Page_Up": "page_up", "Page_Down": "page_down",
-    "Up": "up", "Down": "down", "Left": "left", "Right": "right",
-    "Pause": "pause", "Scroll_Lock": "scroll_lock", "Menu": "menu",
-}
-for _i in range(1, 13):
-    _GDK_NAME_TO_TOKEN["F{}".format(_i)] = "f{}".format(_i)
+_SECRET_KEYS = ("wayland_restore_token",)
 
-_GDK_MODIFIER_KEYVALS = {
-    Gdk.KEY_Control_L, Gdk.KEY_Control_R,
-    Gdk.KEY_Alt_L, Gdk.KEY_Alt_R, Gdk.KEY_ISO_Level3_Shift,
-    Gdk.KEY_Shift_L, Gdk.KEY_Shift_R,
-}
+# Limits for an imported dictionary; see the import handler for why.
+_DICT_MAX_ENTRIES = 5000
+_DICT_MAX_CHARS = 200
 
 
-def _event_to_token(event):
-    """A Gdk key event's own key -> our canonical token string, or None."""
-    name = Gdk.keyval_name(event.keyval)
-    if not name:
-        return None
-    if name in _GDK_NAME_TO_TOKEN:
-        return _GDK_NAME_TO_TOKEN[name]
-    if len(name) == 1:
-        return name.lower()
-    return None
-
-
-def _event_to_combo(event):
-    """A Gdk key-press event -> a combo string like hotkeys.parse_combo
-    understands ("alt+z", "ctrl_r", ...), or None if unusable."""
-    trigger = _event_to_token(event)
-    if trigger is None:
-        return None
-    mods = set()
-    if event.keyval not in _GDK_MODIFIER_KEYVALS:
-        state = event.state
-        if state & Gdk.ModifierType.CONTROL_MASK:
-            mods.add("ctrl")
-        if state & Gdk.ModifierType.MOD1_MASK:
-            mods.add("alt")
-        if state & Gdk.ModifierType.SHIFT_MASK:
-            mods.add("shift")
-    ordered = [m for m in MODIFIER_NAMES if m in mods]
-    return "+".join(ordered + [trigger])
-
-
-def _format_combo(text):
-    mods, trigger = parse_combo(text)
-    if trigger is None:
-        return i18n.t("settings.not_set")
-    parts = [m.capitalize() for m in ("ctrl", "alt", "shift") if m in mods]
-    parts.append(trigger.replace("_", " ").upper() if len(trigger) > 1
-                 else trigger.upper())
-    return "+".join(parts)
+def _settings_without_secrets(path):
+    """config.json as text, with anything private to this machine gone."""
+    import json
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            values = json.load(f)
+    except (OSError, ValueError):
+        return "{}\n"
+    for key in _SECRET_KEYS:
+        values.pop(key, None)
+    return json.dumps(values, ensure_ascii=False, indent=2) + "\n"
 
 
 class SettingsWindow(Gtk.Window):
@@ -370,9 +308,6 @@ class SettingsWindow(Gtk.Window):
             log.warning("could not load settings window icon", exc_info=True)
         self.connect("delete-event", self._on_close)
 
-        self._capture_field = None
-        self._capture_button = None
-        self.connect("key-press-event", self._on_window_key)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.add(outer)
@@ -682,10 +617,9 @@ class SettingsWindow(Gtk.Window):
         return self.config.get(key)
 
     def _set(self, key, value):
-        # No separate save step - every change lands on disk the moment
-        # it's made, same as ticking a checkbox in any normal settings
-        # app. Duplicate hotkeys are already rejected at capture time
-        # (_on_window_key), before this is ever called for that field.
+        # No separate save step: every change lands on disk the moment
+        # it is made, same as ticking a checkbox in any normal settings
+        # app.
         self.config.update({key: value})
         if key == "autostart":
             from .config import set_autostart
@@ -893,193 +827,6 @@ class SettingsWindow(Gtk.Window):
             False, False, 0)
 
         return box
-
-    # -- hotkeys -------------------------------------------------------
-
-    _HOTKEY_FIELDS = [
-        ("hotkey_hold", "settings.hotkey_hold", "settings.hotkey_hold_help"),
-        ("hotkey_toggle", "settings.hotkey_toggle",
-         "settings.hotkey_toggle_help"),
-        ("correction_hotkey", "settings.correction_hotkey",
-         "settings.correction_hotkey_help"),
-    ]
-
-    # Which portal shortcut id each config field corresponds to.
-    _HOTKEY_ACTIONS = {
-        "hotkey_hold": "hold",
-        "hotkey_toggle": "toggle",
-        "correction_hotkey": "correction",
-    }
-
-    def _build_hotkeys(self):
-        if session.is_wayland():
-            return self._build_hotkeys_wayland()
-        return self._build_hotkeys_captured()
-
-    def _build_hotkeys_wayland(self):
-        """Read-only list plus a button into the desktop's own editor.
-
-        Capturing a keystroke here cannot work on Wayland: the compositor
-        owns the bound combo and fires the shortcut instead of passing the
-        key to this window, so the field would either see nothing or start
-        a dictation while you were trying to set it. The desktop's editor
-        is the one place a shortcut can actually be changed, so Settings
-        shows what is bound and opens that.
-        """
-        box = self._section("settings.section.hotkey",
-                            "settings.hotkey_intro_wayland")
-        self._hotkey_value_labels = {}
-
-        for field, title_key, help_key in self._HOTKEY_FIELDS:
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                          spacing=_FIELD_GAP)
-            labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            labels.set_size_request(220, -1)
-            title = Gtk.Label(label=i18n.t(title_key), xalign=0)
-            title.get_style_context().add_class("field-label")
-            labels.pack_start(title, False, False, 0)
-            hint = Gtk.Label(label=i18n.t(help_key), xalign=0, wrap=True)
-            hint.get_style_context().add_class("hint")
-            labels.pack_start(hint, False, False, 0)
-            row.pack_start(labels, True, True, 0)
-
-            value = Gtk.Label(label=i18n.t("settings.hotkey_unset"), xalign=1)
-            value.get_style_context().add_class("keycap-static")
-            self._hotkey_value_labels[field] = value
-            row.pack_start(value, False, False, 0)
-
-            box.pack_start(row, False, False, 0)
-
-        # Only offer the button where the desktop can actually honour it.
-        # ConfigureShortcuts needs GlobalShortcuts version 2; on version 1
-        # the method exists on the interface and answers UnknownMethod, so
-        # a button here would fail every single time.
-        hotkeys = getattr(self.app_obj, "hotkeys", None)
-        can_configure = hotkeys is not None and hasattr(hotkeys, "can_configure") \
-            and hotkeys.can_configure()
-        if can_configure:
-            change = Gtk.Button(label=i18n.t("settings.hotkey_change"))
-            change.get_style_context().add_class("primary")
-            change.connect("clicked", lambda *_a: self._open_shortcut_editor())
-            holder = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-            holder.pack_start(change, False, False, 0)
-            box.pack_start(holder, False, False, 0)
-        else:
-            where = Gtk.Label(label=i18n.t("settings.hotkey_where"),
-                              xalign=0, wrap=True)
-            where.get_style_context().add_class("hint")
-            box.pack_start(where, False, False, 0)
-
-        self._hotkey_status = Gtk.Label(xalign=0, wrap=True)
-        self._hotkey_status.get_style_context().add_class("hint")
-        box.pack_start(self._hotkey_status, False, False, 0)
-
-        self._refresh_bound_hotkeys()
-        hotkeys = getattr(self.app_obj, "hotkeys", None)
-        if hotkeys is not None and hasattr(hotkeys, "set_on_change"):
-            # The desktop's editor applies changes immediately, so mirror
-            # them here rather than showing a stale value until reopen.
-            hotkeys.set_on_change(
-                lambda: GLib.idle_add(self._refresh_bound_hotkeys))
-        return box
-
-    def _refresh_bound_hotkeys(self):
-        hotkeys = getattr(self.app_obj, "hotkeys", None)
-        bound = hotkeys.bound_triggers() if hotkeys is not None and \
-            hasattr(hotkeys, "bound_triggers") else {}
-        for field, label in getattr(self, "_hotkey_value_labels", {}).items():
-            trigger = bound.get(self._HOTKEY_ACTIONS[field], "")
-            label.set_text(trigger or i18n.t("settings.hotkey_unset"))
-        if not bound:
-            self._hotkey_status.set_text(i18n.t("settings.hotkey_none_bound"))
-        else:
-            self._hotkey_status.set_text("")
-        return False
-
-    def _open_shortcut_editor(self):
-        hotkeys = getattr(self.app_obj, "hotkeys", None)
-        if hotkeys is None or not hasattr(hotkeys, "configure") \
-                or not hotkeys.configure():
-            self._hotkey_status.set_text(
-                i18n.t("settings.hotkey_editor_failed"))
-
-    def _build_hotkeys_captured(self):
-        box = self._section("settings.section.hotkey",
-                            "settings.hotkey_intro")
-        self._hotkey_buttons = {}
-        for field, title_key, help_key in self._HOTKEY_FIELDS:
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=_FIELD_GAP)
-            labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            labels.set_size_request(220, -1)
-            title = Gtk.Label(label=i18n.t(title_key), xalign=0)
-            labels.pack_start(title, False, False, 0)
-            hint = Gtk.Label(label=i18n.t(help_key), xalign=0, wrap=True)
-            hint.get_style_context().add_class("hint")
-            labels.pack_start(hint, False, False, 0)
-            row.pack_start(labels, True, True, 0)
-
-            button = Gtk.Button(label=_format_combo(self._get(field)))
-            button.get_style_context().add_class("keycap")
-            button.connect("clicked", self._start_capture, field)
-            self._hotkey_buttons[field] = button
-            row.pack_start(button, False, False, 0)
-
-            clear = self._icon_button(
-                "edit-clear-symbolic", i18n.t("settings.clear_key"))
-            clear.connect("clicked", lambda *_r, f=field: self._clear_key(f))
-            row.pack_start(clear, False, False, 0)
-
-            box.pack_start(row, False, False, 0)
-
-        self._hotkey_status = Gtk.Label(xalign=0, wrap=True)
-        self._hotkey_status.get_style_context().add_class("hint")
-        box.pack_start(self._hotkey_status, False, False, 0)
-        return box
-
-    def _start_capture(self, button, field):
-        if self._capture_button is not None:
-            self._end_capture()
-        self._capture_field = field
-        self._capture_button = button
-        button.set_label(i18n.t("settings.press_keys"))
-        button.get_style_context().add_class("capturing")
-        self._hotkey_status.set_text("")
-        self.grab_focus()
-
-    def _end_capture(self):
-        if self._capture_button is not None:
-            self._capture_button.get_style_context().remove_class("capturing")
-            self._capture_button.set_label(
-                _format_combo(self._get(self._capture_field)))
-        self._capture_field = None
-        self._capture_button = None
-
-    def _clear_key(self, field):
-        self._set(field, "")
-        self._hotkey_buttons[field].set_label(i18n.t("settings.not_set"))
-
-    def _on_window_key(self, _widget, event):
-        if self._capture_field is None:
-            return False
-        if event.keyval in (Gdk.KEY_Escape,) and \
-                event.keyval not in _GDK_MODIFIER_KEYVALS:
-            field = self._capture_field
-            self._end_capture()
-            return True
-        combo = _event_to_combo(event)
-        if combo is None:
-            return True
-        field = self._capture_field
-        if not combo_is_safe(combo):
-            self._hotkey_status.set_text(i18n.t("settings.hotkey_unsafe"))
-            return True
-        others = [f for f, *_r in self._HOTKEY_FIELDS if f != field]
-        if combo in (self._get(f) for f in others):
-            self._hotkey_status.set_text(i18n.t("settings.hotkey_duplicate"))
-            return True
-        self._set(field, combo)
-        self._end_capture()
-        return True
 
     # -- microphone ----------------------------------------------------
 
@@ -1333,10 +1080,19 @@ class SettingsWindow(Gtk.Window):
             if data.get("talkin_dictionary") == 1 and \
                     isinstance(data.get("entries"), list):
                 merged = {e["heard"].lower(): e
-                         for e in self.dictionary.entries()}
-                for e in data["entries"]:
-                    heard = str(e.get("heard", "")).strip()
-                    say = str(e.get("say", "")).strip()
+                          for e in self.dictionary.entries()}
+                # Bounded on purpose. An imported file is the only thing
+                # here that comes from outside, every entry becomes a
+                # regular expression run against every transcript, and
+                # each replacement is text this app will type into
+                # whatever window has focus. A dictionary of a hundred
+                # thousand entries, or one holding a page of text, is
+                # not a dictionary.
+                for e in data["entries"][:_DICT_MAX_ENTRIES]:
+                    if not isinstance(e, dict):
+                        continue
+                    heard = str(e.get("heard", "")).strip()[:_DICT_MAX_CHARS]
+                    say = str(e.get("say", "")).strip()[:_DICT_MAX_CHARS]
                     if heard and say:
                         merged[heard.lower()] = {"heard": heard, "say": say}
                 self.dictionary.replace_all(list(merged.values()))
@@ -1553,10 +1309,21 @@ class SettingsWindow(Gtk.Window):
                 for folder in (DATA_DIR, os.path.join(BASE_DIR, "locales")):
                     for name in sorted(os.listdir(folder)):
                         path = os.path.join(folder, name)
-                        if os.path.isfile(path):
-                            z.write(path, os.path.join(
-                                "talkin-export",
-                                os.path.basename(folder), name))
+                        if not os.path.isfile(path):
+                            continue
+                        if name == "config.json":
+                            # Settings travel; the portal permission
+                            # token in them does not. An export is a
+                            # file people mail to themselves, and a
+                            # capability handed to this machine has no
+                            # business riding along in it.
+                            z.writestr(os.path.join(
+                                "talkin-export", os.path.basename(folder),
+                                name), _settings_without_secrets(path))
+                            continue
+                        z.write(path, os.path.join(
+                            "talkin-export",
+                            os.path.basename(folder), name))
         dialog.destroy()
 
     def _check_update(self):
