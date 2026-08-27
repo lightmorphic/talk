@@ -130,7 +130,31 @@ class TalkinApp:
                 on_progress=self._on_progress,
                 on_dismissed=self._download_hidden,
                 on_quit=self.quit,
-                is_ready=injector.ready)
+                is_ready=injector.ready,
+                on_language_changed=self._rebuild_first_run)
+
+    def _rebuild_first_run(self):
+        """Redraw the first-run window in the language just chosen.
+
+        Same reason Settings is rebuilt rather than patched: every label
+        was set when its widget was built. This window carries its
+        progress and any failure across, so switching language does not
+        interrupt a download.
+        """
+        window = self._download_window
+        if window is None:
+            return
+        state = window.snapshot()
+        window.destroy()
+        self._download_window = None
+        self._downloading() if self.state == "downloading" \
+            else self._show_first_run()
+        if self._download_window is not None:
+            self._download_window.restore(state)
+        try:
+            self.tray.retranslate()
+        except Exception:
+            log.exception("could not retranslate the tray")
 
     def _download_hidden(self):
         """They closed the notice: point at where the progress now lives."""
@@ -145,7 +169,8 @@ class TalkinApp:
                 on_progress=self._on_progress,
                 on_dismissed=self._download_hidden,
                 on_quit=self.quit,
-                is_ready=injector.ready)
+                is_ready=injector.ready,
+                on_language_changed=self._rebuild_first_run)
         self.config.update({"first_run_seen": True})
         return False
 

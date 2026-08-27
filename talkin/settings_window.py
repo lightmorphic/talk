@@ -148,15 +148,23 @@ window.talkin-settings {
 .talkin-settings button.primary label { color: @lm_on_accent; }
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 
-.talkin-settings entry, .talkin-settings combobox,
-.talkin-settings combobox button, .talkin-settings treeview {
+.talkin-settings entry, .talkin-settings treeview {
   border-radius: 0.875rem;
 }
-/* combobox is a composite widget: the OUTER widget (not the inner
-   button above) is what actually receives keyboard focus, so without
-   its own border-radius here, the box-shadow focus ring on it below
-   rendered as a sharp rectangle wrapped around the inner button's
-   rounded shape - a rounded box with a square ring around it. */
+
+/* The click-to-open lists that replaced the comboboxes. */
+.talkin-settings button.choice {
+  background-color: @lm_icon_bg;
+  background-image: none;
+  border: 1px solid @lm_icon_border;
+  color: @lm_fg;
+  padding: 6px 12px;
+  min-width: 190px;
+}
+.talkin-settings button.choice:hover { background-color: @lm_icon_bg_hover; }
+list.choice-list { background-color: @lm_panel; }
+list.choice-list row { border-radius: 0.625rem; }
+list.choice-list row:selected { background-color: @lm_accent; color: @lm_on_accent; }
 .talkin-settings treeview {
   background-color: @lm_muted;
   border: 1px solid @lm_border;
@@ -212,10 +220,8 @@ window.talkin-settings {
 }
 /* The ring goes on whole interactive widgets ONLY, never `*` - GTK
    propagates the FOCUSED state down into a widget's internal children,
-   so a blanket *:focus also matched e.g. the cellview INSIDE a focused
-   combobox and drew a second ring floating in the middle of the
-   control (the combobox's real focus node is its internal
-   ToggleButton, whose children inherit the state). */
+   so a blanket *:focus draws a second ring floating in the middle of a
+   composite control. */
 .talkin-settings button:focus,
 .talkin-settings entry:focus,
 .talkin-settings checkbutton:focus {
@@ -225,14 +231,6 @@ window.talkin-settings {
    actually contrasts against them, not more of the same yellow. */
 .talkin-settings button.primary:focus {
   box-shadow: 0 0 0 2px @lm_bg;
-}
-/* Comboboxes get their ring via this class, applied from Python when
-   the internal toggle button gains real focus (_wire_combo_focus_ring)
-   - the theme's own combobox styling swallowed every :focus-based rule
-   aimed anywhere inside the composite widget, while the OUTER node
-   renders a box-shadow flawlessly but never receives focus itself. */
-.talkin-settings combobox.focus-ring {
-  box-shadow: 0 0 0 2px @lm_accent;
 }
 """
 
@@ -291,12 +289,9 @@ class SettingsWindow(Gtk.Window):
         self.get_style_context().add_class("talkin-settings")
         _load_bundled_font()
         self._apply_css()
-        # A combobox's dropdown list is a separate top-level popup, not
-        # a widget-tree descendant of this window - every ".talkin-
-        # settings ..."-scoped rule above requires that ancestry, so
-        # none of them ever reach the popup at all. It was rendering in
-        # the bare system theme (a plain white box, unstyled). This is
-        # the one thing that reaches it anyway: telling GTK itself to
+        # Popup windows do not always inherit this window's CSS
+        # ancestry, so a scoped rule cannot reach them. This is the one
+        # thing that does: telling GTK itself to
         # prefer its dark theme variant application-wide, so the popup
         # inherits *a* coherent dark palette instead of the light
         # default, even though it can't inherit the exact house colours.
@@ -431,39 +426,92 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(widget, True, True, 0)
         return row
 
-    def _wire_combo_focus_ring(self, combo):
-        """Focus ring for a combobox, driven from Python.
+    @staticmethod
+    def _draw_chevron(widget, cr):
+        """The small triangle on a choice button."""
+        width = widget.get_allocated_width()
+        height = widget.get_allocated_height()
+        colour = widget.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+        cr.set_source_rgba(colour.red, colour.green, colour.blue,
+                           colour.alpha * 0.75)
+        cr.move_to(width / 2 - 4, height / 2 - 2)
+        cr.line_to(width / 2 + 4, height / 2 - 2)
+        cr.line_to(width / 2, height / 2 + 3)
+        cr.close_path()
+        cr.fill()
+        return False
 
-        A combobox is a composite widget: keyboard focus lands on an
-        INTERNAL toggle button, and this theme's own combobox styling
-        swallowed every CSS :focus rule aimed anywhere inside it (while
-        the outer node renders a box-shadow perfectly but never gets
-        focus itself). So the internal button's real focus events
-        toggle a plain CSS class on the outer node instead - no
-        :focus matching involved anywhere.
+    def _choice_button(self, options, current, on_change, max_visible=8):
+        """A click-to-open, click-to-choose list.
+
+        Not a GtkComboBox. That opens on button-press and closes again on
+        the matching release, so a plain click flashes the list open and
+        shut unless you hold the mouse down and drag onto the item you
+        want. It behaves that way by design — it dates from menus that
+        worked like that — but nothing else on a modern desktop does, and
+        it reads as the list refusing to stay open.
+
+        `options` is a list of (id, label). Returns the button; the
+        callback is given the chosen id.
         """
-        ctx = combo.get_style_context()
+        labels = dict(options)
+        button = Gtk.MenuButton()
+        button.get_style_context().add_class("choice")
+        face = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        text = Gtk.Label(label=labels.get(current, ""), xalign=0)
+        text.set_ellipsize(Pango.EllipsizeMode.END)
+        face.pack_start(text, True, True, 0)
+        # Drawn, not an icon name. Asking the theme for an icon inside
+        # the AppImage lands on Adwaita's missing-image SVG, and the
+        # bundled SVG loader cannot decode it — which aborts the whole
+        # process, not just the icon. Cairo needs nothing from anybody.
+        chevron = Gtk.DrawingArea()
+        chevron.set_size_request(10, 10)
+        chevron.set_valign(Gtk.Align.CENTER)
+        chevron.connect("draw", self._draw_chevron)
+        face.pack_start(chevron, False, False, 0)
+        button.add(face)
 
-        def on_flags(widget, _previous):
-            # state-flags-changed, not focus-in/out-event: the internal
-            # toggle is a windowless widget, so the GdkEvent-based focus
-            # signals never fire for it at all.
-            if widget.get_state_flags() & Gtk.StateFlags.FOCUSED:
-                ctx.add_class("focus-ring")
-            else:
-                ctx.remove_class("focus-ring")
+        popover = Gtk.Popover.new(button)
+        popover.set_position(Gtk.PositionType.BOTTOM)
+        listbox = Gtk.ListBox()
+        listbox.get_style_context().add_class("choice-list")
+        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        rows = {}
+        for value, label in options:
+            row = Gtk.ListBoxRow()
+            item = Gtk.Label(label=label, xalign=0)
+            item.set_margin_top(8)
+            item.set_margin_bottom(8)
+            item.set_margin_start(12)
+            item.set_margin_end(12)
+            row.add(item)
+            row.choice_id = value
+            listbox.add(row)
+            rows[value] = row
+        if current in rows:
+            listbox.select_row(rows[current])
 
-        def wire(widget):
-            if isinstance(widget, Gtk.ToggleButton):
-                widget.connect("state-flags-changed", on_flags)
-            elif isinstance(widget, Gtk.Container):
-                kids = []
-                widget.forall(lambda w: kids.append(w))
-                for child in kids:
-                    wire(child)
+        def chosen(_listbox, row):
+            if row is None:
+                return
+            text.set_text(labels.get(row.choice_id, ""))
+            popover.popdown()
+            on_change(row.choice_id)
 
-        wire(combo)
-        return combo
+        listbox.connect("row-activated", chosen)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        # Tall enough to show a handful, short enough that twenty-five
+        # languages scroll instead of running off the screen.
+        scroller.set_propagate_natural_height(True)
+        scroller.set_max_content_height(max_visible * 38)
+        scroller.add(listbox)
+        popover.add(scroller)
+        scroller.show_all()
+        button.set_popover(popover)
+        return button
 
     def _style_selectable_row(self, tree, renderers, text_renderers=None):
         """Explicit foreground/background for treeview cells, selected
@@ -803,17 +851,7 @@ class SettingsWindow(Gtk.Window):
     def _build_general(self):
         box = self._section("settings.section.general")
 
-        lang_combo = Gtk.ComboBoxText()
-        self._wire_combo_focus_ring(lang_combo)
-        codes = []
-        for code, name in i18n.available_languages():
-            lang_combo.append_text(name)
-            codes.append(code)
-        current = self.config.get("language")
-        lang_combo.set_active(codes.index(current) if current in codes else 0)
-
-        def on_lang(combo):
-            chosen = codes[combo.get_active()]
+        def on_lang(chosen):
             if chosen == self.config.get("language"):
                 return
             self._set("language", chosen)
@@ -821,8 +859,11 @@ class SettingsWindow(Gtk.Window):
             # restart makes the setting look broken, which is exactly
             # how it looked.
             GLib.idle_add(self.app_obj.retranslate)
-        lang_combo.connect("changed", on_lang)
-        box.pack_start(self._row(i18n.t("settings.language"), lang_combo),
+
+        lang_button = self._choice_button(
+            i18n.available_languages(), self.config.get("language"), on_lang,
+            max_visible=10)
+        box.pack_start(self._row(i18n.t("settings.language"), lang_button),
                        False, False, 0)
 
         box.pack_start(self._switch_row("autostart", "settings.autostart"),
@@ -855,23 +896,15 @@ class SettingsWindow(Gtk.Window):
 
     def _build_microphone(self):
         box = self._section("settings.section.microphone")
-        self._mic_combo = Gtk.ComboBoxText()
-        self._wire_combo_focus_ring(self._mic_combo)
-        self._mic_ids = []
+        mics = [(mic_id, i18n.t("settings.mic.default")
+                 if mic_id == "default" else name)
+                for mic_id, name in list_microphones()]
         current = self.config.get("mic")
-        active = 0
-        for i, (mic_id, name) in enumerate(list_microphones()):
-            label = (i18n.t("settings.mic.default") if mic_id == "default"
-                     else name)
-            self._mic_combo.append_text(label)
-            self._mic_ids.append(mic_id)
-            if mic_id == current:
-                active = i
-        self._mic_combo.set_active(active)
-        self._mic_combo.connect(
-            "changed",
-            lambda c: self._set("mic", self._mic_ids[c.get_active()]))
-        box.pack_start(self._row(i18n.t("settings.mic"), self._mic_combo),
+        if current not in dict(mics) and mics:
+            current = mics[0][0]
+        self._mic_button = self._choice_button(
+            mics, current, lambda value: self._set("mic", value))
+        box.pack_start(self._row(i18n.t("settings.mic"), self._mic_button),
                        False, False, 0)
 
         test_btn = self._icon_button(
@@ -943,13 +976,11 @@ class SettingsWindow(Gtk.Window):
 
     def _build_output(self):
         box = self._section("settings.section.output")
-        injection = Gtk.ComboBoxText()
-        self._wire_combo_focus_ring(injection)
-        injection.append("paste", i18n.t("settings.injection.paste"))
-        injection.append("type", i18n.t("settings.injection.type"))
-        injection.set_active_id(self.config.get("injection"))
-        injection.connect(
-            "changed", lambda c: self._set("injection", c.get_active_id()))
+        injection = self._choice_button(
+            [("paste", i18n.t("settings.injection.paste")),
+             ("type", i18n.t("settings.injection.type"))],
+            self.config.get("injection"),
+            lambda value: self._set("injection", value))
         box.pack_start(self._row(i18n.t("settings.injection"), injection),
                        False, False, 0)
 

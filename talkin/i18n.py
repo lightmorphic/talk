@@ -66,7 +66,14 @@ def language():
 
 
 def available_languages():
-    """(code, native name) for every language column in the CSV."""
+    """(code, native name) for every language column in the CSV.
+
+    Loads the table if nothing has yet, so a caller that asks before the
+    first translated string gets the languages rather than an empty
+    list — which is what an untouched language picker used to show.
+    """
+    if not _table:
+        _load()
     names = _table.get("language.name", {})
     return [(code, names.get(code) or code.upper()) for code in _codes]
 
