@@ -87,13 +87,19 @@ window.talkin-firstrun {
 }
 .talkin-firstrun .warning-card label { color: #f34236; font-weight: 600; }
 .talkin-firstrun .status { color: #a1a1aa; font-size: 0.875rem; }
-.talkin-firstrun button.lang {
-  color: #a1a1aa; font-size: 0.8125rem; font-weight: 600;
-  background: none; border: none; box-shadow: none;
-  padding: 2px 8px; min-height: 0;
+.talkin-firstrun button.choice {
+  background-color: #1b1d29;
+  background-image: none;
+  border: 1px solid alpha(#ffffff, 0.12);
+  border-radius: 0.875rem;
+  color: #fafafa;
+  padding: 5px 12px;
+  min-width: 200px;
 }
-.talkin-firstrun button.lang:hover { color: #fafafa; }
-.talkin-firstrun button.lang-current { color: #fbc711; }
+.talkin-firstrun button.choice:hover { background-color: #272a3a; }
+list.choice-list { background-color: #1b1d29; }
+list.choice-list row { border-radius: 0.625rem; }
+list.choice-list row:selected { background-color: #fbc711; color: #111827; }
 """
 
 
@@ -398,23 +404,16 @@ class DownloadWindow(Gtk.Window):
         self.show_all()
 
     def _language_row(self):
-        """A quiet row of language links across the top."""
-        from . import i18n
-        flow = Gtk.FlowBox()
-        flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow.set_halign(Gtk.Align.CENTER)
-        flow.set_max_children_per_line(9)
-        flow.get_style_context().add_class("langs")
-        current = self.config.get("language")
-        for code, name in i18n.available_languages():
-            button = Gtk.Button(label=name)
-            button.set_relief(Gtk.ReliefStyle.NONE)
-            button.get_style_context().add_class("lang")
-            if code == current:
-                button.get_style_context().add_class("lang-current")
-            button.connect("clicked", self._on_language, code)
-            flow.add(button)
-        return flow
+        """The language chooser, centred above everything else."""
+        from . import chooser, i18n
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        row.set_halign(Gtk.Align.CENTER)
+        button = chooser.choice_button(
+            i18n.available_languages(), self.config.get("language"),
+            lambda code: self._on_language(None, code),
+            searchable=True, filter_placeholder=i18n.t("settings.filter"))
+        row.pack_start(button, False, False, 0)
+        return row
 
     def _on_language(self, _button, code):
         """Switch language and redraw this window in it."""
