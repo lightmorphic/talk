@@ -11,14 +11,9 @@
 # and the AppImage itself small.
 set -euo pipefail
 
-# pynput's Linux backend connects to an X display the moment it's
-# imported — not just when a Controller is instantiated — so even the
-# dependency-completeness check below needs one. Transparently re-exec
-# under a virtual display if there's no real one (headless CI); a no-op
-# wherever a real X session already exists (the maintainer's desktop).
-if [ -z "${DISPLAY:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
-  exec xvfb-run -a "$0" "$@"
-fi
+# NOTE: Talkin re-exec'd this script under xvfb because pynput's Linux
+# backend opened an X display at import time. Talkin has no pynput and
+# no X11 code at all, so the import check below runs headless as-is.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${1:-$REPO_ROOT/build-appimage}"
@@ -104,7 +99,6 @@ from gi.repository import Gtk, AyatanaAppIndicator3
 import cairo, numpy, sounddevice, onnx_asr, onnxruntime
 import httpx
 from huggingface_hub import snapshot_download
-import pynput.keyboard, pynput.mouse
 print('CLEAN')
 " 2>&1
 }
@@ -220,18 +214,18 @@ find AppDir -xtype l -delete
 cp "$REPO_ROOT/docs/images/talkin-512.png" AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png
 cp AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png AppDir/talkin.png
 
-cat > AppDir/talkin.desktop <<'EOF'
+cat > AppDir/uk.co.lightmorphic.Talkin.desktop <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Lightmorphic Talkin
-Comment=Private, on-device dictation for the Linux desktop
+Name=Talkin
+Comment=Private, on-device dictation for Wayland desktops
 Exec=talkin
 Icon=talkin
 Categories=Utility;Accessibility;
 Terminal=false
 StartupWMClass=talkin
 EOF
-cp AppDir/talkin.desktop AppDir/usr/share/applications/talkin.desktop
+cp AppDir/uk.co.lightmorphic.Talkin.desktop AppDir/usr/share/applications/uk.co.lightmorphic.Talkin.desktop
 
 # AppStream metadata: what software centers and AppImage catalogs read
 # to show the app properly (name, description, screenshot) instead of
@@ -343,7 +337,7 @@ NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   -l "AppDir/usr/lib/$PY_LIB" \
   "${SO_ARGS[@]}" \
   "${EXCLUDE_ARGS[@]}" \
-  -d AppDir/talkin.desktop \
+  -d AppDir/uk.co.lightmorphic.Talkin.desktop \
   -i AppDir/talkin.png \
   --plugin gtk
 
