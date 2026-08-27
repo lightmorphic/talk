@@ -1578,7 +1578,15 @@ class SettingsWindow(Gtk.Window):
         elif state == "up-to-date":
             self._set_update_dot("uptodate", i18n.t("update.uptodate"))
         else:
-            self._set_update_dot("error", i18n.t("update.error"))
+            # Put the actual reason in the tooltip. "Can't connect to
+            # GitHub" on a machine with a working connection sends
+            # someone hunting for a network fault that is not there,
+            # when the truth may be a certificate path or a rate limit.
+            detail = str(result.get("detail") or "").strip()
+            message = i18n.t("update.error")
+            if detail:
+                message = "{}\n{}".format(message, detail[:160])
+            self._set_update_dot("error", message)
         return False
 
     def _on_update_dot_clicked(self, _widget, _event):
@@ -1618,7 +1626,15 @@ class SettingsWindow(Gtk.Window):
         if ok:
             self._set_update_dot("ready", i18n.t("update.restart_tip"))
         else:
-            self._set_update_dot("error", i18n.t("update.error"))
+            # Put the actual reason in the tooltip. "Can't connect to
+            # GitHub" on a machine with a working connection sends
+            # someone hunting for a network fault that is not there,
+            # when the truth may be a certificate path or a rate limit.
+            detail = str(result.get("detail") or "").strip()
+            message = i18n.t("update.error")
+            if detail:
+                message = "{}\n{}".format(message, detail[:160])
+            self._set_update_dot("error", message)
         return False
 
     # -- close -------------------------------------------------------------
