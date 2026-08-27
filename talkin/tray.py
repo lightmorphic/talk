@@ -190,8 +190,10 @@ class Tray:
         self._size = 24
         self._indicator = None
 
-        self._menu = self._build_menu(
-            on_settings, on_toggle_pause, on_restart, on_quit)
+        # Kept so the menu can be rebuilt when the language changes.
+        self._menu_callbacks = (on_settings, on_toggle_pause, on_restart,
+                                on_quit)
+        self._menu = self._build_menu(*self._menu_callbacks)
 
         self._icon = Gtk.StatusIcon()
         self._icon.set_title("Talkin")
@@ -215,6 +217,18 @@ class Tray:
         self._pause_item.set_label(
             t("tray.resume") if state == "paused" else t("tray.pause"))
         self._sync_timer()
+
+    def retranslate(self):
+        """Rebuild the menu in the current language.
+
+        Every label was set when the menu was built, so switching
+        language did nothing visible until the app was restarted — which
+        reads as a setting that does not work.
+        """
+        self._menu = self._build_menu(*self._menu_callbacks)
+        if self._indicator is not None:
+            self._indicator.set_menu(self._menu)
+        self.set_state(self._state)
 
     def set_progress(self, fraction):
         """How full the download ring should be (0..1).
