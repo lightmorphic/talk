@@ -1,28 +1,87 @@
 """Typing the transcript into whatever window has focus.
 
-Two strategies:
+Two strategies, chosen by the user:
   paste - put the text on the clipboard, send Ctrl+V, then put the
           user's original clipboard back. Instant, works in most apps.
-  type  - synthesise real keystrokes via XTEST. Slower but works
-          everywhere, including terminals where Ctrl+V means
-          something else.
+  type  - send the text key by key. Slower, and layout-sensitive, but
+          works in apps where Ctrl+V means something else.
+
+Both need to press keys in another app's window, and how that is done
+depends entirely on the display server:
+
+  Wayland - only the compositor may synthesise input, so everything goes
+            through the RemoteDesktop portal (inject_portal.py). The user
+            grants permission once, and the desktop must provide that
+            portal: GNOME and KDE do, most others do not.
+
+  X11     - any client may do it directly through XTEST
+            (inject_xtest.py). No portal, no permission, works on every
+            X11 desktop including Cinnamon, XFCE, MATE and bare window
+            managers.
+
+The choice is made from the session, never from which GTK backend
+happens to be in use: the AppImage runs its windows through XWayland even
+on a Wayland session, so GTK says "X11" where XTEST would silently do
+nothing for Wayland-native windows.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
-import threading
-import time
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
-from pynput.keyboard import Controller, Key
+from . import portal, session
+from .inject_portal import PortalInjector
 
 log = logging.getLogger("talkin.injector")
 
-_keyboard = Controller()
+_backend = None
+
+
+class InjectionUnavailable(RuntimeError):
+    """No way to type into other windows on this desktop."""
+
+
+def setup(config, on_ready=None, on_lost=None):
+    """Prepare the injection backend. Call once at startup.
+
+    On Wayland the portal session is started here rather than lazily: it
+    puts the compositor's consent prompt right after launch, where the
+    user connects it with having just started Talkin, instead of
+    springing it mid-sentence on the first dictation. On X11 there is
+    nothing to consent to, so this is immediate.
+    """
+    global _backend
+    if session.is_wayland():
+        if not portal.available() or not portal.has_interface(
+                "org.freedesktop.portal.RemoteDesktop"):
+            raise InjectionUnavailable(
+                "this desktop's portal does not provide RemoteDesktop")
+        log.info("injection backend: RemoteDesktop portal (%s)",
+                 session.describe())
+        _backend = PortalInjector(config, on_lost=on_lost)
+        _backend.start(on_ready)
+        return
+
+    try:
+        from .inject_xtest import XTestInjector
+        _backend = XTestInjector()
+    except Exception as exc:
+        raise InjectionUnavailable("XTEST is unavailable: {}".format(exc))
+    log.info("injection backend: XTEST (%s)", session.describe())
+    _backend.start(on_ready)
+
+
+def shutdown():
+    if _backend is not None:
+        _backend.stop()
+
+
+def ready():
+    return _backend is not None and _backend.ready
 
 
 def _clipboard():
@@ -30,44 +89,41 @@ def _clipboard():
 
 
 def _paste(text, done):
-    """Runs on the GTK main loop: swap clipboard, paste, restore."""
+    """Runs on the GTK main loop: swap clipboard, paste, restore.
+
+    The transcript is pasted rather than typed because a portal keystroke
+    is a round trip: sending a sentence key by key runs at a few
+    characters a second, while this is one Ctrl+V.
+    """
     clipboard = _clipboard()
     original = clipboard.wait_for_text()
     clipboard.set_text(text, -1)
     clipboard.store()
 
-    def press_paste():
-        time.sleep(0.08)  # let the clipboard owner change settle
-        with _keyboard.pressed(Key.ctrl):
-            _keyboard.press("v")
-            _keyboard.release("v")
-        time.sleep(0.25)  # give the app time to read the clipboard
-
-        def restore():
+    def restore(ok):
+        def apply():
             if original is not None:
                 _clipboard().set_text(original, -1)
                 _clipboard().store()
-            done(True)
+            done(ok)
             return False
+        GLib.idle_add(apply)
 
-        GLib.idle_add(restore)
+    if not ready():
+        log.warning("injection not ready; dropping %d chars", len(text))
+        restore(False)
+        return False
 
-    threading.Thread(target=press_paste, daemon=True).start()
+    _backend.send_paste(restore)
     return False
 
 
 def _type(text, done):
-    """Runs on its own thread: send the text as real keystrokes."""
-    def worker():
-        ok = True
-        try:
-            _keyboard.type(text)
-        except Exception:
-            log.exception("typing injection failed")
-            ok = False
-        GLib.idle_add(lambda: (done(ok), False)[1])
-
-    threading.Thread(target=worker, daemon=True).start()
+    if not ready():
+        log.warning("injection not ready; dropping %d chars", len(text))
+        GLib.idle_add(lambda: (done(False), False)[1])
+        return
+    _backend.send_text(text, done)
 
 
 def inject(text, config, on_done):
@@ -81,7 +137,24 @@ def inject(text, config, on_done):
         GLib.idle_add(_paste, text + " ", on_done)
 
 
+def selection_available():
+    """Whether reading the on-screen selection can work here.
+
+    It cannot on Wayland: letting a background process read whatever you
+    have highlighted is exactly what the security model exists to stop.
+    Kept as a function so the correction popup can adapt rather than
+    silently do nothing.
+    """
+    return not session.is_wayland()
+
+
 def read_primary_selection():
-    """The text currently highlighted anywhere on screen (X11 PRIMARY)."""
+    """The highlighted text, where the display server allows reading it.
+
+    Always None on Wayland — callers should check selection_available()
+    and offer the user another way in.
+    """
+    if not selection_available():
+        return None
     clipboard = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
     return clipboard.wait_for_text()

@@ -6,17 +6,17 @@
   <id>uk.co.lightmorphic.Talkin</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>Lightmorphic Talkin</name>
-  <summary>Private, on-device dictation for the Linux desktop</summary>
+  <name>Talkin</name>
+  <summary>Private, on-device dictation for Linux</summary>
   <developer id="uk.co.lightmorphic">
     <name>Lightmorphic</name>
   </developer>
   <description>
     <p>
-      Talkin turns speech into text anywhere on the Linux desktop. Hold
-      a hotkey, talk, release - the words appear in whatever window has
-      focus, whether that is an email, a document, a chat box or a
-      terminal.
+      Talkin turns speech into text anywhere on the Linux desktop.
+      Click the floating button, talk, click again - the words appear in
+      whatever window has focus, whether that is an email, a document, a
+      chat box or a terminal. It works on Wayland and on X11.
     </p>
     <p>
       Everything runs on this machine. The speech model is downloaded
@@ -27,13 +27,13 @@
       ships as one self-contained AppImage.
     </p>
   </description>
-  <launchable type="desktop-id">talkin.desktop</launchable>
+  <launchable type="desktop-id">uk.co.lightmorphic.Talkin.desktop</launchable>
   <url type="homepage">https://talkin.lightmorphic.co.uk</url>
   <url type="bugtracker">https://github.com/lightmorphic/talkin/issues</url>
   <screenshots>
     <screenshot type="default">
       <image>https://talkin.lightmorphic.co.uk/images/talkin-settings.png</image>
-      <caption>The Settings window: hotkeys, microphone, personal dictionary and local history</caption>
+      <caption>The Settings window: microphone, personal dictionary and local history</caption>
     </screenshot>
   </screenshots>
   <categories>

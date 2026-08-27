@@ -16,10 +16,18 @@ from .i18n import t
 
 
 def open_correction(dictionary, notify):
-    heard = (injector.read_primary_selection() or "").strip()
-    if not heard or len(heard) > 80:
-        notify(t("correction.no_selection"))
-        return
+    # On X11 the highlighted text comes to us. Wayland has no equivalent —
+    # letting a background app read your selection is exactly what its
+    # security model prevents — so there the user types the misheard word
+    # in themselves and the dialog grows a second field for it.
+    manual = not injector.selection_available()
+    if manual:
+        heard = ""
+    else:
+        heard = (injector.read_primary_selection() or "").strip()
+        if not heard or len(heard) > 80:
+            notify(t("correction.no_selection"))
+            return
 
     dialog = Gtk.Dialog(title=t("correction.title"))
     dialog.set_keep_above(True)
@@ -36,12 +44,20 @@ def open_correction(dictionary, notify):
     box.set_margin_start(16)
     box.set_margin_end(16)
 
-    heard_label = Gtk.Label()
-    heard_label.set_markup("{}:  <b>{}</b>".format(
-        GLib.markup_escape_text(t("correction.heard")),
-        GLib.markup_escape_text(heard)))
-    heard_label.set_xalign(0)
-    box.pack_start(heard_label, False, False, 0)
+    heard_entry = None
+    if manual:
+        heard_prompt = Gtk.Label(label=t("correction.heard_prompt"))
+        heard_prompt.set_xalign(0)
+        box.pack_start(heard_prompt, False, False, 0)
+        heard_entry = Gtk.Entry()
+        box.pack_start(heard_entry, False, False, 0)
+    else:
+        heard_label = Gtk.Label()
+        heard_label.set_markup("{}:  <b>{}</b>".format(
+            GLib.markup_escape_text(t("correction.heard")),
+            GLib.markup_escape_text(heard)))
+        heard_label.set_xalign(0)
+        box.pack_start(heard_label, False, False, 0)
 
     ask = Gtk.Label(label=t("correction.should_be"))
     ask.set_xalign(0)
@@ -53,14 +69,18 @@ def open_correction(dictionary, notify):
     box.pack_start(entry, False, False, 0)
 
     dialog.show_all()
-    entry.grab_focus()
-    entry.select_region(0, -1)
+    if manual:
+        heard_entry.grab_focus()
+    else:
+        entry.grab_focus()
+        entry.select_region(0, -1)
 
     def on_response(dlg, response):
         if response == Gtk.ResponseType.OK:
+            was = heard_entry.get_text().strip() if manual else heard
             say = entry.get_text().strip()
-            if say and say != heard:
-                dictionary.add(heard, say)
+            if was and say and say != was:
+                dictionary.add(was, say)
                 notify(t("correction.saved"))
         dlg.destroy()
 

@@ -11,6 +11,7 @@ import logging
 import os
 import queue
 import threading
+import time
 
 import numpy as np
 
@@ -75,18 +76,37 @@ def _model_cached():
     # in any model's blobs/ dir means the download actually finished,
     # as opposed to the empty ref/snapshot dirs the hub client creates
     # up front — so only that counts as cached, not a bare folder.
+    # A PARTIAL download must never count. The hub writes ".incomplete"
+    # blobs while fetching, and treating those as cached pins the app
+    # offline around a model that cannot load — it then fails with
+    # IncompleteSnapshotError on every start, for ever, with no way back.
+    # That is exactly what a stalled first download produced: 234 MB of
+    # fragments, marked complete, permanently broken.
     hub_dir = os.path.join(MODEL_DIR, "hub")
     try:
+        complete = False
         for entry in os.listdir(hub_dir):
             if not entry.startswith("models--"):
                 continue
             blobs_dir = os.path.join(hub_dir, entry, "blobs")
-            if any(os.scandir(blobs_dir)):
-                _mark_cached()
-                return True
+            for blob in os.scandir(blobs_dir):
+                if blob.name.endswith(".incomplete"):
+                    return False   # a download is unfinished; stay online
+                complete = True
+        if complete:
+            _mark_cached()
+            return True
     except OSError:
         pass
     return False
+
+
+def _clear_cached_marker():
+    """Forget that the model was downloaded, so the next load re-fetches."""
+    try:
+        os.remove(_DOWNLOADED_MARKER)
+    except OSError:
+        pass
 
 
 def _mark_cached():
@@ -104,6 +124,13 @@ def _configure_hub(offline):
     """
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     os.environ["HF_HOME"] = MODEL_DIR
+    # Without a timeout a stalled connection hangs forever: the socket
+    # stays open, no bytes arrive, and the app sits on its "downloading"
+    # spinner with nothing to show for it. Seen for real — the transfer
+    # died at 74 MB of 600 and never recovered. A bounded timeout turns
+    # that into an error we can retry, and Hugging Face resumes from
+    # where the file stopped rather than starting again.
+    os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "20")
     if offline:
         os.environ["HF_HUB_OFFLINE"] = "1"
     else:
@@ -264,6 +291,20 @@ class Transcriber:
         return self._model is not None
 
     def _load(self):
+        try:
+            self._load_once()
+        except Exception:
+            # A model that will not load while we believe it is cached
+            # means the cache is wrong, not the network. Clear the marker
+            # and fetch it again rather than failing identically on every
+            # future start.
+            if not _model_cached():
+                raise
+            log.warning("cached model failed to load; re-fetching it")
+            _clear_cached_marker()
+            self._load_once()
+
+    def _load_once(self):
         cached = _model_cached()
         _configure_hub(offline=cached)
         if not cached:
@@ -272,13 +313,35 @@ class Transcriber:
                 self.on_downloading()
         import onnx_asr
         log.info("loading %s", MODEL_NAME)
-        self._model = onnx_asr.load_model(MODEL_NAME, quantization="int8")
+        if cached:
+            self._model = onnx_asr.load_model(MODEL_NAME, quantization="int8")
+        else:
+            self._model = self._download_with_retries(onnx_asr)
         if not cached:
             _mark_cached()
             _configure_hub(offline=True)
         log.info("model ready")
         if self.on_ready is not None:
             self.on_ready()
+
+    # The first-run download is ~600 MB over a public endpoint, and a
+    # stalled transfer is common enough that one attempt is not enough.
+    _DOWNLOAD_ATTEMPTS = 5
+
+    def _download_with_retries(self, onnx_asr):
+        """Fetch the model, resuming after a stall rather than hanging."""
+        last = None
+        for attempt in range(1, self._DOWNLOAD_ATTEMPTS + 1):
+            try:
+                return onnx_asr.load_model(MODEL_NAME, quantization="int8")
+            except Exception as exc:
+                last = exc
+                log.warning("model download attempt %d/%d failed: %s",
+                            attempt, self._DOWNLOAD_ATTEMPTS, exc)
+                if self.on_downloading is not None:
+                    self.on_downloading()
+                time.sleep(min(5 * attempt, 20))
+        raise last
 
     def _run(self):
         try:

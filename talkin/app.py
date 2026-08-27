@@ -12,9 +12,12 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
-from . import cleanup, config as cfg, correction, i18n, injector
+from . import cleanup, config as cfg, correction, i18n, injector, session, uninstall
 from .engine import Recorder, Transcriber
-from .hotkeys import Hotkeys
+from .hotkeys import HotkeysUnavailable, create_hotkeys
+from .download_window import DownloadWindow
+from .float_button import FloatButton
+from . import sounds
 from .settings_window import open_settings
 from .tray import Tray
 
@@ -35,44 +38,146 @@ class TalkinApp:
         # share _toggle(). The old mid-screen overlay circle is gone;
         # the tray icon itself animates while listening/transcribing,
         # fed the live mic level below.
+        self._download_window = None
+        self._progress_fraction = 0.0
+        self._announced_ready = False
         self.tray = Tray(
             on_settings=self.open_settings,
             on_toggle_pause=self.toggle_pause,
             on_restart=self.restart,
             on_quit=self.quit,
-            on_activate=self._toggle)
+            on_activate=self._tray_click,
+            on_show_button=self._show_float_button)
 
-        self.recorder = Recorder(self.config, on_level=self.tray.set_level)
+        self.float_button = None
+        if self.config.get("float_button"):
+            self.float_button = FloatButton(on_toggle=self._toggle,
+                                            on_correction=self._correction)
+
+        self.recorder = Recorder(self.config, on_level=self._on_level)
         self.transcriber = Transcriber(
             on_ready=lambda: GLib.idle_add(self._model_ready),
             on_error=lambda key: GLib.idle_add(self._fail, key),
             on_downloading=lambda: GLib.idle_add(self._downloading))
-        self.hotkeys = Hotkeys(
-            self.config,
-            on_hold_press=self._hold_press,
-            on_hold_release=self._hold_release,
-            on_toggle=self._toggle,
-            on_correction=self._correction)
+        # Off by default and absent from Settings; the flag is honoured
+        # for anyone who sets it by hand. Failing here keeps the tray
+        # alive with a message rather than dying at startup.
+        self.hotkeys = None
+        try:
+            if self.config.get("hotkeys_enabled"):
+                self.hotkeys = create_hotkeys(
+                    self.config,
+                    on_hold_press=self._hold_press,
+                    on_hold_release=self._hold_release,
+                    on_toggle=self._toggle,
+                    on_correction=self._correction,
+                    on_problem=self._hotkey_problem)
+        except HotkeysUnavailable as exc:
+            log.error("no global shortcuts available: %s", exc)
+            self.hotkeys = None
+            GLib.idle_add(lambda: (
+                self.notify(i18n.t("error.no_shortcuts_portal")), False)[1])
         self._recording_via = None  # "hold" | "toggle" | None
 
+        # On Wayland this opens the portal session now, so the consent
+        # prompt lands at startup rather than mid-sentence on the first
+        # dictation. On X11 there is nothing to consent to.
+        try:
+            injector.setup(self.config, on_lost=self._injection_lost,
+                           on_ready=self._injection_ready)
+        except injector.InjectionUnavailable as exc:
+            log.error("no way to type into other windows: %s", exc)
+            key = ("error.no_input_portal" if session.is_wayland()
+                   else "error.no_input_x11")
+            GLib.idle_add(lambda: (self.notify(i18n.t(key)), False)[1])
+
+        # Show the first-run notice even if the model is already there:
+        # the permission step applies either way, and skipping it is the
+        # failure that looks like the app being broken.
+        if not self.config.get("first_run_seen"):
+            GLib.idle_add(self._show_first_run)
+
         cfg.set_autostart(self.config.get("autostart"))
+        # Deleting the AppImage runs none of our code, so leave a watcher
+        # that clears the leftovers at the next login if we are gone.
+        uninstall.install_cleanup_hook()
 
     # -- state -------------------------------------------------------
+
+    def _on_level(self, level):
+        self.tray.set_level(level)
+        if self.float_button is not None:
+            self.float_button.set_level(level)
 
     def _set_state(self, state):
         self.state = state
         self.tray.set_state(state)
+        if self.float_button is not None:
+            self.float_button.set_state(state)
 
     def _model_ready(self):
+        was_downloading = self.state == "downloading"
+        if self._download_window is not None:
+            self._download_window.finish()
+            self._download_window = None
         if self.state in ("loading", "downloading"):
             self._set_state("idle")
-            self.notify(i18n.t("notify.ready"))
+            # "Ready" must mean ready. Without permission to type, the app
+            # can hear perfectly and produce nothing, so saying it is ready
+            # at that point is simply untrue.
+            log.info("model ready; can type = %s", injector.ready())
+            if not injector.ready():
+                self.notify(i18n.t("notify.needs_permission"))
+            else:
+                self.notify(i18n.t("notify.download_done") if was_downloading
+                            else i18n.t("notify.ready"))
 
     def _downloading(self):
+        """First run: the model is being fetched.
+
+        A spinning tray icon is not enough. A 600 MB download can take
+        minutes and can stall for minutes more, and with nothing on
+        screen that is indistinguishable from a broken app — which is
+        exactly how it was reported. Show the size, the progress, and
+        whether it is still moving.
+        """
         self._set_state("downloading")
         self.notify(i18n.t("notify.downloading"))
+        if self._download_window is None:
+            self._download_window = DownloadWindow(
+                self.config,
+                on_progress=self._on_progress,
+                on_dismissed=self._download_hidden,
+                on_quit=self.quit,
+                is_ready=injector.ready)
+
+    def _download_hidden(self):
+        """They closed the notice: point at where the progress now lives."""
+        if self.state == "downloading":
+            self.notify(i18n.t("notify.download_in_tray").format(
+                percent=int(self._progress_fraction * 100)))
+
+    def _show_first_run(self):
+        if self._download_window is None:
+            self._download_window = DownloadWindow(
+                self.config,
+                on_progress=self._on_progress,
+                on_dismissed=self._download_hidden,
+                on_quit=self.quit,
+                is_ready=injector.ready)
+        self.config.update({"first_run_seen": True})
+        return False
+
+    def _on_progress(self, fraction):
+        self._progress_fraction = fraction
+        self.tray.set_progress(fraction)
+        if self.float_button is not None:
+            self.float_button.set_progress(fraction)
 
     def _fail(self, error_key):
+        if self._download_window is not None:
+            self._download_window.finish()
+            self._download_window = None
         self._set_state("idle" if self.transcriber.ready else "paused")
         self.notify(i18n.t(error_key))
 
@@ -89,6 +194,67 @@ class TalkinApp:
         if self.state == "listening" and self._recording_via == "hold":
             self._finish_recording()
 
+    def _blip(self, which):
+        if self.config.get("sounds"):
+            sounds.play(which)
+
+    def _tray_click(self):
+        """Left-click on the tray icon: get the floating button back.
+
+        The floating button is how dictation is started, so a click on the
+        tray means "where did my button go" far more often than it means
+        "start recording". It is also the only recovery there is: on
+        Wayland an application cannot force itself above a browser, so the
+        button does get buried, and re-showing it is the way back.
+
+        With the floating button switched off in settings there is nothing
+        to show, and the click starts and stops dictation as it used to.
+        """
+        if self.float_button is None:
+            self._toggle()
+            return
+        self._show_float_button()
+
+    def _show_float_button(self):
+        """Bring the floating button back to the front.
+
+        Raising an existing window is not enough on GNOME: "keep above" is
+        a hint the compositor is free to ignore, and it does, so a window
+        buried under a browser stays buried however often it is raised.
+        Un-mapping and re-mapping it is different — the compositor treats
+        it as a newly opened window and stacks it on top, which is the
+        only lever that actually works.
+
+        The cost is the position: a re-mapped window opens wherever the
+        compositor puts it, and on Wayland an application is not allowed
+        to say where. So this can move the button, and it has to be
+        dragged back. Being somewhere visible beats being invisible in
+        the right place.
+        """
+        button = self.float_button
+        if button is None:
+            return
+        try:
+            button.hide()
+
+            def remap():
+                button.show_all()
+                button.present()
+                button.place_default()
+                button.set_keep_above(True)
+                window = button.get_window()
+                if window is not None:
+                    window.raise_()
+                return False
+
+            # A beat between the two, or the compositor coalesces them
+            # into no change at all and the button never moves in the
+            # stack.
+            GLib.timeout_add(120, remap)
+            log.info("floating button re-shown from the tray")
+        except Exception:
+            log.exception("could not re-show the floating button")
+
     def _toggle(self):
         if self.state == "listening" and self._recording_via == "toggle":
             self._finish_recording()
@@ -103,12 +269,14 @@ class TalkinApp:
             self.notify(i18n.t("error.mic"))
             return
         self._recording_via = via
+        self._blip("start")
         log.info("listening (mic open, via %s)", via)
         self._set_state("listening")
 
     def _finish_recording(self):
         audio = self.recorder.stop()
         self._recording_via = None
+        self._blip("stop")
         log.info("recorded %.1fs, transcribing", len(audio) / 16000)
         self._set_state("thinking")
         self.transcriber.submit(
@@ -121,8 +289,23 @@ class TalkinApp:
             return
         raw = text or ""
         clean = cleanup.clean(raw, self.config, self.dictionary)
-        log.info("transcribed %d chars", len(clean))
+        # Log both lengths: "transcribed 0 chars" on its own cannot tell
+        # apart "heard nothing" from "heard something and cleanup ate it",
+        # and those need completely different fixes.
+        # Counts only, never the words. The log exists to diagnose faults
+        # and is read by other people; what was dictated is nobody's
+        # business but the speaker's, and privacy that depends on
+        # remembering not to log something is not privacy.
+        log.info("transcribed %d chars (raw %d)", len(clean), len(raw))
+        if not clean and raw.strip():
+            # Cleanup emptied a real transcript — usually an utterance made
+            # entirely of hesitation sounds. Type what was actually said
+            # rather than silently dropping it; losing words is far worse
+            # than leaving an "um" in.
+            log.info("cleanup emptied a non-empty transcript; using it as-is")
+            clean = raw.strip()
         if not clean:
+            log.info("nothing recognised in the audio")
             self._set_state("idle")
             return
         self.history.add(raw, clean)
@@ -134,6 +317,30 @@ class TalkinApp:
             self.notify(i18n.t("error.inject"))
 
     # -- correction --------------------------------------------------
+
+    def _injection_ready(self, ok):
+        """Permission came through — say so, once the model is loaded too."""
+        if ok and self.transcriber.ready and self.state != "listening":
+            self.notify(i18n.t("notify.ready"))
+        return False
+
+    def _injection_lost(self):
+        """The desktop withdrew permission to type into other windows.
+
+        Usually the user pressing 'stop' on the desktop's own input-control
+        indicator. Say so, because otherwise Talkin looks alive but never
+        types again — which reads as a crash.
+        """
+        self.notify(i18n.t("error.input_permission_lost"))
+
+    def _hotkey_problem(self, action, combo):
+        """A hotkey the compositor refused to bind (Wayland only).
+
+        Surfaced to the user because the alternative is a hotkey that
+        simply never fires, with nothing on screen to explain why.
+        """
+        log.warning("hotkey %r (%s) is inactive in this session", combo, action)
+        self.notify(i18n.t("hotkey.wayland_unbindable"))
 
     def _correction(self):
         if self.state in ("listening", "thinking"):
@@ -157,7 +364,8 @@ class TalkinApp:
     def apply_settings(self):
         """Called by the web server after config changes."""
         i18n.set_language(self.config.get("language"))
-        self.hotkeys.reload()
+        if self.hotkeys is not None:
+            self.hotkeys.reload()
         return True
 
     def restart(self):
@@ -178,8 +386,36 @@ class TalkinApp:
         self.quit()
 
     def quit(self):
+        # Take everything off the screen first. The tear-down below is
+        # quick, but the interpreter's own exit is not — unloading the
+        # speech model and its native thread pool took half a minute in
+        # use — and until the icon disappears the app looks hung. So the
+        # visible parts go now and the rest follows.
         try:
-            self.hotkeys.stop()
+            self.tray.hide()
+        except Exception:
+            pass
+        try:
+            if self.float_button is not None:
+                self.float_button.hide()
+        except Exception:
+            pass
+        try:
+            if self.hotkeys is not None:
+                self.hotkeys.stop()
+        except Exception:
+            pass
+        try:
+            if self.float_button is not None:
+                self.float_button.stop()
+        except Exception:
+            pass
+        try:
+            injector.shutdown()
+        except Exception:
+            pass
+        try:
+            sounds.cleanup()
         except Exception:
             pass
         Gtk.main_quit()
@@ -188,14 +424,37 @@ class TalkinApp:
         log.info("notify: %s", message)
         if shutil.which("notify-send"):
             subprocess.Popen(
-                ["notify-send", "--app-name", "Lightmorphic Talkin",
+                ["notify-send", "--app-name", "Talkin",
                  "--icon", os.path.join(cfg.ASSET_DIR, "talkin-idle.svg"),
                  i18n.t("notify.title"), message],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def _log_uncaught(exc_type, exc_value, exc_tb):
+    """Put crashes in the log file, not only on a terminal nobody sees.
+
+    Launched from a desktop icon there is no terminal, so an unhandled
+    exception vanished with the process and left only "it crashed" to go
+    on. This makes the next one diagnosable.
+    """
+    log.critical("unhandled exception",
+                 exc_info=(exc_type, exc_value, exc_tb))
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+
 def main():
     cfg.setup_logging()
+    sys.excepthook = _log_uncaught
+    # GTK swallows exceptions raised inside signal handlers and prints
+    # them to stderr, which is likewise lost from a desktop launch, so
+    # route those into the log too.
+    try:
+        import threading as _threading
+        _threading.excepthook = lambda a: log.critical(
+            "unhandled exception in %s", a.thread,
+            exc_info=(a.exc_type, a.exc_value, a.exc_traceback))
+    except Exception:
+        pass
     log.info("Talkin starting (pid %s)", os.getpid())
 
     # Without this, GLib falls back to argv[0]'s basename for the
@@ -204,7 +463,7 @@ def main():
     # as the tray icon's hover tooltip. Must run before any GTK/GLib
     # object (Tray, dialogs) is created.
     GLib.set_prgname("talkin")
-    GLib.set_application_name("Lightmorphic Talkin")
+    GLib.set_application_name("Talkin")
 
     # A source checkout isn't registered in any icon theme, so without
     # this the window manager's taskbar/dock/alt-tab falls back to a
@@ -251,3 +510,12 @@ def main():
 
     Gtk.main()
     log.info("Talkin quit (pid %s)", os.getpid())
+
+    # Stop here rather than returning. Python's normal exit waits for the
+    # speech model's native threads to wind down, which took about thirty
+    # seconds — a tray icon that lingers half a minute after Quit reads
+    # as a crash. Everything that matters (settings, history, dictionary)
+    # is written to disk the moment it changes, so there is nothing left
+    # to lose by leaving now.
+    logging.shutdown()
+    os._exit(0)
