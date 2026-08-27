@@ -175,11 +175,25 @@ class TalkinApp:
             self.float_button.set_progress(fraction)
 
     def _fail(self, error_key):
-        if self._download_window is not None:
+        if self._download_window is not None and not self.transcriber.ready:
+            # Keep the window: it is the only place that can explain what
+            # went wrong and offer another go. Closing it here was what
+            # left a pause mark on the icon and no explanation anywhere.
+            self._download_window.fail(i18n.t("download.failed"),
+                                       on_retry=self._retry_download)
+        elif self._download_window is not None:
             self._download_window.finish()
             self._download_window = None
         self._set_state("idle" if self.transcriber.ready else "paused")
         self.notify(i18n.t(error_key))
+
+    def _retry_download(self):
+        """Start the download again after it gave up."""
+        if self.transcriber.ready:
+            return
+        log.info("retrying the model download")
+        if self.transcriber.retry():
+            self._set_state("downloading")
 
     # -- dictation flow ----------------------------------------------
 
@@ -351,7 +365,15 @@ class TalkinApp:
 
     def toggle_pause(self):
         if self.state == "paused":
-            self._set_state("idle" if self.transcriber.ready else "loading")
+            if not self.transcriber.ready:
+                # Paused after a failed download used to mean a spinning
+                # icon with nothing running behind it. Resume has to
+                # actually start the fetch again.
+                self._retry_download()
+                if self.state != "downloading":
+                    self._set_state("loading")
+                return
+            self._set_state("idle")
         else:
             if self.recorder.recording:
                 self.recorder.stop()

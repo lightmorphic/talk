@@ -302,6 +302,8 @@ class DownloadWindow(Gtk.Window):
         self.on_quit = on_quit
         self.is_ready = is_ready
         self._armed = None      # timer while "click again to quit" stands
+        self._failed = False
+        self.on_retry = None
         self._complete = False
         self._last_bytes = 0
         self._last_change = time.monotonic()
@@ -364,6 +366,13 @@ class DownloadWindow(Gtk.Window):
         box.pack_start(_card("teach", step + 1, t("firstrun.teach_title"),
                              t("firstrun.teach")), False, False, 0)
 
+        self.retry_button = Gtk.Button(label=t("download.retry"))
+        self.retry_button.get_style_context().add_class("suggested-action")
+        self.retry_button.set_halign(Gtk.Align.CENTER)
+        self.retry_button.set_no_show_all(True)
+        self.retry_button.connect("clicked", self._on_retry)
+        box.pack_start(self.retry_button, False, False, 0)
+
         # Every route out goes through _dismiss: the window button, Esc,
         # and the compositor's own close. Nothing should be able to make
         # this window vanish while Talkin still cannot type.
@@ -402,6 +411,13 @@ class DownloadWindow(Gtk.Window):
         # top — and never trap anyone: a second click quits Talkin
         # outright, which is the honest way out for someone who has
         # decided against it.
+        if self._failed:
+            # Nothing to insist on while the download is broken: holding
+            # the window open would trap someone with no way forward.
+            self.hide()
+            if self.on_dismissed is not None:
+                self.on_dismissed()
+            return True
         if not self.permission_granted():
             if self._armed is not None:
                 GLib.source_remove(self._armed)
@@ -462,6 +478,36 @@ class DownloadWindow(Gtk.Window):
             self.status.set_text(t("download.progress").format(
                 done=megabytes, total=expected, percent=int(fraction * 100)))
         return True
+
+    def fail(self, message, on_retry=None):
+        """The download gave up. Say so, and offer to try again.
+
+        This window used to be closed on failure by the same call that
+        closes it on success, so a download that had died looked exactly
+        like one that had finished — the window vanished, the icon showed
+        a pause mark, and nothing said what had happened or what to do.
+        """
+        self._failed = True
+        self.on_retry = on_retry
+        if self._timer is not None:
+            GLib.source_remove(self._timer)
+            self._timer = None
+        self.status.set_text(message)
+        self.warning.set_text(t("download.failed_help"))
+        self.warning_card.show()
+        self.warning.show()
+        self.retry_button.show()
+        self.present()
+
+    def _on_retry(self, *_args):
+        self._failed = False
+        self.retry_button.hide()
+        self.warning_card.hide()
+        self.status.set_text(t("download.retrying"))
+        if self._timer is None:
+            self._timer = GLib.timeout_add_seconds(1, self._update)
+        if self.on_retry is not None:
+            self.on_retry()
 
     def finish(self):
         """The model is ready.

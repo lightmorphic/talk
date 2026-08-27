@@ -283,8 +283,26 @@ class Transcriber:
         self.on_ready = on_ready
         self.on_error = on_error
         self.on_downloading = on_downloading
+        self._loading = False
+        self._start_loader()
+
+    def _start_loader(self):
+        if self._loading or self._model is not None:
+            return False
+        self._loading = True
         threading.Thread(target=self._run, name="transcriber",
                          daemon=True).start()
+        return True
+
+    def retry(self):
+        """Try the download again after it gave up.
+
+        The loading thread ends when the model cannot be fetched, so
+        without this the app sits there with nothing running behind it —
+        which is what "Resume" used to do: change the icon and nothing
+        else.
+        """
+        return self._start_loader()
 
     @property
     def ready(self):
@@ -348,9 +366,11 @@ class Transcriber:
             self._load()
         except Exception:
             log.exception("model failed to load")
+            self._loading = False
             if self.on_error is not None:
                 self.on_error("error.model")
             return
+        self._loading = False
         while True:
             audio, callback = self._queue.get()
             try:
