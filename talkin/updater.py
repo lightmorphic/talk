@@ -24,6 +24,7 @@ import json
 import logging
 import os
 import re
+import ssl
 import subprocess
 import urllib.request
 
@@ -39,6 +40,36 @@ PREVIOUS_PATH = os.path.join(DATA_DIR, "previous-version.txt")
 # A real build is ~90-120MB; anything wildly smaller means the
 # download failed partway or GitHub served an error page instead.
 _MIN_APPIMAGE_SIZE = 20_000_000
+
+
+def _ssl_context():
+    """A TLS context that trusts something, wherever we are running.
+
+    The AppImage carries its own Python and its own OpenSSL, and that
+    OpenSSL looks for the trust store at the path it was BUILT with —
+    /usr/lib/ssl on Debian. openSUSE, Fedora and Arch keep theirs
+    somewhere else entirely, so on those machines it finds no
+    certificates at all and every HTTPS call fails to verify. The model
+    download never hit this because its library ships its own bundle;
+    the update check used plain urllib and did, which is how a perfectly
+    healthy machine ended up showing "cannot reach GitHub".
+
+    So: prefer the bundled certificates, and fall back to the system
+    store only if they are missing.
+    """
+    try:
+        import certifi
+        # The file next to certifi, not certifi.where(): distributions
+        # patch where() to return their own system path, which is the
+        # very path that may not exist on the machine this bundle is
+        # running on. The bundled cacert.pem always travels with us.
+        bundled = os.path.join(os.path.dirname(certifi.__file__),
+                               "cacert.pem")
+        cafile = bundled if os.path.exists(bundled) else certifi.where()
+        return ssl.create_default_context(cafile=cafile)
+    except Exception:
+        log.debug("no bundled certificates; using the system trust store")
+        return ssl.create_default_context()
 
 
 def is_packaged():
@@ -62,7 +93,8 @@ def _latest_release_tag():
         headers={"Accept": "application/vnd.github+json",
                  "User-Agent": "Talkin"})
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(
+                req, timeout=10, context=_ssl_context()) as resp:
             data = json.load(resp)
     except Exception as e:
         log.warning("release check failed", exc_info=True)
@@ -124,7 +156,8 @@ def _apply_appimage(tag, on_progress=None):
     try:
         req = urllib.request.Request(
             _ASSET_URL.format(tag), headers={"User-Agent": "Talkin"})
-        with urllib.request.urlopen(req, timeout=300) as resp, \
+        with urllib.request.urlopen(
+                req, timeout=300, context=_ssl_context()) as resp, \
                 open(tmp_path, "wb") as f:
             total = int(resp.headers.get("Content-Length") or 0)
             written = 0
