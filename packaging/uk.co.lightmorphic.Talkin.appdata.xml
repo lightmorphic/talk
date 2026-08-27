@@ -28,11 +28,11 @@
     </p>
   </description>
   <launchable type="desktop-id">uk.co.lightmorphic.Talkin.desktop</launchable>
-  <url type="homepage">https://talkin.lightmorphic.co.uk</url>
+  <url type="homepage">https://talkin.lightmorphic.com</url>
   <url type="bugtracker">https://github.com/lightmorphic/talkin/issues</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://talkin.lightmorphic.co.uk/images/talkin-settings.png</image>
+      <image>https://talkin.lightmorphic.com/images/talkin-settings.png</image>
       <caption>The Settings window: microphone, personal dictionary and local history</caption>
     </screenshot>
   </screenshots>
