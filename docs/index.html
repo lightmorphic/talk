@@ -25,16 +25,105 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Talkin",
-  "operatingSystem": "Linux (Wayland or X11)",
-  "applicationCategory": "UtilitiesApplication",
-  "description": "Private, on-device dictation for Linux. Click the button, speak, click again. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. On Wayland it types through the XDG RemoteDesktop portal (GNOME 45+ or KDE Plasma 5.27+); on X11 it types directly, on any desktop.",
-  "url": "https://talkin.lightmorphic.com/",
-  "downloadUrl": "https://github.com/lightmorphic/talkin/releases/latest",
-  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "GBP"},
-  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
-  "author": {"@type": "Organization", "name": "Lightmorphic", "url": "https://lightmorphic.com"}
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://lightmorphic.com/#organization",
+      "name": "Lightmorphic",
+      "url": "https://lightmorphic.com",
+      "description": "A UK studio building fast, privacy-first websites and free open-source tools.",
+      "sameAs": [
+        "https://github.com/lightmorphic"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://talkin.lightmorphic.com/#website",
+      "url": "https://talkin.lightmorphic.com/",
+      "name": "Talkin",
+      "inLanguage": "en-GB",
+      "publisher": {
+        "@id": "https://lightmorphic.com/#organization"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://talkin.lightmorphic.com/#app",
+      "name": "Talkin",
+      "operatingSystem": "Linux (Wayland or X11)",
+      "applicationCategory": "UtilitiesApplication",
+      "description": "Private, on-device dictation for Linux. Click the button, speak, click again. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. On Wayland it types through the XDG RemoteDesktop portal (GNOME 45+ or KDE Plasma 5.27+); on X11 it types directly, on any desktop.",
+      "url": "https://talkin.lightmorphic.com/",
+      "downloadUrl": "https://github.com/lightmorphic/talkin/releases/latest",
+      "softwareVersion": "1.0.6",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+      "author": {
+        "@id": "https://lightmorphic.com/#organization"
+      },
+      "publisher": {
+        "@id": "https://lightmorphic.com/#organization"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://talkin.lightmorphic.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does my voice leave the machine?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The speech model runs on your own processor. After the one-time download of the model on first run, Talkin makes no network requests at all except when you ask it to check for an update."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work on Wayland or on X11?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both, from the same download. On Wayland it types through the desktop's RemoteDesktop portal, which needs GNOME 45 or later, or KDE Plasma 5.27 or later, and which you approve once. On X11 it types directly and works on any desktop, including Cinnamon, XFCE, MATE and bare window managers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I start and stop dictation?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Click the floating button, speak, then click it again. There are no keyboard shortcuts: a compositor's key press and release signals proved unreliable enough to lose whole dictations, and a click has nothing to get wrong."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much disk space does it need?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "About 1.4 GB in total. The speech model is roughly 600 MB and is downloaded once on first run; the application itself is a single 97 MB file."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I update it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open Settings and click the small coloured dot beside the version number. It downloads the new version, replaces the file in place and offers to restart. Nothing updates behind your back."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I remove it completely?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Settings has a Remove Talkin completely button. It deletes the speech model, your settings, history and dictionary, the menu and autostart entries, and the application file itself. Nothing is left behind."
+          }
+        }
+      ]
+    }
+  ]
 }
 </script>
 </head>
@@ -60,6 +149,7 @@
       <a class="hide-sm" href="#how">How it works</a>
       <a class="hide-sm" href="#wayland">Wayland &amp; X11</a>
       <a href="#requirements">Requirements</a>
+      <a class="hide-sm" href="#faq">Questions</a>
       <a href="#download">Download</a>
     </div>
   </div>
@@ -192,6 +282,38 @@
   </div>
 </section>
 
+<section id="faq" aria-labelledby="faq-title">
+  <div class="wrap">
+    <h2 id="faq-title">Questions</h2>
+    <div class="panel faq">
+      <details class="faq-item">
+        <summary><h3>Does my voice leave the machine?</h3></summary>
+        <p>No. The speech model runs on your own processor. After the one-time download of the model on first run, Talkin makes no network requests at all except when you ask it to check for an update.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>Does it work on Wayland or on X11?</h3></summary>
+        <p>Both, from the same download. On Wayland it types through the desktop's RemoteDesktop portal, which needs GNOME 45 or later, or KDE Plasma 5.27 or later, and which you approve once. On X11 it types directly and works on any desktop, including Cinnamon, XFCE, MATE and bare window managers.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>How do I start and stop dictation?</h3></summary>
+        <p>Click the floating button, speak, then click it again. There are no keyboard shortcuts: a compositor's key press and release signals proved unreliable enough to lose whole dictations, and a click has nothing to get wrong.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>How much disk space does it need?</h3></summary>
+        <p>About 1.4 GB in total. The speech model is roughly 600 MB and is downloaded once on first run; the application itself is a single 97 MB file.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>How do I update it?</h3></summary>
+        <p>Open Settings and click the small coloured dot beside the version number. It downloads the new version, replaces the file in place and offers to restart. Nothing updates behind your back.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>How do I remove it completely?</h3></summary>
+        <p>Settings has a Remove Talkin completely button. It deletes the speech model, your settings, history and dictionary, the menu and autostart entries, and the application file itself. Nothing is left behind.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <section id="download" class="download" aria-labelledby="download-title">
   <div class="wrap">
     <h2 id="download-title">Download</h2>
@@ -213,6 +335,10 @@
       <img class="light-only" src="images/lightmorphic-badge.webp" alt="Created by Lightmorphic" width="120" height="34" loading="lazy">
       <img class="dark-only" src="images/lightmorphic-badge-dark.webp" alt="Created by Lightmorphic" width="120" height="34" loading="lazy">
     </a>
+    <div class="foot-meta">
+      <p>Talkin is made by <a href="https://lightmorphic.com">Lightmorphic</a>, a UK studio building fast, privacy-first websites and free open-source tools. Written and used daily by someone who dictates for a living.</p>
+      <p class="foot-updated">Version 1.0.6 · updated <time datetime="2026-08-27">2026-08-27</time></p>
+    </div>
     <div class="foot-links">
       <a href="https://github.com/lightmorphic/talkin">Source</a>
       <a href="https://github.com/lightmorphic/talkin/releases">Releases</a>

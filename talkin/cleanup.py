@@ -2,7 +2,7 @@
 
 Runs entirely locally on the transcript text. The dictionary maps
 "what Parakeet heard" -> "what Charlie actually means", built up via
-the correction hotkey or the Settings page.
+the teach-a-word popup or the Settings page.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
