@@ -20,7 +20,7 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
-from . import cleanup, i18n, tooltip, uninstall
+from . import chooser, cleanup, i18n, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
 from . import session
@@ -426,93 +426,6 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(widget, True, True, 0)
         return row
 
-    @staticmethod
-    def _draw_chevron(widget, cr):
-        """The small triangle on a choice button."""
-        width = widget.get_allocated_width()
-        height = widget.get_allocated_height()
-        colour = widget.get_style_context().get_color(Gtk.StateFlags.NORMAL)
-        cr.set_source_rgba(colour.red, colour.green, colour.blue,
-                           colour.alpha * 0.75)
-        cr.move_to(width / 2 - 4, height / 2 - 2)
-        cr.line_to(width / 2 + 4, height / 2 - 2)
-        cr.line_to(width / 2, height / 2 + 3)
-        cr.close_path()
-        cr.fill()
-        return False
-
-    def _choice_button(self, options, current, on_change, max_visible=8):
-        """A click-to-open, click-to-choose list.
-
-        Not a GtkComboBox. That opens on button-press and closes again on
-        the matching release, so a plain click flashes the list open and
-        shut unless you hold the mouse down and drag onto the item you
-        want. It behaves that way by design — it dates from menus that
-        worked like that — but nothing else on a modern desktop does, and
-        it reads as the list refusing to stay open.
-
-        `options` is a list of (id, label). Returns the button; the
-        callback is given the chosen id.
-        """
-        labels = dict(options)
-        button = Gtk.MenuButton()
-        button.get_style_context().add_class("choice")
-        face = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        text = Gtk.Label(label=labels.get(current, ""), xalign=0)
-        text.set_ellipsize(Pango.EllipsizeMode.END)
-        face.pack_start(text, True, True, 0)
-        # Drawn, not an icon name. Asking the theme for an icon inside
-        # the AppImage lands on Adwaita's missing-image SVG, and the
-        # bundled SVG loader cannot decode it — which aborts the whole
-        # process, not just the icon. Cairo needs nothing from anybody.
-        chevron = Gtk.DrawingArea()
-        chevron.set_size_request(10, 10)
-        chevron.set_valign(Gtk.Align.CENTER)
-        chevron.connect("draw", self._draw_chevron)
-        face.pack_start(chevron, False, False, 0)
-        button.add(face)
-
-        popover = Gtk.Popover.new(button)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        listbox = Gtk.ListBox()
-        listbox.get_style_context().add_class("choice-list")
-        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        rows = {}
-        for value, label in options:
-            row = Gtk.ListBoxRow()
-            item = Gtk.Label(label=label, xalign=0)
-            item.set_margin_top(8)
-            item.set_margin_bottom(8)
-            item.set_margin_start(12)
-            item.set_margin_end(12)
-            row.add(item)
-            row.choice_id = value
-            listbox.add(row)
-            rows[value] = row
-        if current in rows:
-            listbox.select_row(rows[current])
-
-        def chosen(_listbox, row):
-            if row is None:
-                return
-            text.set_text(labels.get(row.choice_id, ""))
-            popover.popdown()
-            on_change(row.choice_id)
-
-        listbox.connect("row-activated", chosen)
-
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        # Tall enough to show a handful, short enough that twenty-five
-        # languages scroll instead of running off the screen.
-        scroller.set_propagate_natural_height(True)
-        scroller.set_max_content_height(max_visible * 38)
-        scroller.add(listbox)
-        popover.add(scroller)
-        scroller.show_all()
-        button.set_popover(popover)
-        return button
-
     def _style_selectable_row(self, tree, renderers, text_renderers=None):
         """Explicit foreground/background for treeview cells, selected
         or not, bypassing GTK's theme-driven colours entirely.
@@ -860,9 +773,10 @@ class SettingsWindow(Gtk.Window):
             # how it looked.
             GLib.idle_add(self.app_obj.retranslate)
 
-        lang_button = self._choice_button(
+        lang_button = chooser.choice_button(
             i18n.available_languages(), self.config.get("language"), on_lang,
-            max_visible=10)
+            searchable=True,
+            filter_placeholder=i18n.t("settings.filter"))
         box.pack_start(self._row(i18n.t("settings.language"), lang_button),
                        False, False, 0)
 
@@ -902,7 +816,7 @@ class SettingsWindow(Gtk.Window):
         current = self.config.get("mic")
         if current not in dict(mics) and mics:
             current = mics[0][0]
-        self._mic_button = self._choice_button(
+        self._mic_button = chooser.choice_button(
             mics, current, lambda value: self._set("mic", value))
         box.pack_start(self._row(i18n.t("settings.mic"), self._mic_button),
                        False, False, 0)
@@ -976,7 +890,7 @@ class SettingsWindow(Gtk.Window):
 
     def _build_output(self):
         box = self._section("settings.section.output")
-        injection = self._choice_button(
+        injection = chooser.choice_button(
             [("paste", i18n.t("settings.injection.paste")),
              ("type", i18n.t("settings.injection.type"))],
             self.config.get("injection"),
