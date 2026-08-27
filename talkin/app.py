@@ -352,6 +352,26 @@ class TalkinApp:
         i18n.set_language(self.config.get("language"))
         return True
 
+    def retranslate(self):
+        """Put the whole interface into the language just chosen.
+
+        Labels are set once, when each widget is built, so changing the
+        language only changed what the NEXT run would say. The tray menu
+        is rebuilt in place; Settings is rebuilt wholesale, because
+        every string in it was baked in at construction.
+        """
+        i18n.set_language(self.config.get("language"))
+        try:
+            self.tray.retranslate()
+        except Exception:
+            log.exception("could not retranslate the tray")
+        window = getattr(self, "_settings_window", None)
+        if window is not None:
+            page = window.current_page()
+            window.destroy()
+            self._settings_window = None
+            open_settings(self, page=page)
+
     def restart(self):
         log.info("restarting")
         # The new process retries the single-instance socket bind for up

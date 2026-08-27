@@ -372,6 +372,7 @@ class SettingsWindow(Gtk.Window):
             page_scroller.add(content)
             self._stack.add_named(page_scroller, key)
 
+        self._sidebar = sidebar
         sidebar.connect("row-selected", self._on_category_selected)
         split.pack_start(sidebar, False, False, 0)
         split.pack_start(self._stack, True, True, 0)
@@ -379,6 +380,21 @@ class SettingsWindow(Gtk.Window):
         sidebar.select_row(sidebar.get_row_at_index(0))
         self._refresh_dictionary()
         self._refresh_history()
+
+    def current_page(self):
+        """Which section is showing, so a rebuild can return to it."""
+        return self._stack.get_visible_child_name()
+
+    def show_page(self, key):
+        row = self._row_for_page(key)
+        if row is not None:
+            self._sidebar.select_row(row)
+
+    def _row_for_page(self, key):
+        for row in self._sidebar.get_children():
+            if getattr(row, "category_key", None) == key:
+                return row
+        return None
 
     def _on_category_selected(self, _listbox, row):
         if row is not None:
@@ -797,7 +813,14 @@ class SettingsWindow(Gtk.Window):
         lang_combo.set_active(codes.index(current) if current in codes else 0)
 
         def on_lang(combo):
-            self._set("language", codes[combo.get_active()])
+            chosen = codes[combo.get_active()]
+            if chosen == self.config.get("language"):
+                return
+            self._set("language", chosen)
+            # Redraw everything in the new language now. Waiting for a
+            # restart makes the setting look broken, which is exactly
+            # how it looked.
+            GLib.idle_add(self.app_obj.retranslate)
         lang_combo.connect("changed", on_lang)
         box.pack_start(self._row(i18n.t("settings.language"), lang_combo),
                        False, False, 0)
@@ -1411,12 +1434,14 @@ class SettingsWindow(Gtk.Window):
         return True
 
 
-def open_settings(app_obj):
+def open_settings(app_obj, page=None):
     """Show the settings window, creating it once and reusing it after."""
     window = getattr(app_obj, "_settings_window", None)
     if window is None:
         window = SettingsWindow(app_obj)
         app_obj._settings_window = window
+    if page:
+        window.show_page(page)
     window.show_all()
     window.present()
     # Otherwise GTK auto-focuses the first focusable widget on show,
