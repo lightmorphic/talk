@@ -202,6 +202,19 @@ def _existing_entries(executable):
     return set(found)
 
 
+def _points_at(entry_name, executable):
+    """Whether a named .desktop entry launches this exact executable."""
+    for directory in _application_dirs():
+        path = os.path.join(directory, entry_name + ".desktop")
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                if executable in f.read():
+                    return True
+        except OSError:
+            continue
+    return False
+
+
 def ensure_desktop_entry():
     """Guarantee there is a .desktop file matching DEFAULT_APP_ID.
 
@@ -229,6 +242,16 @@ def ensure_desktop_entry():
     # still point at a previous copy of the AppImage. Ours exists only to
     # cover the case where nothing else does.
     existing = _existing_entries(appimage)
+    # An entry that launches a DIFFERENT executable is a different
+    # install, not ours — the retired Twalkin left one behind, and
+    # deferring to it meant this app announced itself under that name and
+    # showed that name in the launcher's tooltip. Only an entry pointing
+    # at this very file counts as already having one.
+    mine = {name for name in existing if _points_at(name, appimage)}
+    if existing and not mine:
+        log.info("ignoring desktop entries for other installs: %s",
+                 ", ".join(sorted(existing)))
+        existing = set()
     if existing:
         log.info("desktop entry already present: %s",
                  ", ".join(sorted(existing)))
@@ -245,7 +268,7 @@ def ensure_desktop_entry():
     entry = ("[Desktop Entry]\n"
              "Type=Application\n"
              "Name=Talkin\n"
-             "Comment=Private, on-device dictation for Wayland desktops\n"
+             "Comment=Private, on-device dictation for Linux\n"
              "Exec={}\n"
              "Icon={}\n"
              "Categories=Utility;Accessibility;\n"
