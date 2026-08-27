@@ -80,7 +80,15 @@
       },
       "publisher": {
         "@id": "https://lightmorphic.com/#organization"
-      }
+      },
+      "inLanguage": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "it",
+        "nl"
+      ]
     },
     {
       "@type": "FAQPage",
@@ -100,6 +108,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Both, from the same download. On Wayland it types through the desktop's RemoteDesktop portal, which needs GNOME 45 or later, or KDE Plasma 5.27 or later, and which you approve once. On X11 it types directly and works on any desktop, including Cinnamon, XFCE, MATE and bare window managers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I dictate in a language other than English?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The speech model understands 25 European languages and works out which one you are speaking without being told. Talkin's own interface is a separate thing: it comes in English, French, German, Spanish, Italian and Dutch, and you choose that in Settings."
           }
         },
         {
@@ -240,9 +256,9 @@
       <article class="panel">
         <h3>
           <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
-          Six languages
+          Speak 25 languages, read six
         </h3>
-        <p>English, French, German, Spanish, Italian and Dutch. Every visible string lives in one editable file — add a column, get a language.</p>
+        <p>Dictation understands 25 European languages, English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Ukrainian and more among them, and the model picks up which one you are speaking on its own. Talkin's own buttons and messages are a separate matter: those are translated into six — English, French, German, Spanish, Italian and Dutch — and every visible string lives in one editable file, so a seventh is a column away.</p>
       </article>
       <article class="panel">
         <h3>
@@ -306,6 +322,10 @@
       <details class="faq-item">
         <summary><h3>Does it work on Wayland or on X11?</h3></summary>
         <p>Both, from the same download. On Wayland it types through the desktop's RemoteDesktop portal, which needs GNOME 45 or later, or KDE Plasma 5.27 or later, and which you approve once. On X11 it types directly and works on any desktop, including Cinnamon, XFCE, MATE and bare window managers.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>Can I dictate in a language other than English?</h3></summary>
+        <p>Yes. The speech model understands 25 European languages and works out which one you are speaking without being told. Talkin's own interface is a separate thing: it comes in English, French, German, Spanish, Italian and Dutch, and you choose that in Settings.</p>
       </details>
       <details class="faq-item">
         <summary><h3>How do I start and stop dictation?</h3></summary>
