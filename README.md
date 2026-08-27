@@ -79,4 +79,4 @@ GitHub.
 
 GPL-3.0-or-later. The Parakeet model is CC-BY-4.0 (© NVIDIA).
 
-Created by [Lightmorphic](https://lightmorphic.co.uk).
+Created by [Lightmorphic](https://lightmorphic.com).
