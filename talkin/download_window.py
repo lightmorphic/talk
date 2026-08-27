@@ -99,7 +99,10 @@ window.talkin-firstrun {
 .talkin-firstrun button.choice:hover { background-color: #272a3a; }
 list.choice-list { background-color: #1b1d29; }
 list.choice-list row { border-radius: 0.625rem; }
-list.choice-list row:selected { background-color: #fbc711; color: #111827; }
+list.choice-list row:selected {
+  background-color: #fbc711; color: #111827; text-shadow: none;
+}
+list.choice-list row:selected label { color: #111827; text-shadow: none; }
 """
 
 

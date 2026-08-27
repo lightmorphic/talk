@@ -132,6 +132,11 @@ window.talkin-settings {
   color: @lm_on_accent;
   font-weight: 600;
   border: none;
+  /* The theme puts a light shadow behind label text, which is meant for
+     dark backgrounds. On yellow it shows as a pale halo around every
+     letter. */
+  text-shadow: none;
+  -gtk-icon-shadow: none;
 }
 .talkin-settings button.primary:hover { background-color: @lm_accent_hover; }
 .talkin-settings button.danger-armed {
@@ -145,7 +150,7 @@ window.talkin-settings {
    into these buttons' internal label widget and win over the color
    set above - a direct match always beats inherited color in GTK's
    CSS cascade, regardless of specificity or source order. */
-.talkin-settings button.primary label { color: @lm_on_accent; }
+.talkin-settings button.primary label { color: @lm_on_accent; text-shadow: none; }
 .talkin-settings button.danger-armed label { color: @lm_danger; }
 
 .talkin-settings entry, .talkin-settings treeview {
@@ -164,7 +169,10 @@ window.talkin-settings {
 .talkin-settings button.choice:hover { background-color: @lm_icon_bg_hover; }
 list.choice-list { background-color: @lm_panel; }
 list.choice-list row { border-radius: 0.625rem; }
-list.choice-list row:selected { background-color: @lm_accent; color: @lm_on_accent; }
+list.choice-list row:selected {
+  background-color: @lm_accent; color: @lm_on_accent; text-shadow: none;
+}
+list.choice-list row:selected label { color: @lm_on_accent; text-shadow: none; }
 .talkin-settings treeview {
   background-color: @lm_muted;
   border: 1px solid @lm_border;
@@ -709,10 +717,11 @@ class SettingsWindow(Gtk.Window):
             cr.stroke()
             return False
 
-        # Ready is palette Blue per the house update-widget spec, not a
-        # second green - otherwise "downloaded, click to restart" and
-        # "you're up to date" were the same colour and only the tiny
-        # overlay icon told them apart.
+        # Plain filled circles: the colour carries the whole meaning,
+        # and a glyph drawn inside something this small is noise rather
+        # than information. Ready is palette Blue rather than a second
+        # green, so "downloaded, click to restart" and "you are up to
+        # date" are told apart by colour alone.
         color = {
             "checking": _LM_MUTED, "uptodate": _LM_SUCCESS,
             "available": _LM_WARNING, "ready": _LM_READY,
@@ -722,44 +731,7 @@ class SettingsWindow(Gtk.Window):
         cr.arc(cx, cy, r, 0, 2 * math.pi)
         cr.fill()
 
-        if state == "available":
-            self._draw_download_icon(cr, cx, cy, r)
-        elif state == "ready":
-            self._draw_restart_icon(cr, cx, cy, r)
         return False
-
-    def _draw_download_icon(self, cr, cx, cy, r):
-        import math
-        cr.set_source_rgb(*_hex_rgb(_LM_ON_ACCENT))
-        cr.set_line_width(1.4)
-        cr.set_line_cap(1)  # round
-        s = r * 0.45
-        cr.move_to(cx, cy - s)
-        cr.line_to(cx, cy + s * 0.5)
-        cr.stroke()
-        cr.move_to(cx - s * 0.6, cy)
-        cr.line_to(cx, cy + s * 0.5)
-        cr.line_to(cx + s * 0.6, cy)
-        cr.stroke()
-
-    def _draw_restart_icon(self, cr, cx, cy, r):
-        import math
-        cr.set_source_rgb(*_hex_rgb(_LM_ON_READY))
-        cr.set_line_width(1.4)
-        cr.set_line_cap(1)
-        ir = r * 0.55
-        cr.arc(cx, cy, ir, -math.pi * 0.15, math.pi * 1.2)
-        cr.stroke()
-        tip_angle = math.pi * 1.2
-        tip_x = cx + ir * math.cos(tip_angle)
-        tip_y = cy + ir * math.sin(tip_angle)
-        cr.move_to(tip_x, tip_y)
-        cr.line_to(tip_x - r * 0.28, tip_y - r * 0.05)
-        cr.move_to(tip_x, tip_y)
-        cr.line_to(tip_x - r * 0.05, tip_y + r * 0.28)
-        cr.stroke()
-
-    # -- general -----------------------------------------------------
 
     def _build_general(self):
         box = self._section("settings.section.general")
