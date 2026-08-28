@@ -277,5 +277,26 @@ def attach(widget, text):
         bubble.show_for(widget, text)
 
 
+def flash(widget, seconds=1.6):
+    """Show a widget's bubble without hovering, then take it away.
+
+    For the moment a click finishes something: the answer appears where
+    the hand already is, and goes again on its own. Anything longer than
+    a couple of seconds becomes a thing to dismiss.
+    """
+    if not getattr(widget, "_bubble_text", None):
+        return
+    _cancel_pending()
+    bubble = _get_bubble()
+    bubble.show_for(widget, widget._bubble_text)
+
+    def away():
+        if bubble.current_anchor is widget:
+            bubble.hide()
+        return False
+
+    GLib.timeout_add(int(seconds * 1000), away)
+
+
 def get_text(widget):
     return getattr(widget, "_bubble_text", None)

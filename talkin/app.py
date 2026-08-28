@@ -399,20 +399,58 @@ class TalkinApp:
 
     def restart(self):
         log.info("restarting")
-        # The new process retries the single-instance socket bind for up
-        # to 10s before giving up silently (see main()) — releasing the
-        # lock here, before spawning, means it never has to race this
-        # process's own shutdown (model unload, audio teardown) at all.
-        global _single
-        try:
-            _single.close()
-        except Exception:
-            pass
         # No cwd: the AppImage launcher resolves its own path via $0, and
         # BASE_DIR would point at this instance's own ephemeral FUSE
         # mount, which is on its way out right after this call anyway.
-        subprocess.Popen([cfg.launcher_path()])
-        self.quit()
+        #
+        # start_new_session puts the replacement in a session of its own.
+        # Without it the new process is a child in this one's process
+        # group, sharing this terminal and this session, and it went down
+        # with the parent instead of coming back — the app appeared to
+        # quit rather than restart.
+        launcher = cfg.launcher_path()
+        try:
+            child = subprocess.Popen(
+                [launcher], start_new_session=True, close_fds=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            log.exception("could not start the replacement process")
+            self._restart_failed()
+            return
+
+        def when_up():
+            """Only leave once the replacement is actually on its feet.
+
+            Quitting first and hoping is what makes a failed restart look
+            like the app simply dying: the icon goes, nothing comes back,
+            and the person is left watching an empty screen. If the new
+            process is already gone, this one stays and says so.
+            """
+            if child.poll() is not None:
+                log.error("the replacement exited immediately (code %s)",
+                          child.returncode)
+                self._restart_failed()
+                return False
+            # Hand over the single-instance lock only now. Releasing it
+            # before knowing the replacement is alive would leave the
+            # door open with nobody coming through; the new process
+            # retries the bind for ten seconds, so waiting costs it
+            # nothing.
+            global _single
+            try:
+                _single.close()
+            except Exception:
+                pass
+            self.quit()
+            return False
+
+        GLib.timeout_add(1200, when_up)
+
+    def _restart_failed(self):
+        """Say it plainly rather than leaving someone waiting."""
+        self._set_state("idle" if self.transcriber.ready else "paused")
+        self.notify(i18n.t("error.restart_failed"))
 
     def quit(self):
         # Take everything off the screen first. The tear-down below is

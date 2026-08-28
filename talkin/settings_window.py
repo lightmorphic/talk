@@ -683,6 +683,8 @@ class SettingsWindow(Gtk.Window):
         row.pack_start(ver_row, False, False, 0)
 
         self._update_state = "checking"
+        self._pulse = 0.0
+        self._pulse_timer = None
         self._update_tag = None
         self._set_update_dot("checking", i18n.t("update.checking"))
         GLib.idle_add(self._check_update)
@@ -692,10 +694,42 @@ class SettingsWindow(Gtk.Window):
         import webbrowser
         webbrowser.open("https://talkin.lightmorphic.com")
 
+    _PULSE_MS = 40
+    _PULSE_BEATS = 3          # how many times it breathes before settling
+    _PULSE_PERIOD = 0.6       # seconds per beat
+
     def _set_update_dot(self, state, tooltip_text):
         self._update_state = state
         tooltip.attach(self._update_dot, tooltip_text)
+        self._sync_pulse()
         self._update_dot.queue_draw()
+
+    def _sync_pulse(self):
+        """Breathe while checking; hold still otherwise.
+
+        A dot that simply sat there grey said nothing about whether the
+        check had started. Pulsing, rather than blinking: a blink reads
+        as a fault, a slow swell reads as work in progress.
+        """
+        want = self._update_state == "checking"
+        if want and self._pulse_timer is None:
+            self._pulse = 0.0
+            self._pulse_timer = GLib.timeout_add(self._PULSE_MS, self._beat)
+        elif not want and self._pulse_timer is not None:
+            GLib.source_remove(self._pulse_timer)
+            self._pulse_timer = None
+            self._pulse = 0.0
+            self._update_dot.queue_draw()
+
+    def _beat(self):
+        self._pulse += self._PULSE_MS / 1000.0
+        self._update_dot.queue_draw()
+        # Three beats and then steady, even if the answer is slow: an
+        # animation that never stops stops meaning anything.
+        if self._pulse > self._PULSE_BEATS * self._PULSE_PERIOD:
+            self._pulse_timer = None
+            return False
+        return True
 
     def _draw_update_dot(self, widget, cr):
         import math
@@ -727,6 +761,14 @@ class SettingsWindow(Gtk.Window):
             "available": _LM_WARNING, "ready": _LM_READY,
             "error": _LM_DANGER,
         }.get(state, _LM_MUTED)
+        if state == "checking" and self._pulse_timer is not None:
+            swell = 0.5 - 0.5 * math.cos(
+                2 * math.pi * self._pulse / self._PULSE_PERIOD)
+            cr.set_source_rgba(*_hex_rgb(color), 0.30 + 0.70 * swell)
+            cr.arc(cx, cy, r * (0.72 + 0.28 * swell), 0, 2 * math.pi)
+            cr.fill()
+            return False
+
         cr.set_source_rgb(*_hex_rgb(color))
         cr.arc(cx, cy, r, 0, 2 * math.pi)
         cr.fill()
@@ -1282,8 +1324,10 @@ class SettingsWindow(Gtk.Window):
         if state == "available":
             self._update_tag = result["latest"]
             self._set_update_dot("available", i18n.t("update.available_tip"))
+            tooltip.flash(self._update_dot)
         elif state == "up-to-date":
             self._set_update_dot("uptodate", i18n.t("update.uptodate"))
+            tooltip.flash(self._update_dot)
         else:
             # Put the actual reason in the tooltip. "Can't connect to
             # GitHub" on a machine with a working connection sends
@@ -1294,6 +1338,7 @@ class SettingsWindow(Gtk.Window):
             if detail:
                 message = "{}\n{}".format(message, detail[:160])
             self._set_update_dot("error", message)
+            tooltip.flash(self._update_dot, seconds=3.0)
         return False
 
     def _on_update_dot_clicked(self, _widget, _event):
@@ -1330,18 +1375,14 @@ class SettingsWindow(Gtk.Window):
         return False
 
     def _update_applied(self, ok):
+        # `result` does not exist here — an earlier edit copied the
+        # check's error branch into this one, which would have raised a
+        # NameError the first time an update download failed.
         if ok:
             self._set_update_dot("ready", i18n.t("update.restart_tip"))
         else:
-            # Put the actual reason in the tooltip. "Can't connect to
-            # GitHub" on a machine with a working connection sends
-            # someone hunting for a network fault that is not there,
-            # when the truth may be a certificate path or a rate limit.
-            detail = str(result.get("detail") or "").strip()
-            message = i18n.t("update.error")
-            if detail:
-                message = "{}\n{}".format(message, detail[:160])
-            self._set_update_dot("error", message)
+            self._set_update_dot("error", i18n.t("update.error"))
+        tooltip.flash(self._update_dot, seconds=3.0)
         return False
 
     # -- close -------------------------------------------------------------
