@@ -13,6 +13,13 @@ Made by Lightmorphic (https://lightmorphic.com), a UK studio building fast, priv
 - [Talkin](https://talkin.lightmorphic.com/): the product page, how it works, features, privacy policy, and download
 - [Source and releases](https://github.com/lightmorphic/talkin): full source code, issue tracker, and every release with notes
 
+## Recent additions
+
+- Every transcript is left on the clipboard as well as typed, so a dictation that lands nowhere (nothing was in focus) can be pasted rather than lost; switchable in Settings
+- A quiet rising tone when the microphone opens and a falling one when it closes
+- A Help page in Settings explaining the update dot's five colours
+- Updating is entirely manual: a coloured dot beside the version number, clicked to check, again to download, again to restart into the new version
+
 ## Key facts
 
 - Platform: Linux desktop (Wayland or X11; PipeWire/PulseAudio)
