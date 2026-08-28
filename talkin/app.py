@@ -409,15 +409,33 @@ class TalkinApp:
         # with the parent instead of coming back — the app appeared to
         # quit rather than restart.
         launcher = cfg.launcher_path()
+        # Say what we are about to run, and whether it is runnable. When
+        # a restart quietly fails, this is the line that explains it —
+        # the update replaces the AppImage file underneath us, and a
+        # replacement that is missing or not executable looks from the
+        # outside exactly like a button that does nothing.
+        log.info("restart target: %s (exists=%s, executable=%s)", launcher,
+                 os.path.exists(launcher), os.access(launcher, os.X_OK))
+        if not os.access(launcher, os.X_OK):
+            log.error("the restart target cannot be executed")
+            self._restart_failed()
+            return
         try:
             child = subprocess.Popen(
                 [launcher], start_new_session=True, close_fds=True,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.info("replacement started as pid %s", child.pid)
         except OSError:
             log.exception("could not start the replacement process")
             self._restart_failed()
             return
+
+        # Checked more than once. A replacement that dies at two seconds
+        # is as dead as one that dies at one, and a single early look
+        # missed it — leaving this process to quit anyway and the whole
+        # thing to read as the app simply closing.
+        looks = [0]
 
         def when_up():
             """Only leave once the replacement is actually on its feet.
@@ -432,6 +450,9 @@ class TalkinApp:
                           child.returncode)
                 self._restart_failed()
                 return False
+            looks[0] += 1
+            if looks[0] < 3:
+                return True
             # Hand over the single-instance lock only now. Releasing it
             # before knowing the replacement is alive would leave the
             # door open with nobody coming through; the new process
@@ -445,7 +466,7 @@ class TalkinApp:
             self.quit()
             return False
 
-        GLib.timeout_add(1200, when_up)
+        GLib.timeout_add(800, when_up)
 
     def _restart_failed(self):
         """Say it plainly rather than leaving someone waiting."""
