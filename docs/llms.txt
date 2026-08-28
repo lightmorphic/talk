@@ -6,7 +6,7 @@ Talkin runs on both Wayland and X11 from one AppImage and picks its own way in. 
 
 Talkin is free and open source (GPL-3.0-or-later), distributed as a single Linux AppImage. It uses NVIDIA's Parakeet TDT speech model, run locally via onnx-asr, so no cloud service or account is involved. It makes exactly two network requests in its whole lifetime: a one-time speech model download on first run, and a manual update check from Settings.
 
-Made by Lightmorphic (https://lightmorphic.com), a UK studio building fast, privacy-first websites and free open-source tools.
+Contact: talkin@lightmorphic.com. Made by Lightmorphic (https://lightmorphic.com), a UK studio building fast, privacy-first websites and free open-source tools.
 
 ## Pages
 
