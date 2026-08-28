@@ -45,7 +45,7 @@ _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 class FloatButton(Gtk.Window):
     """A small always-on-top record button."""
 
-    def __init__(self, on_toggle, on_correction):
+    def __init__(self, on_toggle, on_correction, dictionary_enabled=True):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.on_toggle = on_toggle
         self.on_correction = on_correction
@@ -109,6 +109,7 @@ class FloatButton(Gtk.Window):
                       lambda *_a: (self.on_correction(), True)[1])
         row.pack_start(teach, False, False, 0)
         row.set_valign(Gtk.Align.CENTER)
+        self.teach = teach
 
         # Press-and-move drags the window; a press that does not move is
         # treated as a click. The compositor owns the drag on Wayland.
@@ -124,13 +125,28 @@ class FloatButton(Gtk.Window):
         GLib.timeout_add_seconds(3, self._stay_on_top)
 
         self.connect("delete-event", lambda *_a: self.hide() or True)
-        self.set_size_request(BUTTON_SIZE + SIDE_SIZE + 12, BUTTON_SIZE)
         self.show_all()
+        self.set_teach_visible(dictionary_enabled)
         self.present()
         self.place_default()
         log.info("floating button shown=%s size=%sx%s",
                  self.get_visible(), *self.get_size())
         self._sync_timer()
+
+    def set_teach_visible(self, enabled):
+        """Show or hide the little "teach a word" button.
+
+        Someone who has switched the personal dictionary off entirely
+        has no use for a button that only exists to add to it - leaving
+        it there would be a control that does something they just said
+        they do not want.
+        """
+        if enabled:
+            self.teach.show()
+            self.set_size_request(BUTTON_SIZE + SIDE_SIZE + 12, BUTTON_SIZE)
+        else:
+            self.teach.hide()
+            self.set_size_request(BUTTON_SIZE, BUTTON_SIZE)
 
     def place_default(self):
         """Put the button near the bottom middle of the screen.

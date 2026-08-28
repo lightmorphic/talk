@@ -61,7 +61,7 @@ def clean(text, config, dictionary):
         return text
     if config.get("cleanup_fillers"):
         text = remove_fillers(text)
-    if config.get("cleanup_dictionary"):
+    if config.get("cleanup_dictionary") and config.get("dictionary_enabled"):
         text = apply_dictionary(text, dictionary.entries())
     # Capitalise the first letter if the model didn't.
     if text and text[0].islower():
