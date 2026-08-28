@@ -68,37 +68,64 @@ def _resample(audio, orig_rate, target_rate):
 _DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talkin-download-complete")
 
 
-def _model_cached():
-    if os.path.exists(_DOWNLOADED_MARKER):
-        return True
-    # No marker yet, but the cache may already be populated (e.g. an
-    # install from before this check existed). A real downloaded file
-    # in any model's blobs/ dir means the download actually finished,
-    # as opposed to the empty ref/snapshot dirs the hub client creates
-    # up front — so only that counts as cached, not a bare folder.
-    # A PARTIAL download must never count. The hub writes ".incomplete"
-    # blobs while fetching, and treating those as cached pins the app
-    # offline around a model that cannot load — it then fails with
-    # IncompleteSnapshotError on every start, for ever, with no way back.
-    # That is exactly what a stalled first download produced: 234 MB of
-    # fragments, marked complete, permanently broken.
+# The model is about 600 MB. Anything much smaller than this is not a
+# model, whatever the folder looks like — it is the wreckage of a
+# download that stopped early.
+_MIN_CACHED_BYTES = 400 * 1024 * 1024
+
+
+def _cached_bytes():
+    """Bytes of finished model data on disk, and whether any is partial."""
     hub_dir = os.path.join(MODEL_DIR, "hub")
+    total = 0
+    partial = False
     try:
-        complete = False
         for entry in os.listdir(hub_dir):
             if not entry.startswith("models--"):
                 continue
             blobs_dir = os.path.join(hub_dir, entry, "blobs")
             for blob in os.scandir(blobs_dir):
                 if blob.name.endswith(".incomplete"):
-                    return False   # a download is unfinished; stay online
-                complete = True
-        if complete:
-            _mark_cached()
-            return True
+                    partial = True
+                    continue
+                try:
+                    total += blob.stat().st_size
+                except OSError:
+                    continue
     except OSError:
         pass
-    return False
+    return total, partial
+
+
+def _model_cached():
+    """Whether a usable model is already on disk.
+
+    Two ways to get this wrong, both of which happened. Counting a
+    partial download as cached pins the app offline around a model that
+    cannot load, and it then fails identically on every start with no way
+    back. And counting ANY finished file as cached does the same thing
+    more quietly: a download interrupted after the small files but before
+    the big ones leaves a config file and a vocabulary list, no
+    ".incomplete" anywhere, and about a megabyte of "model" — which the
+    old check accepted, marked complete, and went offline around.
+
+    So: no partial files, and enough bytes to actually be the model. The
+    marker written by a successful load is trusted only while the bytes
+    still back it up, which lets a machine already in that state heal
+    itself rather than needing the folder deleted by hand.
+    """
+    total, partial = _cached_bytes()
+    if os.path.exists(_DOWNLOADED_MARKER):
+        if total >= _MIN_CACHED_BYTES:
+            return True
+        log.warning("the cache is marked complete but holds only %.1f MB; "
+                    "fetching the model again", total / (1024 * 1024))
+        _clear_cached_marker()
+        return False
+    if partial or total < _MIN_CACHED_BYTES:
+        return False
+    _mark_cached()
+    return True
 
 
 def _clear_cached_marker():
