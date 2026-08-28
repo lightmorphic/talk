@@ -49,24 +49,17 @@ def _ssl_context():
     OpenSSL looks for the trust store at the path it was BUILT with —
     /usr/lib/ssl on Debian. openSUSE, Fedora and Arch keep theirs
     somewhere else entirely, so on those machines it finds no
-    certificates at all and every HTTPS call fails to verify. The model
-    download never hit this because its library ships its own bundle;
-    the update check used plain urllib and did, which is how a perfectly
-    healthy machine ended up showing "cannot reach GitHub".
+    certificates at all and every HTTPS call fails to verify.
 
-    So: prefer the bundled certificates, and fall back to the system
-    store only if they are missing.
+    config.patch_certificates() replaces certifi.where() globally, at
+    startup, with the bundled cacert.pem that always travels with us —
+    so certifi.where() here already returns the right file. The
+    fallback stays for the case this module is ever used standalone,
+    without that patch having run.
     """
     try:
         import certifi
-        # The file next to certifi, not certifi.where(): distributions
-        # patch where() to return their own system path, which is the
-        # very path that may not exist on the machine this bundle is
-        # running on. The bundled cacert.pem always travels with us.
-        bundled = os.path.join(os.path.dirname(certifi.__file__),
-                               "cacert.pem")
-        cafile = bundled if os.path.exists(bundled) else certifi.where()
-        return ssl.create_default_context(cafile=cafile)
+        return ssl.create_default_context(cafile=certifi.where())
     except Exception:
         log.debug("no bundled certificates; using the system trust store")
         return ssl.create_default_context()
@@ -200,21 +193,3 @@ def _apply_source(tag):
             log.error("dependency refresh failed: %s", dep.stderr[-500:])
     log.info("updated to %s", tag)
     return True
-
-
-def rollback():
-    """Return a source checkout to the version before the last update."""
-    if is_packaged():
-        return False
-    try:
-        with open(PREVIOUS_PATH, "r", encoding="utf-8") as f:
-            tag = f.read().strip()
-    except OSError:
-        return False
-    if not _parse(tag):
-        return False
-    result = _git("checkout", "--quiet", "tags/" + tag)
-    if result.returncode == 0:
-        log.info("rolled back to %s", tag)
-        return True
-    return False

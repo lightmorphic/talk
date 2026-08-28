@@ -97,11 +97,8 @@ def _register_first(conn):
                 Gio.DBusCallFlags.NONE, 5000, None)
             log.info("registered app id %r on connection %s", candidate,
                      conn.get_unique_name())
-            _registered["id"] = candidate
-            _registered["tried"].append(candidate)
             return candidate
         except Exception as exc:
-            _registered["tried"].append(candidate)
             log.debug("app id %r rejected: %s", candidate, exc)
     log.warning("no app id could be registered; the portal may refuse us")
     return None
@@ -324,58 +321,6 @@ def app_id_candidates():
     #    entry the system already knows about is always the safer claim.
     add(DEFAULT_APP_ID)
     return candidates
-
-
-_registered = {"id": None, "tried": []}
-
-
-def registered_app_id():
-    return _registered["id"]
-
-
-def app_id():
-    """The single best id to claim (first candidate)."""
-    return app_id_candidates()[0]
-
-
-def register_app_id(name=None):
-    """Claim an app id so identity-gated portals will talk to us.
-
-    GlobalShortcuts rejects unidentified callers outright ("An app id is
-    required"). A Flatpak gets its id from its sandbox; a plain host
-    binary like an AppImage has none until it registers one here.
-
-    Best-effort: RemoteDesktop does not need an id, and older portals have
-    no Registry at all, so a failure must not stop the rest of Talkin.
-    """
-    # Create our own entry before looking for one, so a fresh AppImage on
-    # a machine with no desktop integration still has an identity to
-    # claim — without it the portal has nothing to file the permission
-    # against, and asks again on every launch.
-    ensure_desktop_entry()
-    names = [name] if name else app_id_candidates()
-    last_error = None
-    for candidate in names:
-        try:
-            _connection().call_sync(
-                BUS_NAME, OBJECT_PATH, REGISTRY_IFACE, "Register",
-                GLib.Variant("(sa{sv})", (candidate, {})), None,
-                Gio.DBusCallFlags.NONE, 5000, None)
-            log.info("registered app id %r with the portal", candidate)
-            _registered["id"] = candidate
-            if candidate not in _registered["tried"]:
-                _registered["tried"].append(candidate)
-            return candidate
-        except Exception as exc:
-            # "App info not found" just means this id has no .desktop file
-            # here; try the next candidate rather than giving up.
-            last_error = exc
-            if candidate not in _registered["tried"]:
-                _registered["tried"].append(candidate)
-            log.debug("app id %r rejected: %s", candidate, exc)
-    log.warning("could not register any app id (tried %s): %s",
-                ", ".join(names), last_error)
-    return None
 
 
 def _request_path(conn, token):

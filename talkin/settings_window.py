@@ -599,9 +599,6 @@ class SettingsWindow(Gtk.Window):
         if on_change is not None:
             on_change(value)
 
-    def _get(self, key):
-        return self.config.get(key)
-
     def _set(self, key, value):
         # No separate save step: every change lands on disk the moment
         # it is made, same as ticking a checkbox in any normal settings
