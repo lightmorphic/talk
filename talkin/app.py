@@ -443,9 +443,13 @@ class TalkinApp:
 
     def restart(self):
         log.info("restarting")
-        # No cwd: the AppImage launcher resolves its own path via $0, and
-        # BASE_DIR would point at this instance's own ephemeral FUSE
-        # mount, which is on its way out right after this call anyway.
+        # The replacement starts in the home folder. Left to inherit
+        # this process's working directory it would start inside this
+        # build's temporary mount — a directory that disappears seconds
+        # later. A process whose working directory has been deleted still
+        # runs, but every library call that asks where it is fails with
+        # "No such file or directory", and that is how a fresh install
+        # ended up unable to download its own speech model.
         #
         # start_new_session puts the replacement in a session of its own.
         # Without it the new process is a child in this one's process
@@ -471,7 +475,7 @@ class TalkinApp:
         try:
             child = subprocess.Popen(
                 [launcher], start_new_session=True, close_fds=True,
-                env=self._clean_environment(),
+                env=self._clean_environment(), cwd=os.path.expanduser("~"),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL, stderr=errors)
             log.info("replacement started as pid %s", child.pid)
@@ -589,7 +593,10 @@ def main():
             exc_info=(a.exc_type, a.exc_value, a.exc_traceback))
     except Exception:
         pass
-    log.info("Talkin starting (pid %s)", os.getpid())
+    # The working directory is rescued in __main__, before any import
+    # can trip over it; logged here because it explains failures that
+    # surface much later and nowhere near the cause.
+    log.info("Talkin starting (pid %s, in %s)", os.getpid(), os.getcwd())
 
     # Without this, GLib falls back to argv[0]'s basename for the
     # process identity — which is literally "__main__.py" when running
