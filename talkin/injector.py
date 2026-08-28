@@ -88,12 +88,18 @@ def _clipboard():
     return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
 
-def _paste(text, done):
+def _paste(text, done, keep=False):
     """Runs on the GTK main loop: swap clipboard, paste, restore.
 
     The transcript is pasted rather than typed because a portal keystroke
     is a round trip: sending a sentence key by key runs at a few
     characters a second, while this is one Ctrl+V.
+
+    With `keep`, the transcript is left on the clipboard afterwards
+    instead of the previous contents being put back. That is the safety
+    net for the commonest way a dictation goes nowhere: nothing was
+    focused when you spoke, so the paste lands in no field at all and the
+    words appear lost. They are not lost — they are one right-click away.
     """
     clipboard = _clipboard()
     original = clipboard.wait_for_text()
@@ -102,7 +108,7 @@ def _paste(text, done):
 
     def restore(ok):
         def apply():
-            if original is not None:
+            if not keep and original is not None:
                 _clipboard().set_text(original, -1)
                 _clipboard().store()
             done(ok)
@@ -118,7 +124,13 @@ def _paste(text, done):
     return False
 
 
-def _type(text, done):
+def _type(text, done, keep=False):
+    if keep:
+        # Typed out rather than pasted, so the clipboard was never
+        # involved; put it there anyway, for the same reason.
+        clipboard = _clipboard()
+        clipboard.set_text(text, -1)
+        clipboard.store()
     if not ready():
         log.warning("injection not ready; dropping %d chars", len(text))
         GLib.idle_add(lambda: (done(False), False)[1])
@@ -131,10 +143,11 @@ def inject(text, config, on_done):
     if not text:
         GLib.idle_add(lambda: (on_done(True), False)[1])
         return
+    keep = bool(config.get("keep_on_clipboard"))
     if config.get("injection") == "type":
-        _type(text + " ", on_done)
+        _type(text + " ", on_done, keep)
     else:
-        GLib.idle_add(_paste, text + " ", on_done)
+        GLib.idle_add(_paste, text + " ", on_done, keep)
 
 
 def selection_available():

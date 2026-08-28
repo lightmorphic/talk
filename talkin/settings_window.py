@@ -913,6 +913,11 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(self._row(i18n.t("settings.injection"), injection),
                        False, False, 0)
 
+        box.pack_start(
+            self._switch_row("keep_on_clipboard", "settings.keep_clipboard",
+                             "settings.keep_clipboard_help"),
+            False, False, 0)
+
         cleanup_title = Gtk.Label(label=i18n.t("settings.section.cleanup"),
                                   xalign=0)
         cleanup_title.get_style_context().add_class("section-title")
