@@ -20,7 +20,7 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
-from . import chooser, cleanup, i18n, tooltip, uninstall
+from . import chooser, cleanup, i18n, sounds, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
 from . import session
@@ -173,6 +173,13 @@ list.choice-list row:selected {
   background-color: @lm_accent; color: @lm_on_accent; text-shadow: none;
 }
 list.choice-list row:selected label { color: @lm_on_accent; text-shadow: none; }
+.talkin-settings button.sound-preview {
+  background: none; background-image: none; box-shadow: none; border: none;
+  min-width: 28px; min-height: 28px; padding: 0;
+  color: @lm_fg; font-size: 0.8rem;
+}
+.talkin-settings button.sound-preview:hover { color: @lm_accent; }
+list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
 .talkin-settings treeview {
   background-color: @lm_muted;
   border: 1px solid @lm_border;
@@ -335,6 +342,7 @@ class SettingsWindow(Gtk.Window):
             ("microphone", "settings.section.microphone",
              self._build_microphone),
             ("output", "settings.section.output", self._build_output),
+            ("sounds", "settings.section.sounds", self._build_sounds),
             ("dictionary", "settings.section.dictionary",
              self._build_dictionary),
             ("history", "settings.section.history", self._build_history),
@@ -614,11 +622,18 @@ class SettingsWindow(Gtk.Window):
             if value and app.float_button is None:
                 from .float_button import FloatButton
                 app.float_button = FloatButton(
-                    on_toggle=app._toggle, on_correction=app._correction)
+                    on_toggle=app._toggle, on_correction=app._correction,
+                    dictionary_enabled=self.config.get("dictionary_enabled"))
                 app.float_button.set_state(app.state)
             elif not value and app.float_button is not None:
                 app.float_button.stop()
                 app.float_button = None
+        if key == "dictionary_enabled":
+            # Live, the same reasoning as float_button just above: a
+            # setting that only takes effect after a restart reads as
+            # broken.
+            if self.app_obj.float_button is not None:
+                self.app_obj.float_button.set_teach_visible(value)
         if key == "sounds" and value:
             # Play it on the spot, so the switch says what it does
             # instead of describing it.
@@ -898,6 +913,69 @@ class SettingsWindow(Gtk.Window):
             self._mic_result.set_text("  ·  ".join(parts))
         return False
 
+    # -- sounds -----------------------------------------------------
+
+    def _build_sounds(self):
+        box = self._section("settings.section.sounds",
+                            "settings.sounds_page_intro")
+
+        listbox = Gtk.ListBox()
+        listbox.get_style_context().add_class("choice-list")
+        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+
+        current = self.config.get("sound_theme")
+        rows = {}
+        for theme_id, _native_name in sounds.theme_names():
+            row = Gtk.ListBoxRow()
+            line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                           spacing=10)
+            line.set_margin_top(8)
+            line.set_margin_bottom(8)
+            line.set_margin_start(12)
+            line.set_margin_end(12)
+            label = Gtk.Label(label=i18n.t("sound." + theme_id), xalign=0)
+            line.pack_start(label, True, True, 0)
+
+            # A plain triangle glyph, not an icon name: an icon this
+            # bundle does not ship resolves to the theme's own
+            # missing-image SVG, which the AppImage's loader cannot
+            # decode and which aborts the whole process rather than
+            # just this button - the same trap the dropdown's chevron
+            # was built to avoid.
+            preview = Gtk.Button(label="▶")
+            preview.set_relief(Gtk.ReliefStyle.NONE)
+            preview.get_style_context().add_class("sound-preview")
+            preview.set_tooltip_text(i18n.t("settings.sounds_preview"))
+            preview.connect(
+                "clicked",
+                lambda _b, t=theme_id: sounds.play("start", t))
+            line.pack_start(preview, False, False, 0)
+
+            row.add(line)
+            row.theme_id = theme_id
+            listbox.add(row)
+            rows[theme_id] = row
+        if current in rows:
+            listbox.select_row(rows[current])
+
+        def chosen(_listbox, row):
+            if row is not None:
+                self._set("sound_theme", row.theme_id)
+        listbox.connect("row-activated", chosen)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_propagate_natural_height(True)
+        scroller.set_max_content_height(360)
+        scroller.add(listbox)
+        box.pack_start(scroller, False, False, 0)
+
+        box.pack_start(
+            self._switch_row("sounds", "settings.sounds",
+                             "settings.sounds_help"),
+            False, False, 0)
+        return box
+
     # -- output / cleanup ----------------------------------------------
 
     def _build_output(self):
@@ -934,6 +1012,12 @@ class SettingsWindow(Gtk.Window):
     def _build_dictionary(self):
         box = self._section("settings.section.dictionary",
                             "settings.dictionary_help")
+
+        box.pack_start(
+            self._switch_row("dictionary_enabled",
+                             "settings.dictionary_enabled",
+                             "settings.dictionary_enabled_help"),
+            False, False, 0)
 
         self._dict_store = Gtk.ListStore(str, str)
         tree = Gtk.TreeView(model=self._dict_store)

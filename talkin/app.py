@@ -51,8 +51,9 @@ class TalkinApp:
 
         self.float_button = None
         if self.config.get("float_button"):
-            self.float_button = FloatButton(on_toggle=self._toggle,
-                                            on_correction=self._correction)
+            self.float_button = FloatButton(
+                on_toggle=self._toggle, on_correction=self._correction,
+                dictionary_enabled=self.config.get("dictionary_enabled"))
 
         self.recorder = Recorder(self.config, on_level=self._on_level)
         self.transcriber = Transcriber(
@@ -209,7 +210,7 @@ class TalkinApp:
 
     def _blip(self, which):
         if self.config.get("sounds"):
-            sounds.play(which)
+            sounds.play(which, self.config.get("sound_theme"))
 
     def _tray_click(self):
         """Left-click on the tray icon: get the floating button back.
