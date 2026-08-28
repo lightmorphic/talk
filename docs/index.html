@@ -147,6 +147,14 @@
         },
         {
           "@type": "Question",
+          "name": "What if I dictate and the words go nowhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "They are on the clipboard: right-click and paste. The commonest cause is that nothing was in focus when you spoke, so there was no field for the text to land in. Talkin leaves every transcript on the clipboard for exactly this reason, and you can switch that off in Settings if you would rather keep whatever you had copied. Anything dictated is also in History, unless you have turned History off."
+          }
+        },
+        {
+          "@type": "Question",
           "name": "How much disk space does it need?",
           "acceptedAnswer": {
             "@type": "Answer",
@@ -158,7 +166,7 @@
           "name": "How do I update it?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Open Settings and click the small coloured dot beside the version number. It downloads the new version, replaces the file in place and offers to restart. Nothing updates behind your back."
+            "text": "Open Settings and click the small coloured dot beside the version number. Grey while it looks, green if you are current, amber if there is a newer version — click again to download it, and once more when it turns blue to restart into it. Red means GitHub could not be reached; hover for the reason. Nothing is ever downloaded or installed unless you press that dot, and Settings has a Help page explaining the colours."
           }
         },
         {
@@ -244,11 +252,11 @@
       </div>
       <div class="flow-step">
         <h3>Speak</h3>
-        <p>Say the thing. The button shows a live waveform while it listens, and a turning arc while it thinks.</p>
+        <p>Say the thing. A quiet tone marks the start, the button shows a live waveform while it listens, and a turning arc while it thinks.</p>
       </div>
       <div class="flow-step">
         <h3>Click again</h3>
-        <p>Your words appear where the cursor is, filler words trimmed and your own spellings applied.</p>
+        <p>Your words appear where the cursor is, filler words trimmed and your own spellings applied — and stay on the clipboard, in case they landed nowhere.</p>
       </div>
     </div>
   </div>
@@ -274,10 +282,10 @@
       </article>
       <article class="panel">
         <h3>
-          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
-          One file, no installer
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+          Nothing goes missing
         </h3>
-        <p>A single AppImage. Mark it executable and run it. It updates itself from Settings, only when you press the button.</p>
+        <p>The words are left on the clipboard as well as typed. If you clicked away before speaking and the text lands nowhere, right-click and paste — it is still there. A quiet tone marks the start and end of every dictation, so you know the microphone is open without watching the button.</p>
       </article>
       <article class="panel">
         <h3>
@@ -292,6 +300,13 @@
           Better than the dictation in your editor
         </h3>
         <p>Claude Code has voice input built in. Talkin is clearer and more accurate in everyday use, and it is not confined to one window: it types into an email, a terminal, a form in the browser, anywhere your cursor is. Built and used daily by someone who dictates for a living.</p>
+      </article>
+      <article class="panel">
+        <h3>
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+          One file, no installer
+        </h3>
+        <p>A single AppImage. Mark it executable and run it. It updates itself from Settings, only when you press the button.</p>
       </article>
     </div>
   </div>
@@ -351,12 +366,16 @@
         <p>Click the floating button, speak, then click it again. There are no keyboard shortcuts: a compositor's key press and release signals proved unreliable enough to lose whole dictations, and a click has nothing to get wrong.</p>
       </details>
       <details class="faq-item">
+        <summary><h3>What if I dictate and the words go nowhere?</h3></summary>
+        <p>They are on the clipboard: right-click and paste. The commonest cause is that nothing was in focus when you spoke, so there was no field for the text to land in. Talkin leaves every transcript on the clipboard for exactly this reason, and you can switch that off in Settings if you would rather keep whatever you had copied. Anything dictated is also in History, unless you have turned History off.</p>
+      </details>
+      <details class="faq-item">
         <summary><h3>How much disk space does it need?</h3></summary>
         <p>About 1.4 GB in total. The speech model is roughly 600 MB and is downloaded once on first run; the application itself is a single 97 MB file.</p>
       </details>
       <details class="faq-item">
         <summary><h3>How do I update it?</h3></summary>
-        <p>Open Settings and click the small coloured dot beside the version number. It downloads the new version, replaces the file in place and offers to restart. Nothing updates behind your back.</p>
+        <p>Open Settings and click the small coloured dot beside the version number. Grey while it looks, green if you are current, amber if there is a newer version — click again to download it, and once more when it turns blue to restart into it. Red means GitHub could not be reached; hover for the reason. Nothing is ever downloaded or installed unless you press that dot, and Settings has a Help page explaining the colours.</p>
       </details>
       <details class="faq-item">
         <summary><h3>How do I remove it completely?</h3></summary>
