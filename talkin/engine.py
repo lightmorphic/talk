@@ -123,6 +123,13 @@ def _configure_hub(offline):
     good, so no request is ever made again.
     """
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+    # Make the folder before pointing anything at it. On a first run it
+    # does not exist yet, and a cache directory that is not there is one
+    # more way for a download to fail before it starts.
+    try:
+        os.makedirs(MODEL_DIR, exist_ok=True)
+    except OSError:
+        log.warning("could not create the model folder %s", MODEL_DIR)
     os.environ["HF_HOME"] = MODEL_DIR
     # Without a timeout a stalled connection hangs forever: the socket
     # stays open, no bytes arrive, and the app sits on its "downloading"
