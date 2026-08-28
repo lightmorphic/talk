@@ -340,6 +340,7 @@ class SettingsWindow(Gtk.Window):
             ("history", "settings.section.history", self._build_history),
             ("maintenance", "settings.section.maintenance",
              self._build_maintenance),
+            ("help", "settings.section.help", self._build_help),
         ]
 
         sidebar = Gtk.ListBox()
@@ -1182,6 +1183,68 @@ class SettingsWindow(Gtk.Window):
         self.app_obj.notify(i18n.t("settings.history.cleared"))
 
     # -- maintenance / update -------------------------------------------
+
+    # The dot's five states, in the order they happen to you.
+    _DOT_STATES = (
+        ("checking", _LM_MUTED, "help.dot.checking"),
+        ("uptodate", _LM_SUCCESS, "help.dot.uptodate"),
+        ("available", _LM_WARNING, "help.dot.available"),
+        ("ready", _LM_READY, "help.dot.ready"),
+        ("error", _LM_DANGER, "help.dot.error"),
+    )
+
+    def _build_help(self):
+        """What this is, how to work it, and what the colours mean.
+
+        The update dot is the whole update interface, so its colours are
+        the one thing here that genuinely needs explaining — and they are
+        explained with the actual dots, drawn the same way, rather than
+        with the names of colours.
+        """
+        box = self._section("settings.section.help", "help.intro")
+
+        box.pack_start(self._help_block("help.using_title", "help.using"),
+                       False, False, 0)
+        box.pack_start(self._help_block("help.updates_title", "help.updates"),
+                       False, False, 0)
+
+        for _state, colour, text_key in self._DOT_STATES:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            swatch = Gtk.DrawingArea()
+            swatch.set_size_request(_DOT_SIZE, _DOT_SIZE)
+            swatch.set_valign(Gtk.Align.START)
+            swatch.set_margin_top(3)
+            swatch.connect("draw", self._draw_swatch, colour)
+            row.pack_start(swatch, False, False, 0)
+            label = Gtk.Label(label=i18n.t(text_key), xalign=0, wrap=True)
+            label.get_style_context().add_class("hint")
+            row.pack_start(label, True, True, 0)
+            box.pack_start(row, False, False, 0)
+
+        box.pack_start(self._help_block("help.privacy_title", "help.privacy"),
+                       False, False, 0)
+        return box
+
+    def _help_block(self, title_key, body_key):
+        block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        title = Gtk.Label(label=i18n.t(title_key), xalign=0)
+        title.get_style_context().add_class("section-title")
+        block.pack_start(title, False, False, 0)
+        body = Gtk.Label(label=i18n.t(body_key), xalign=0, wrap=True)
+        body.get_style_context().add_class("hint")
+        block.pack_start(body, False, False, 0)
+        return block
+
+    @staticmethod
+    def _draw_swatch(widget, cr, colour):
+        import math
+        width = widget.get_allocated_width()
+        height = widget.get_allocated_height()
+        radius = min(width, height) / 2 - 1
+        cr.set_source_rgb(*_hex_rgb(colour))
+        cr.arc(width / 2, height / 2, radius, 0, 2 * math.pi)
+        cr.fill()
+        return False
 
     def _build_maintenance(self):
         box = self._section("settings.section.maintenance",
