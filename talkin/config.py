@@ -306,6 +306,40 @@ def prefer_x11():
         os.environ.pop("GDK_BACKEND", None)
 
 
+def patch_certificates():
+    """Make every HTTPS client in the process trust our own certificates.
+
+    certifi.where() is meant to return a bundled certificate file, but on
+    Linux most distributions patch it to point at the SYSTEM trust store
+    instead — a path that is correct for the machine certifi was
+    installed on, and can be simply absent on any other. The AppImage
+    bundles certifi's own cacert.pem specifically so this never depends
+    on the host, but that only helps callers this app writes itself.
+
+    huggingface_hub — used to fetch the speech model — builds its own
+    httpx client internally and calls certifi.where() directly, with no
+    hook of ours in that path. The only way to reach it is to change what
+    certifi.where() itself returns, once, before anything asks. This is
+    the second half of the fix in updater.py: that one only covered the
+    update check's own requests.
+    """
+    try:
+        import certifi
+    except ImportError:
+        return
+    bundled = os.path.join(os.path.dirname(certifi.__file__), "cacert.pem")
+    if not os.path.exists(bundled):
+        return
+    original = certifi.where
+    if getattr(original, "_talkin_patched", False):
+        return
+
+    def where():
+        return bundled
+    where._talkin_patched = True
+    certifi.where = where
+
+
 def launcher_path():
     """The command that relaunches Talkin exactly as it's running now."""
     appimage = os.environ.get("APPIMAGE")
