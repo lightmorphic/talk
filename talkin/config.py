@@ -60,6 +60,12 @@ DEFAULTS = {
     # click has no such signal to get wrong — so this and the tray icon
     # are the only ways in.
     "float_button": True,
+    # Leave the transcript on the clipboard after typing it, instead of
+    # putting the previous contents back. The safety net for the
+    # commonest failure: nothing was focused when you spoke, the paste
+    # went nowhere, and the words look lost when they are one right-click
+    # away.
+    "keep_on_clipboard": True,
     # A short blip when the microphone opens and another when it closes.
     # The button changes colour too, but nobody is looking at the button
     # while dictating — they are looking at what they are dictating into.
