@@ -1228,6 +1228,11 @@ class SettingsWindow(Gtk.Window):
 
         box.pack_start(self._help_block("help.privacy_title", "help.privacy"),
                        False, False, 0)
+
+        contact = Gtk.Label(label=i18n.t("help.contact"), xalign=0, wrap=True)
+        contact.get_style_context().add_class("hint")
+        contact.set_selectable(True)   # so the address can be copied
+        box.pack_start(contact, False, False, 0)
         return box
 
     def _help_block(self, title_key, body_key):
