@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -397,6 +398,49 @@ class TalkinApp:
             self._settings_window = None
             open_settings(self, page=page)
 
+    # Variables the AppImage runtime and its GTK hook inject into this
+    # process. They point into THIS build's temporary mount, so handing
+    # them to a replacement makes it load this bundle's libraries and
+    # Python — including when its own runtime shells out to mount itself.
+    # That is how a restart ends as exit code 127: the new copy runs and
+    # cannot find what it needs.
+    _APPIMAGE_VARS = (
+        "APPDIR", "APPIMAGE", "ARGV0", "OWD",
+        "LD_LIBRARY_PATH", "PYTHONHOME", "PYTHONPATH",
+        "PYTHONDONTWRITEBYTECODE", "PYTHONNOUSERSITE",
+        "GI_TYPELIB_PATH", "GSETTINGS_SCHEMA_DIR",
+        "GDK_PIXBUF_MODULE_FILE", "GDK_BACKEND",
+        "GTK_DATA_PREFIX", "GTK_EXE_PREFIX", "GTK_IM_MODULE_FILE",
+        "GTK_PATH", "GTK_THEME",
+    )
+
+    @staticmethod
+    def _clean_environment():
+        """This process's environment with the AppImage's own bits taken out.
+
+        The replacement sets all of these again for itself, from its own
+        mount, so removing them costs nothing and stops it inheriting
+        paths into a mount that is about to disappear.
+        """
+        env = dict(os.environ)
+        appdir = env.get("APPDIR")
+        for name in TalkinApp._APPIMAGE_VARS:
+            env.pop(name, None)
+        # PATH and XDG_DATA_DIRS are prepended to rather than replaced,
+        # so they keep the user's real values — only our own entries go.
+        if appdir:
+            for name in ("PATH", "XDG_DATA_DIRS"):
+                value = env.get(name)
+                if not value:
+                    continue
+                kept = [part for part in value.split(os.pathsep)
+                        if part and not part.startswith(appdir)]
+                if kept:
+                    env[name] = os.pathsep.join(kept)
+                else:
+                    env.pop(name, None)
+        return env
+
     def restart(self):
         log.info("restarting")
         # No cwd: the AppImage launcher resolves its own path via $0, and
@@ -420,11 +464,16 @@ class TalkinApp:
             log.error("the restart target cannot be executed")
             self._restart_failed()
             return
+        # Keep the replacement's complaints, rather than throwing them
+        # away. When it dies at once, its own last words are the only
+        # thing that explains why.
+        errors = tempfile.TemporaryFile()
         try:
             child = subprocess.Popen(
                 [launcher], start_new_session=True, close_fds=True,
+                env=self._clean_environment(),
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                stdout=subprocess.DEVNULL, stderr=errors)
             log.info("replacement started as pid %s", child.pid)
         except OSError:
             log.exception("could not start the replacement process")
@@ -448,6 +497,13 @@ class TalkinApp:
             if child.poll() is not None:
                 log.error("the replacement exited immediately (code %s)",
                           child.returncode)
+                try:
+                    errors.seek(0)
+                    said = errors.read().decode("utf-8", "replace").strip()
+                    if said:
+                        log.error("it said: %s", said[-600:])
+                except Exception:
+                    pass
                 self._restart_failed()
                 return False
             looks[0] += 1
