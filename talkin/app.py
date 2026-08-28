@@ -288,18 +288,24 @@ class TalkinApp:
 
     def _finish_recording(self):
         audio = self.recorder.stop()
+        capped = self.recorder.capped
         self._listening = False
         self._blip("stop")
         log.info("recorded %.1fs, transcribing", len(audio) / 16000)
         self._set_state("thinking")
         self.transcriber.submit(
             audio,
-            lambda text, err: GLib.idle_add(self._transcribed, text, err))
+            lambda text, err: GLib.idle_add(
+                self._transcribed, text, err, capped))
 
-    def _transcribed(self, text, error_key):
+    def _transcribed(self, text, error_key, capped=False):
         if error_key is not None:
             self._fail(error_key)
             return
+        if capped:
+            # After the transcript, not instead of it: this says what is
+            # missing, it is not a reason to withhold what was heard.
+            self.notify(i18n.t("notify.recording_capped"))
         raw = text or ""
         clean = cleanup.clean(raw, self.config, self.dictionary)
         # Log both lengths: "transcribed 0 chars" on its own cannot tell

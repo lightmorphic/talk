@@ -21,7 +21,7 @@ log = logging.getLogger("talkin.engine")
 
 SAMPLE_RATE = 16000
 MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
-MAX_SECONDS = 300  # hard cap on one dictation, keeps memory bounded
+MAX_SECONDS = 1200  # hard cap on one dictation, keeps memory bounded
 WARMUP_SECONDS = 0.12  # discarded from the start of every recording
 
 
@@ -205,6 +205,7 @@ class Recorder:
         self._chunks = []
         self._frames = 0
         self._warned = False
+        self._capped = False
         self._native_rate = SAMPLE_RATE
         self._lock = threading.Lock()
 
@@ -236,6 +237,7 @@ class Recorder:
             self._chunks = []
             self._frames = 0
             self._warned = False
+            self._capped = False
             device = self._device()
             self._native_rate = self._device_rate(device)
             cap_frames = self._native_rate * MAX_SECONDS
@@ -264,6 +266,17 @@ class Recorder:
                         chunk = indata[:, 0].copy()
                         self._chunks.append(chunk)
                         self._frames += len(chunk)
+                    elif not self._capped:
+                        # The cap exists to bound memory, not to vanish
+                        # words silently. Recording continued past this
+                        # point but nothing after it was kept — stop()
+                        # reports that so the app can say so, instead of
+                        # quietly transcribing a dictation that is
+                        # missing its own ending.
+                        self._capped = True
+                        log.warning(
+                            "recording hit the %ds cap; audio after this "
+                            "point was not captured", MAX_SECONDS)
                 if self.on_level is not None:
                     rms = float(np.sqrt(np.mean(indata ** 2)))
                     self.on_level(min(1.0, rms * 8))
@@ -274,14 +287,34 @@ class Recorder:
             self._stream.start()
 
     def stop(self):
-        """Stop capture and return the recording as float32 mono 16 kHz."""
+        """Stop capture and return the recording as float32 mono 16 kHz.
+
+        PortAudio's own stop() blocks until every already-captured buffer
+        has been handed to our callback - it is documented to wait for
+        pending audio, not just tell the device to shut up. This used to
+        grab self._chunks BEFORE calling it, so whatever the driver was
+        still delivering at the instant of the click landed in a fresh
+        list nobody ever read, and every recording quietly lost however
+        much audio happened to be in flight at that exact moment. Always
+        the end, because that is where "in flight when you clicked stop"
+        always is - and the amount lost rode entirely on how large a
+        buffer PipeWire happened to be holding right then, which is
+        exactly the wildly variable, seemingly random pattern this
+        produced in practice.
+
+        Stopping the stream before touching self._chunks - and outside
+        the lock, so the callback's own last append is never blocked
+        waiting for a lock this method is sitting on - is what actually
+        guarantees nothing said is missing.
+        """
         with self._lock:
             stream, self._stream = self._stream, None
-            chunks, self._chunks = self._chunks, []
             native_rate = self._native_rate
         if stream is not None:
             stream.stop()
             stream.close()
+        with self._lock:
+            chunks, self._chunks = self._chunks, []
         if not chunks:
             return np.zeros(0, dtype=np.float32)
         audio = np.concatenate(chunks)
@@ -306,6 +339,17 @@ class Recorder:
     def recording(self):
         with self._lock:
             return self._stream is not None
+
+    @property
+    def capped(self):
+        """Whether the just-finished recording ran into MAX_SECONDS.
+
+        Valid after stop(): true means what got transcribed is missing
+        whatever was said past the limit, and the caller should tell the
+        user that in as many words rather than let a cut-off dictation
+        look like a complete one.
+        """
+        return self._capped
 
 
 class Transcriber:
