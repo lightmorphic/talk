@@ -50,10 +50,6 @@ def set_language(code):
     _language = code if code in _codes else "en"
 
 
-def reload():
-    _load()
-
-
 def t(key):
     row = _table.get(key)
     if not row:
@@ -76,9 +72,3 @@ def available_languages():
         _load()
     names = _table.get("language.name", {})
     return [(code, names.get(code) or code.upper()) for code in _codes]
-
-
-def all_strings():
-    """Resolved strings for the current language (for the web UI)."""
-    return {key: (row.get(_language) or row.get("en") or key)
-            for key, row in _table.items()}
