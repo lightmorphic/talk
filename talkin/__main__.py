@@ -21,6 +21,12 @@ from . import config
 # Must run before anything (even lazily) imports sounddevice.
 config.patch_library_lookup()
 
+# Must run before anything imports huggingface_hub or httpx: both build
+# their own HTTPS clients internally and read certifi.where() the moment
+# they are first used, which for the model download is inside engine.py,
+# imported from app.py below.
+config.patch_certificates()
+
 # Must also run before GTK opens a display: it replaces this process.
 config.prefer_x11()
 
