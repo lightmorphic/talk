@@ -170,9 +170,9 @@ class Glyph(Gtk.DrawingArea):
             cr.set_line_width(1.2 * s)
             cr.stroke()
         else:  # teach
-            # The same record button, with "Ctrl" beside it — the
-            # gesture that opens the teach-a-word popup, now that it is
-            # not a second button of its own.
+            # The same record button, with "R" beside it for the right
+            # mouse button — the gesture that opens the teach-a-word
+            # popup, now that it is not a second button of its own.
             import math
             cr.set_source_rgb(*_NAVY)
             cr.arc(13 * s, 17 * s, 11 * s, 0, 2 * math.pi)
@@ -184,12 +184,15 @@ class Glyph(Gtk.DrawingArea):
                 cr.move_to(x * s, 17 * s - half)
                 cr.line_to(x * s, 17 * s + half)
                 cr.stroke()
+            cr.arc(28 * s, 25 * s, 6 * s, 0, 2 * math.pi)
+            cr.fill()
+            cr.set_source_rgb(*_NAVY)
             cr.select_font_face("Manrope")
             cr.set_font_size(9 * s)
-            label = "Ctrl"
+            label = "R"
             ext = cr.text_extents(label)
-            cr.move_to(29 * s - ext.width / 2 - ext.x_bearing,
-                       26 * s - ext.height / 2 - ext.y_bearing)
+            cr.move_to(28 * s - ext.width / 2 - ext.x_bearing,
+                       25 * s - ext.height / 2 - ext.y_bearing)
             cr.show_text(label)
         return False
 

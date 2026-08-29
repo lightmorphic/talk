@@ -1,11 +1,12 @@
 """The teach-a-word popup.
 
-Opened from the small button beside the floating record button. On X11
-it reads whatever text is highlighted anywhere on screen and offers it
-straight away; on Wayland, where a background app may not read your
-selection, it asks you to type the misheard word. Either way it asks how
-the word should have been spelt and saves the pair to the personal
-dictionary.
+Opened by right-clicking the floating record button. On X11 it reads
+whatever text is highlighted anywhere on screen and offers it straight
+away — so the intended flow is: highlight the misheard word first, then
+right-click. On Wayland, where a background app may not read your
+selection, it asks you to type the misheard word instead. Either way it
+asks how the word should have been spelt and saves the pair to the
+personal dictionary.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
