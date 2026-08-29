@@ -96,7 +96,6 @@ class FloatButton(Gtk.Window):
         # Press-and-move drags the window; a press that does not move is
         # treated as a click. The compositor owns the drag on Wayland.
         self._press_x = self._press_y = 0
-        self._dragged = False
         self._press_ctrl = False
 
         # GNOME on Wayland treats "keep above" as a hint and mostly
@@ -163,7 +162,6 @@ class FloatButton(Gtk.Window):
 
     def _on_press(self, _widget, event):
         self._press_x, self._press_y = event.x_root, event.y_root
-        self._dragged = False
         # Read the modifier here, at press time, and act on it at release
         # rather than re-reading event.state on the release event itself:
         # on GNOME/Wayland, begin_move_drag() below hands the rest of this

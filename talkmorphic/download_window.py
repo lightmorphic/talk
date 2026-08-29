@@ -184,7 +184,6 @@ class Glyph(Gtk.DrawingArea):
                 cr.move_to(x * s, 17 * s - half)
                 cr.line_to(x * s, 17 * s + half)
                 cr.stroke()
-            cr.set_source_rgb(*_YELLOW)
             cr.select_font_face("Manrope")
             cr.set_font_size(9 * s)
             label = "Ctrl"
