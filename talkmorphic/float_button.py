@@ -170,6 +170,23 @@ class FloatButton(Gtk.Window):
         # the modifier keys that were actually held — Ctrl-click was
         # arriving at _on_release with no Ctrl bit set at all.
         self._press_ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
+        # TEMPORARY — chasing a report that Ctrl-click still isn't seen
+        # at all, even at press time, on GNOME/Wayland: this window never
+        # accepts keyboard focus (see set_accept_focus(False) above), and
+        # a Wayland compositor only tells a client about modifier keys on
+        # a surface that currently holds keyboard focus. If that is what
+        # is happening here, event.state will show 0 even with Ctrl
+        # physically held down. Log everything GDK is willing to say
+        # about the keyboard right now so the next report has real
+        # numbers instead of another guess.
+        try:
+            seat = self.get_display().get_default_seat()
+            kbd = seat.get_keyboard() if seat else None
+            seat_mask = kbd.get_state(self.get_window())[2] if kbd else None
+        except Exception:
+            seat_mask = "error"
+        log.info("float press: event.state=%r seat_keyboard_mask=%r",
+                 event.state, seat_mask)
         if event.button == 1 and not self._press_ctrl:
             # Start a compositor-driven move; if the pointer never moves
             # this does nothing and the release below counts as a click.
