@@ -16,7 +16,7 @@ import logging
 import os
 import shutil
 
-from .config import _WRITABLE_ROOT, launcher_path
+from .config import _WRITABLE_ROOT
 
 log = logging.getLogger("talkmorphic.uninstall")
 

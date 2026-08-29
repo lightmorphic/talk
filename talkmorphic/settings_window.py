@@ -21,9 +21,8 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
 from . import chooser, cleanup, i18n, sounds, tooltip, uninstall
-from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
+from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH
 from .engine import MODEL_NAME, list_microphones
-from . import session
 
 log = logging.getLogger("talkmorphic.settings")
 
