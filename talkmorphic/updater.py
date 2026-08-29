@@ -13,7 +13,7 @@ Two run modes:
    speech model live outside the AppImage entirely, in a folder that
    survives every future update untouched either way.
 
-Privacy: this module is the ONLY code in Talkin that touches the
+Privacy: this module is the ONLY code in Talkmorphic that touches the
 network, it talks only to github.com, and it runs only when the
 Settings page asks it to — never on a timer, never in the background.
 """
@@ -31,11 +31,11 @@ import urllib.request
 from . import __version__
 from .config import BASE_DIR, DATA_DIR
 
-log = logging.getLogger("talkin.updater")
+log = logging.getLogger("talkmorphic.updater")
 
-REPO = "lightmorphic/talkin"
+REPO = "lightmorphic/talkmorphic"
 RELEASES_PAGE = "https://github.com/{}/releases/latest".format(REPO)
-_ASSET_URL = "https://github.com/{}/releases/download/{{}}/Talkin-x86_64.AppImage".format(REPO)
+_ASSET_URL = "https://github.com/{}/releases/download/{{}}/Talkmorphic-x86_64.AppImage".format(REPO)
 PREVIOUS_PATH = os.path.join(DATA_DIR, "previous-version.txt")
 # A real build is ~90-120MB; anything wildly smaller means the
 # download failed partway or GitHub served an error page instead.
@@ -84,7 +84,7 @@ def _latest_release_tag():
     req = urllib.request.Request(
         "https://api.github.com/repos/{}/releases/latest".format(REPO),
         headers={"Accept": "application/vnd.github+json",
-                 "User-Agent": "Talkin"})
+                 "User-Agent": "Talkmorphic"})
     try:
         with urllib.request.urlopen(
                 req, timeout=10, context=_ssl_context()) as resp:
@@ -148,7 +148,7 @@ def _apply_appimage(tag, on_progress=None):
     tmp_path = appimage_path + ".new"
     try:
         req = urllib.request.Request(
-            _ASSET_URL.format(tag), headers={"User-Agent": "Talkin"})
+            _ASSET_URL.format(tag), headers={"User-Agent": "Talkmorphic"})
         with urllib.request.urlopen(
                 req, timeout=300, context=_ssl_context()) as resp, \
                 open(tmp_path, "wb") as f:

@@ -1,4 +1,4 @@
-"""Removing Talkin completely.
+"""Removing Talkmorphic completely.
 
 Deleting the AppImage is not uninstalling. It leaves behind the ~600 MB
 speech model, the settings, the history and dictionary, the launcher
@@ -6,7 +6,7 @@ entry in the applications menu, and the autostart entry — so the icon
 still appears, and 600 MB stays on disk with nothing to explain it.
 
 This removes all of it, including the AppImage itself, so "remove the
-program" means what it says. Everything it touches is something Talkin
+program" means what it says. Everything it touches is something Talkmorphic
 created; nothing else is deleted.
 """
 
@@ -18,9 +18,9 @@ import shutil
 
 from .config import _WRITABLE_ROOT, launcher_path
 
-log = logging.getLogger("talkin.uninstall")
+log = logging.getLogger("talkmorphic.uninstall")
 
-_APP_ID = "uk.co.lightmorphic.Talkin"
+_APP_ID = "uk.co.lightmorphic.Talkmorphic"
 
 
 def _applications_dir():
@@ -42,13 +42,13 @@ def targets():
         items.append(("data and speech model", data))
 
     apps = _applications_dir()
-    for name in (_APP_ID + ".desktop", "talkin.desktop"):
+    for name in (_APP_ID + ".desktop", "talkmorphic.desktop"):
         path = os.path.join(apps, name)
         if os.path.exists(path):
             items.append(("menu entry", path))
 
     autostart = os.path.join(
-        os.path.expanduser("~/.config/autostart"), "talkin.desktop")
+        os.path.expanduser("~/.config/autostart"), "talkmorphic.desktop")
     if os.path.exists(autostart):
         items.append(("autostart entry", autostart))
 
@@ -117,7 +117,7 @@ def run():
 # person expects, at the cost of a 1 KB script that deletes itself the
 # first time it finds its app gone.
 
-_CLEANUP_NAME = "talkin-cleanup"
+_CLEANUP_NAME = "talkmorphic-cleanup"
 
 
 def _quote(path):
@@ -163,11 +163,11 @@ def install_cleanup_hook():
         return None
     apps = _applications_dir()
     autostart_entry = os.path.join(
-        os.path.expanduser("~"), ".config", "autostart", "talkin.desktop")
+        os.path.expanduser("~"), ".config", "autostart", "talkmorphic.desktop")
 
     body = (
         "#!/usr/bin/env bash\n"
-        "# Installed by Talkin. Does nothing while Talkin is installed.\n"
+        "# Installed by Talkmorphic. Does nothing while Talkmorphic is installed.\n"
         "# If its AppImage has been deleted, removes the leftovers - the\n"
         "# speech model, settings, history, menu and autostart entries -\n"
         "# and then deletes itself.\n"
@@ -175,7 +175,7 @@ def install_cleanup_hook():
         "APPIMAGE=" + _quote(appimage) + "\n"
         "[ -e \"$APPIMAGE\" ] && exit 0\n"
         "rm -rf " + _quote(_WRITABLE_ROOT) + "\n"
-        "rm -f " + _quote(os.path.join(apps, "talkin.desktop")) + " "
+        "rm -f " + _quote(os.path.join(apps, "talkmorphic.desktop")) + " "
                  + _quote(os.path.join(apps, _APP_ID + ".desktop")) + "\n"
         "rm -f " + _quote(autostart_entry) + "\n"
         "rm -f " + _quote(entry) + "\n"
@@ -183,8 +183,8 @@ def install_cleanup_hook():
 
     desktop = ("[Desktop Entry]\n"
                "Type=Application\n"
-               "Name=Talkin cleanup\n"
-               "Comment=Removes Talkin leftovers if the app was deleted\n"
+               "Name=Talkmorphic cleanup\n"
+               "Comment=Removes Talkmorphic leftovers if the app was deleted\n"
                "Exec=" + script + "\n"
                "NoDisplay=true\n"
                "X-GNOME-Autostart-enabled=true\n")

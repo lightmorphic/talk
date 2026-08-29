@@ -1,25 +1,25 @@
 #!/bin/bash
-# Builds Talkin-x86_64.AppImage from a clean checkout. Designed to run
+# Builds Talkmorphic-x86_64.AppImage from a clean checkout. Designed to run
 # on a fresh Ubuntu CI runner (see .github/workflows/release.yml) but
 # works on any Debian-family desktop with the right packages installed
 # (see apt-get line below) — that's how this script was developed and
 # tested, on the maintainer's own desktop.
 #
-# The speech model is NOT bundled — Talkin downloads it once on first
-# run and caches it outside the AppImage (see talkin/config.py), so it
+# The speech model is NOT bundled — Talkmorphic downloads it once on first
+# run and caches it outside the AppImage (see talkmorphic/config.py), so it
 # survives every future update untouched. That keeps this build fast
 # and the AppImage itself small.
 set -euo pipefail
 
-# NOTE: Talkin re-exec'd this script under xvfb because pynput's Linux
-# backend opened an X display at import time. Talkin has no pynput and
+# NOTE: Talkmorphic re-exec'd this script under xvfb because pynput's Linux
+# backend opened an X display at import time. Talkmorphic has no pynput and
 # no X11 code at all, so the import check below runs headless as-is.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${1:-$REPO_ROOT/build-appimage}"
 PY_VERSION="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
 
-echo "== Talkin AppImage build =="
+echo "== Talkmorphic AppImage build =="
 echo "repo:  $REPO_ROOT"
 echo "build: $BUILD_DIR"
 echo "python: $PY_VERSION"
@@ -158,7 +158,7 @@ echo "$final" | grep -q CLEAN || { echo "!! dependency closure never converged" 
 # actually installed on THIS machine, never what ends up bundled
 # inside the AppImage. So this needs bundling explicitly; the runtime
 # half of the fix (pointing find_library at this exact path) lives in
-# talkin/config.py's patch_library_lookup().
+# talkmorphic/config.py's patch_library_lookup().
 #
 # ldconfig's ~1300-line listing is written straight to a FILE, not
 # captured through a pipe (neither a literal `|` into grep, nor even
@@ -181,13 +181,13 @@ cp "$PORTAUDIO_PATH" AppDir/usr/lib/libportaudio.so.2
 
 echo "-- assembling AppDir --"
 mkdir -p AppDir/usr/bin AppDir/usr/lib "AppDir/usr/lib/python$PY_VERSION" \
-         AppDir/usr/share/talkin AppDir/usr/share/applications \
+         AppDir/usr/share/talkmorphic AppDir/usr/share/applications \
          AppDir/usr/share/icons/hicolor/256x256/apps
 
-cp -r "$REPO_ROOT/talkin" AppDir/usr/share/talkin/
-cp -r "$REPO_ROOT/locales" AppDir/usr/share/talkin/
-cp -r "$REPO_ROOT/assets" AppDir/usr/share/talkin/
-find AppDir/usr/share/talkin -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+cp -r "$REPO_ROOT/talkmorphic" AppDir/usr/share/talkmorphic/
+cp -r "$REPO_ROOT/locales" AppDir/usr/share/talkmorphic/
+cp -r "$REPO_ROOT/assets" AppDir/usr/share/talkmorphic/
+find AppDir/usr/share/talkmorphic -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 PY_BIN="$(readlink -f "$(command -v python$PY_VERSION)")"
 PY_LIB="$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LDLIBRARY'))")"
@@ -211,27 +211,27 @@ cp -r "$SITE" "AppDir/usr/lib/python$PY_VERSION/site-packages"
 find "AppDir/usr/lib/python$PY_VERSION/site-packages" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find AppDir -xtype l -delete
 
-cp "$REPO_ROOT/docs/images/talkin-512.png" AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png
-cp AppDir/usr/share/icons/hicolor/256x256/apps/talkin.png AppDir/talkin.png
+cp "$REPO_ROOT/docs/images/talkmorphic-512.png" AppDir/usr/share/icons/hicolor/256x256/apps/talkmorphic.png
+cp AppDir/usr/share/icons/hicolor/256x256/apps/talkmorphic.png AppDir/talkmorphic.png
 
-cat > AppDir/uk.co.lightmorphic.Talkin.desktop <<'EOF'
+cat > AppDir/uk.co.lightmorphic.Talkmorphic.desktop <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Talkin
+Name=Talkmorphic
 Comment=Private, on-device dictation for Wayland desktops
-Exec=talkin
-Icon=talkin
+Exec=talkmorphic
+Icon=talkmorphic
 Categories=Utility;Accessibility;
 Terminal=false
-StartupWMClass=talkin
+StartupWMClass=talkmorphic
 EOF
-cp AppDir/uk.co.lightmorphic.Talkin.desktop AppDir/usr/share/applications/uk.co.lightmorphic.Talkin.desktop
+cp AppDir/uk.co.lightmorphic.Talkmorphic.desktop AppDir/usr/share/applications/uk.co.lightmorphic.Talkmorphic.desktop
 
 # AppStream metadata: what software centers and AppImage catalogs read
 # to show the app properly (name, description, screenshot) instead of
 # an anonymous binary. Version/date are stamped from the source tree at
 # build time so the file can't quietly go stale between releases.
-APP_VERSION="$(grep -oP '__version__ = "\K[^"]+' "$REPO_ROOT/talkin/__init__.py")"
+APP_VERSION="$(grep -oP '__version__ = "\K[^"]+' "$REPO_ROOT/talkmorphic/__init__.py")"
 mkdir -p AppDir/usr/share/metainfo
 # Installed under the AppStream component id's name, NOT the desktop
 # file's basename appimagetool looks for. Deliberate: when appimagetool
@@ -243,21 +243,21 @@ mkdir -p AppDir/usr/share/metainfo
 # cost is one cosmetic "metadata is missing" line in appimagetool's
 # output. Validation still happens, offline and on our terms, below.
 sed "s/@VERSION@/$APP_VERSION/; s/@DATE@/$(date +%F)/" \
-  "$REPO_ROOT/packaging/uk.co.lightmorphic.Talkin.appdata.xml" \
-  > AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkin.appdata.xml
+  "$REPO_ROOT/packaging/uk.co.lightmorphic.Talkmorphic.appdata.xml" \
+  > AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkmorphic.appdata.xml
 if command -v appstreamcli >/dev/null 2>&1; then
   appstreamcli validate --no-net \
-    AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkin.appdata.xml \
+    AppDir/usr/share/metainfo/uk.co.lightmorphic.Talkmorphic.appdata.xml \
     || { echo "!! AppStream metadata failed validation" >&2; exit 1; }
 fi
 
-cat > AppDir/usr/bin/talkin <<'LAUNCHER'
+cat > AppDir/usr/bin/talkmorphic <<'LAUNCHER'
 #!/bin/bash
-# Talkin's real entry point inside the AppImage. APPDIR is set by
-# AppRun to the mounted bundle root; everything Talkin needs to READ
+# Talkmorphic's real entry point inside the AppImage. APPDIR is set by
+# AppRun to the mounted bundle root; everything Talkmorphic needs to READ
 # (code, GTK/typelibs, icons) lives under it, read-only. Anything
-# Talkin needs to WRITE (settings, the downloaded speech model) is
-# routed by talkin/config.py to a persistent folder outside the
+# Talkmorphic needs to WRITE (settings, the downloaded speech model) is
+# routed by talkmorphic/config.py to a persistent folder outside the
 # bundle, so it survives every future AppImage update untouched.
 HERE="${APPDIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 
@@ -278,17 +278,17 @@ GDK_PIXBUF_CACHE="$(find "$HERE/usr/lib/gdk-pixbuf-2.0" \
   -maxdepth 2 -name loaders.cache 2>/dev/null | head -1)"
 [ -n "$GDK_PIXBUF_CACHE" ] && export GDK_PIXBUF_MODULE_FILE="$GDK_PIXBUF_CACHE"
 export PYTHONHOME="$HERE/usr"
-export PYTHONPATH="$HERE/usr/share/talkin:$HERE/usr/lib/python3.13:$HERE/usr/lib/python3.13/site-packages"
+export PYTHONPATH="$HERE/usr/share/talkmorphic:$HERE/usr/lib/python3.13:$HERE/usr/lib/python3.13/site-packages"
 export PYTHONNOUSERSITE=1
 export PYTHONDONTWRITEBYTECODE=1
 export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PATH="$HERE/usr/bin${PATH:+:$PATH}"
 export APPIMAGE="${APPIMAGE:-$(readlink -f "$0")}"
 
-exec "$HERE/usr/bin/python3" -S -m talkin "$@"
+exec "$HERE/usr/bin/python3" -S -m talkmorphic "$@"
 LAUNCHER
-sed -i "s/python3.13/python$PY_VERSION/g" AppDir/usr/bin/talkin
-chmod +x AppDir/usr/bin/talkin
+sed -i "s/python3.13/python$PY_VERSION/g" AppDir/usr/bin/talkmorphic
+chmod +x AppDir/usr/bin/talkmorphic
 
 # -- 4. bundle GTK/GObject-Introspection + resolve every shared lib -----
 
@@ -337,8 +337,8 @@ NO_STRIP=1 tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   -l "AppDir/usr/lib/$PY_LIB" \
   "${SO_ARGS[@]}" \
   "${EXCLUDE_ARGS[@]}" \
-  -d AppDir/uk.co.lightmorphic.Talkin.desktop \
-  -i AppDir/talkin.png \
+  -d AppDir/uk.co.lightmorphic.Talkmorphic.desktop \
+  -i AppDir/talkmorphic.png \
   --plugin gtk
 
 # Belt and braces: the GTK plugin's own bundling pass ignores
@@ -349,7 +349,7 @@ rm -f AppDir/usr/lib/{libglib-2.0,libgobject-2.0,libgio-2.0,libgmodule-2.0,libmo
 
 echo "-- packaging AppImage --"
 tools/appimagetool-x86_64.AppImage --appimage-extract-and-run \
-  AppDir "$REPO_ROOT/Talkin-x86_64.AppImage"
+  AppDir "$REPO_ROOT/Talkmorphic-x86_64.AppImage"
 
-echo "== built: $REPO_ROOT/Talkin-x86_64.AppImage =="
-ls -la "$REPO_ROOT/Talkin-x86_64.AppImage"
+echo "== built: $REPO_ROOT/Talkmorphic-x86_64.AppImage =="
+ls -la "$REPO_ROOT/Talkmorphic-x86_64.AppImage"

@@ -1,6 +1,6 @@
 """The first-run model download, said once and quietly.
 
-Talkin needs a ~600 MB speech model before it can do anything, fetched
+Talkmorphic needs a ~600 MB speech model before it can do anything, fetched
 once on first run. Doing that behind a spinning tray icon is
 indefensible — a stalled transfer looks exactly like a broken app — but
 the answer is not a large window either. A small notice says what is
@@ -26,7 +26,7 @@ from .config import MODEL_DIR
 from .inject_portal import RESTORE_TOKEN_KEY
 from .i18n import t
 
-log = logging.getLogger("talkin.download")
+log = logging.getLogger("talkmorphic.download")
 
 # The model is a little over 600 MB. Only used to draw the bar and ring;
 # the MB counter always shows real bytes, so an imprecise total can make
@@ -56,38 +56,38 @@ def cache_bytes():
 # hairline border, one soft shadow, generous air. No gradients, no
 # translucency — depth comes from the border and the shadow.
 _CSS = b"""
-window.talkin-firstrun {
+window.talkmorphic-firstrun {
   background-color: #09090b;
   color: #fafafa;
   font-family: "Manrope", sans-serif;
 }
-.talkin-firstrun label { color: #fafafa; }
-.talkin-firstrun .title {
+.talkmorphic-firstrun label { color: #fafafa; }
+.talkmorphic-firstrun .title {
   font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em;
 }
-.talkin-firstrun .lede { color: #a1a1aa; font-size: 0.9375rem; }
-.talkin-firstrun .card {
+.talkmorphic-firstrun .lede { color: #a1a1aa; font-size: 0.9375rem; }
+.talkmorphic-firstrun .card {
   background-color: #1b1d29;
   border: 1px solid alpha(#ffffff, 0.09);
   border-radius: 1.375rem;
   padding: 16px;
 }
-.talkin-firstrun .card-title { font-weight: 600; font-size: 1rem; }
-.talkin-firstrun .card-body { color: #a1a1aa; font-size: 0.9375rem; }
-.talkin-firstrun .step {
+.talkmorphic-firstrun .card-title { font-weight: 600; font-size: 1rem; }
+.talkmorphic-firstrun .card-body { color: #a1a1aa; font-size: 0.9375rem; }
+.talkmorphic-firstrun .step {
   color: #645007; background-color: #fbc711;
   border-radius: 999px; font-weight: 700; font-size: 0.8125rem;
   padding: 1px 9px;
 }
-.talkin-firstrun .warning-card {
+.talkmorphic-firstrun .warning-card {
   background-color: #350f0c;
   border: 1px solid #f34236;
   border-radius: 1.375rem;
   padding: 14px;
 }
-.talkin-firstrun .warning-card label { color: #f34236; font-weight: 600; }
-.talkin-firstrun .status { color: #a1a1aa; font-size: 0.875rem; }
-.talkin-firstrun button.choice {
+.talkmorphic-firstrun .warning-card label { color: #f34236; font-weight: 600; }
+.talkmorphic-firstrun .status { color: #a1a1aa; font-size: 0.875rem; }
+.talkmorphic-firstrun button.choice {
   background-color: #1b1d29;
   background-image: none;
   border: 1px solid alpha(#ffffff, 0.12);
@@ -96,7 +96,7 @@ window.talkin-firstrun {
   padding: 5px 12px;
   min-width: 200px;
 }
-.talkin-firstrun button.choice:hover { background-color: #272a3a; }
+.talkmorphic-firstrun button.choice:hover { background-color: #272a3a; }
 list.choice-list { background-color: #1b1d29; }
 list.choice-list row { border-radius: 0.625rem; }
 list.choice-list row:selected {
@@ -333,7 +333,7 @@ class DownloadWindow(Gtk.Window):
         self.set_keep_above(True)
 
         _apply_style(self)
-        self.get_style_context().add_class("talkin-firstrun")
+        self.get_style_context().add_class("talkmorphic-firstrun")
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         box.set_margin_top(24)
@@ -398,7 +398,7 @@ class DownloadWindow(Gtk.Window):
 
         # Every route out goes through _dismiss: the window button, Esc,
         # and the compositor's own close. Nothing should be able to make
-        # this window vanish while Talkin still cannot type.
+        # this window vanish while Talkmorphic still cannot type.
         self.connect("delete-event", self._dismiss)
         self.connect("key-press-event", self._on_key)
 
@@ -435,7 +435,7 @@ class DownloadWindow(Gtk.Window):
         return session.is_wayland()
 
     def permission_granted(self):
-        """True only once Talkin can actually type.
+        """True only once Talkmorphic can actually type.
 
         Asks the injector whether its session is live, rather than
         whether a permission token was stored. A stored token means the
@@ -464,7 +464,7 @@ class DownloadWindow(Gtk.Window):
         # Closing before granting permission leaves an app that hears
         # perfectly and can never type, with nothing on screen to explain
         # why. Say so in place rather than stacking another dialog on
-        # top — and never trap anyone: a second click quits Talkin
+        # top — and never trap anyone: a second click quits Talkmorphic
         # outright, which is the honest way out for someone who has
         # decided against it.
         if self._failed:

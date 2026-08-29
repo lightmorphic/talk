@@ -28,7 +28,7 @@ from gi.repository import Gtk, Gdk, GLib
 from .i18n import t
 from .tray import _draw_frame
 
-log = logging.getLogger("talkin.float")
+log = logging.getLogger("talkmorphic.float")
 
 BUTTON_SIZE = 56       # the round record button
 SIDE_SIZE = 26         # the little pronunciation button beside it

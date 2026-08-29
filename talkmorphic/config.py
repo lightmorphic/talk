@@ -1,4 +1,4 @@
-"""Configuration, paths and flat-file storage for Talkin.
+"""Configuration, paths and flat-file storage for Talkmorphic.
 
 Everything lives inside the project folder: config, dictionary, history
 and logs are plain JSON/JSONL files in data/ so the whole app can be
@@ -13,13 +13,13 @@ import logging.handlers
 import os
 import threading
 
-log = logging.getLogger("talkin.config")
+log = logging.getLogger("talkmorphic.config")
 
-APP_NAME = "talkin"
+APP_NAME = "talkmorphic"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # When packaged as an AppImage, BASE_DIR resolves inside that version's
-# read-only, throwaway squashfs mount. Anything Talkin needs to WRITE —
+# read-only, throwaway squashfs mount. Anything Talkmorphic needs to WRITE —
 # its own settings, and the downloaded speech model, which must survive
 # every future update without re-downloading 600 MB — lives instead in
 # one persistent per-user folder outside the bundle. A source checkout
@@ -28,9 +28,39 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.environ.get("APPIMAGE"):
     _WRITABLE_ROOT = os.path.join(
         os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")),
+        "talkmorphic")
+    _OLD_WRITABLE_ROOT = os.path.join(
+        os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")),
         "talkin")
 else:
     _WRITABLE_ROOT = BASE_DIR
+    _OLD_WRITABLE_ROOT = None
+
+
+def migrate_from_talkin():
+    """Carry an install over from before the app was renamed.
+
+    This app used to be called Talkin, and kept everything under
+    ~/.local/share/talkin. A rename that quietly left the settings, the
+    personal dictionary and — worse — the 600 MB speech model behind
+    would mean everyone's first run of the new name looks exactly like
+    a fresh install, including the download. Moving the whole folder
+    across, once, the first time the new name finds nothing of its own,
+    avoids that entirely.
+
+    Must run before anything below reads or creates _WRITABLE_ROOT.
+    """
+    if not _OLD_WRITABLE_ROOT:
+        return
+    if os.path.exists(_WRITABLE_ROOT) or not os.path.isdir(_OLD_WRITABLE_ROOT):
+        return
+    try:
+        os.rename(_OLD_WRITABLE_ROOT, _WRITABLE_ROOT)
+        log.info("moved settings and the speech model from the old "
+                "Talkin folder to %s", _WRITABLE_ROOT)
+    except OSError:
+        log.exception("could not move %s to %s — starting fresh",
+                      _OLD_WRITABLE_ROOT, _WRITABLE_ROOT)
 
 LOCALE_DIR = os.path.join(BASE_DIR, "locales")
 ASSET_DIR = os.path.join(BASE_DIR, "assets")
@@ -40,12 +70,12 @@ MODEL_DIR = os.path.join(_WRITABLE_ROOT, "models", "hf-cache")
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 DICT_PATH = os.path.join(DATA_DIR, "dictionary.json")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.jsonl")
-# TALKIN_LOG_DIR redirects only the log, leaving settings, history and
+# TALKMORPHIC_LOG_DIR redirects only the log, leaving settings, history and
 # the 600 MB model cache where they are. It exists so a log can be written
 # somewhere a helper can actually read when diagnosing a fault, without
 # disturbing the install.
-_LOG_DIR = os.environ.get("TALKIN_LOG_DIR") or DATA_DIR
-LOG_PATH = os.path.join(_LOG_DIR, "talkin.log")
+_LOG_DIR = os.environ.get("TALKMORPHIC_LOG_DIR") or DATA_DIR
+LOG_PATH = os.path.join(_LOG_DIR, "talkmorphic.log")
 
 DEFAULTS = {
     "language": "en",
@@ -55,7 +85,7 @@ DEFAULTS = {
     "cleanup_dictionary": True,
     "history_enabled": True,
     "autostart": True,
-    # The floating record button. Talkin has no keyboard shortcuts —
+    # The floating record button. Talkmorphic has no keyboard shortcuts —
     # a compositor's press and release signals lost dictations, and a
     # click has no such signal to get wrong — so this and the tray icon
     # are the only ways in.
@@ -96,7 +126,7 @@ def _read_json(path, fallback):
         return fallback
 
 
-# Everything Talkin keeps is private to the person who dictated it: the
+# Everything Talkmorphic keeps is private to the person who dictated it: the
 # history is the text of what they said, and config.json holds the
 # portal permission token. Left at the default mode both are readable by
 # every other account on the machine, so the directory is 0700 and the
@@ -171,7 +201,7 @@ class Dictionary:
             return list(data.get("entries", []))
 
     def _save(self, entries):
-        _write_json(DICT_PATH, {"talkin_dictionary": 1, "entries": entries})
+        _write_json(DICT_PATH, {"talkmorphic_dictionary": 1, "entries": entries})
 
     def add(self, heard, say):
         heard, say = heard.strip(), say.strip()
@@ -303,7 +333,7 @@ def prefer_x11():
     argv = [sys.executable]
     if sys.flags.no_site:
         argv.append("-S")
-    argv += ["-m", "talkin"] + sys.argv[1:]
+    argv += ["-m", "talkmorphic"] + sys.argv[1:]
     try:
         os.execv(sys.executable, argv)
     except OSError:
@@ -346,16 +376,16 @@ def patch_certificates():
 
 
 def launcher_path():
-    """The command that relaunches Talkin exactly as it's running now."""
+    """The command that relaunches Talkmorphic exactly as it's running now."""
     appimage = os.environ.get("APPIMAGE")
-    return appimage if appimage else os.path.join(BASE_DIR, "scripts", "talkin.sh")
+    return appimage if appimage else os.path.join(BASE_DIR, "scripts", "talkmorphic.sh")
 
 
 def desktop_exec(path):
     """A path as the Exec value of a desktop entry.
 
     Quoted, because an AppImage lives wherever its owner put it and
-    "~/My Apps/talkin.appimage" is an ordinary enough place. Unquoted,
+    "~/My Apps/talkmorphic.appimage" is an ordinary enough place. Unquoted,
     the launcher reads that as two arguments and the entry silently does
     nothing.
     """
@@ -364,9 +394,9 @@ def desktop_exec(path):
 
 
 def set_autostart(enabled):
-    """Write or remove the desktop-autostart entry for Talkin."""
+    """Write or remove the desktop-autostart entry for Talkmorphic."""
     autostart_dir = os.path.expanduser("~/.config/autostart")
-    path = os.path.join(autostart_dir, "talkin.desktop")
+    path = os.path.join(autostart_dir, "talkmorphic.desktop")
     if not enabled:
         try:
             os.remove(path)
@@ -378,11 +408,11 @@ def set_autostart(enabled):
     with open(path, "w", encoding="utf-8") as f:
         f.write("[Desktop Entry]\n"
                 "Type=Application\n"
-                "Name=Talkin\n"
+                "Name=Talkmorphic\n"
                 "Comment=Private on-device dictation\n"
                 f"Exec={desktop_exec(launcher)}\n"
-                f"Icon={os.path.join(ASSET_DIR, 'talkin-idle.svg')}\n"
-                "StartupWMClass=talkin\n"
+                f"Icon={os.path.join(ASSET_DIR, 'talkmorphic-idle.svg')}\n"
+                "StartupWMClass=talkmorphic\n"
                 "X-GNOME-Autostart-enabled=true\n")
 
 
