@@ -354,7 +354,15 @@ class TalkinApp:
         self.notify(i18n.t("error.input_permission_lost"))
 
     def _correction(self):
+        # Logged unconditionally, on both branches: the one thing every
+        # theory for "the teach button does nothing" has in common is
+        # that nobody could tell whether the click even reached this
+        # method, whether it was silently blocked by the state guard
+        # below, or whether it got all the way to opening a dialog that
+        # then failed to actually appear on screen.
+        log.info("teach-a-word requested (state=%s)", self.state)
         if self.state in ("listening", "thinking"):
+            log.info("teach-a-word blocked: busy (%s)", self.state)
             return
         correction.open_correction(self.dictionary, self.notify)
 

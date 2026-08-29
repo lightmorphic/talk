@@ -10,12 +10,16 @@ dictionary.
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
+
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
 from . import injector
 from .i18n import t
+
+log = logging.getLogger("talkin.correction")
 
 
 def open_correction(dictionary, notify):
@@ -24,11 +28,13 @@ def open_correction(dictionary, notify):
     # security model prevents — so there the user types the misheard word
     # in themselves and the dialog grows a second field for it.
     manual = not injector.selection_available()
+    log.info("opening the teach-a-word dialog (manual=%s)", manual)
     if manual:
         heard = ""
     else:
         heard = (injector.read_primary_selection() or "").strip()
         if not heard or len(heard) > 80:
+            log.info("teach-a-word cancelled: no usable selection")
             notify(t("correction.no_selection"))
             return
 
@@ -72,6 +78,17 @@ def open_correction(dictionary, notify):
     box.pack_start(entry, False, False, 0)
 
     dialog.show_all()
+    # show_all() only maps the window - it is present() that actually
+    # asks the compositor to bring it to the front and give it focus.
+    # Every other window in this app that has to appear on top of
+    # something on Wayland (the floating button, the first-run window)
+    # calls this; this dialog was the one that did not, and it also has
+    # no parent window to anchor it, which GNOME Wayland leans on when
+    # deciding where an unfocused window even belongs. Without either,
+    # a dialog can be fully mapped by GTK's own accounting and still
+    # never become the thing you are actually looking at.
+    dialog.present()
+    log.info("teach-a-word dialog shown=%s", dialog.get_visible())
     if manual:
         heard_entry.grab_focus()
     else:
@@ -85,6 +102,14 @@ def open_correction(dictionary, notify):
             if was and say and say != was:
                 dictionary.add(was, say)
                 notify(t("correction.saved"))
+                log.info("taught a word (%d chars -> %d chars)",
+                        len(was), len(say))
+            else:
+                log.info("teach-a-word closed with nothing to save "
+                        "(had_heard=%s, had_say=%s, same=%s)",
+                        bool(was), bool(say), was == say)
+        else:
+            log.info("teach-a-word dialog cancelled")
         dlg.destroy()
 
     dialog.connect("response", on_response)
