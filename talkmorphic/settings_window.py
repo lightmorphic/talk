@@ -633,7 +633,7 @@ class SettingsWindow(Gtk.Window):
             # setting that only takes effect after a restart reads as
             # broken.
             if self.app_obj.float_button is not None:
-                self.app_obj.float_button.set_teach_visible(value)
+                self.app_obj.float_button.set_dictionary_enabled(value)
         if key == "sounds" and value:
             # Play it on the spot, so the switch says what it does
             # instead of describing it.

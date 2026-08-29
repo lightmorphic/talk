@@ -7,8 +7,8 @@ such signal to get wrong, which is why this exists.
 
 It draws exactly what the tray icon draws — the same waveform, pulsing
 with your voice — so there is one visual language, not two. Click once to
-start, click again to stop. A small button on the side opens the
-pronunciation popup for teaching it a word.
+start, click again to stop. Ctrl-click it to open the popup for teaching
+it a word, instead of a second button cluttering the thing up.
 
 On Wayland an application cannot place its own window: position is the
 compositor's business. So this is draggable — press and move it anywhere
@@ -25,13 +25,11 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
-from .i18n import t
 from .tray import _draw_frame
 
 log = logging.getLogger("talkmorphic.float")
 
 BUTTON_SIZE = 56       # the round record button
-SIDE_SIZE = 26         # the little pronunciation button beside it
 _FPS_MS = 100
 
 # Right at the bottom edge of the usable area. The work area already
@@ -49,6 +47,7 @@ class FloatButton(Gtk.Window):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.on_toggle = on_toggle
         self.on_correction = on_correction
+        self.dictionary_enabled = dictionary_enabled
         self._state = "loading"
         self._phase = 0.0
         self._level = 0.0
@@ -92,24 +91,7 @@ class FloatButton(Gtk.Window):
         self.canvas.connect("button-press-event", self._on_press)
         self.canvas.connect("button-release-event", self._on_release)
         row.pack_start(self.canvas, False, False, 0)
-
-        # Drawn, not a themed label: the window is transparent, so a
-        # label takes the desktop theme's text colour and disappears
-        # against a dark background. Brand navy disc, brand yellow
-        # letters, same as the record button beside it.
-        teach = Gtk.EventBox()
-        teach.set_visible_window(False)
-        teach.set_tooltip_text(t("float.teach"))
-        teach_canvas = Gtk.DrawingArea()
-        teach_canvas.set_size_request(SIDE_SIZE, SIDE_SIZE)
-        teach_canvas.connect("draw", self._draw_teach)
-        teach.add(teach_canvas)
-        teach.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        teach.connect("button-press-event",
-                      lambda *_a: (self.on_correction(), True)[1])
-        row.pack_start(teach, False, False, 0)
         row.set_valign(Gtk.Align.CENTER)
-        self.teach = teach
 
         # Press-and-move drags the window; a press that does not move is
         # treated as a click. The compositor owns the drag on Wayland.
@@ -126,27 +108,19 @@ class FloatButton(Gtk.Window):
 
         self.connect("delete-event", lambda *_a: self.hide() or True)
         self.show_all()
-        self.set_teach_visible(dictionary_enabled)
         self.present()
         self.place_default()
         log.info("floating button shown=%s size=%sx%s",
                  self.get_visible(), *self.get_size())
         self._sync_timer()
 
-    def set_teach_visible(self, enabled):
-        """Show or hide the little "teach a word" button.
+    def set_dictionary_enabled(self, enabled):
+        """Turn Ctrl-click teaching on or off, to match the setting.
 
         Someone who has switched the personal dictionary off entirely
-        has no use for a button that only exists to add to it - leaving
-        it there would be a control that does something they just said
-        they do not want.
+        has no use for a control that only exists to add to it.
         """
-        if enabled:
-            self.teach.show()
-            self.set_size_request(BUTTON_SIZE + SIDE_SIZE + 12, BUTTON_SIZE)
-        else:
-            self.teach.hide()
-            self.set_size_request(BUTTON_SIZE, BUTTON_SIZE)
+        self.dictionary_enabled = enabled
 
     def place_default(self):
         """Put the button near the bottom middle of the screen.
@@ -169,7 +143,7 @@ class FloatButton(Gtk.Window):
             area = monitor.get_workarea()
             width, height = self.get_size()
             if width < 2 or height < 2:      # not yet realised
-                width = BUTTON_SIZE + SIDE_SIZE + 12
+                width = BUTTON_SIZE
                 height = BUTTON_SIZE
             x = area.x + (area.width - width) // 2
             y = area.y + area.height - height - _BOTTOM_GAP
@@ -200,7 +174,11 @@ class FloatButton(Gtk.Window):
         moved = (abs(event.x_root - self._press_x) > 4
                  or abs(event.y_root - self._press_y) > 4)
         if not moved and event.button == 1:
-            self.on_toggle()
+            ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
+            if ctrl and self.dictionary_enabled:
+                self.on_correction()
+            elif not ctrl:
+                self.on_toggle()
         return True
 
     # -- state -----------------------------------------------------------
@@ -240,22 +218,6 @@ class FloatButton(Gtk.Window):
         self._phase += 0.35
         self.canvas.queue_draw()
         return True
-
-    def _draw_teach(self, _widget, cr):
-        import math
-        s = SIDE_SIZE / 26.0
-        cr.set_source_rgb(0x11 / 255, 0x18 / 255, 0x27 / 255)
-        cr.arc(13 * s, 13 * s, 12 * s, 0, 2 * math.pi)
-        cr.fill()
-        cr.set_source_rgb(0xFB / 255, 0xC7 / 255, 0x11 / 255)
-        cr.select_font_face("Manrope")
-        cr.set_font_size(12 * s)
-        label = "Aa"
-        ext = cr.text_extents(label)
-        cr.move_to(13 * s - ext.width / 2 - ext.x_bearing,
-                   13 * s - ext.height / 2 - ext.y_bearing)
-        cr.show_text(label)
-        return False
 
     def _on_draw(self, _widget, cr):
         pixbuf = _draw_frame(BUTTON_SIZE, self._state, self._phase,
