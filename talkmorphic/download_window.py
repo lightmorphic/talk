@@ -170,21 +170,28 @@ class Glyph(Gtk.DrawingArea):
             cr.set_line_width(1.2 * s)
             cr.stroke()
         else:  # teach
-            # Navy disc with yellow letters, matching the real button.
-            # Drawn dark-on-dark before, which is invisible on a dark
-            # desktop theme — these glyphs sit on whatever background the
-            # theme gives the window, so they carry their own contrast.
+            # The same record button, with "Ctrl" beside it — the
+            # gesture that opens the teach-a-word popup, now that it is
+            # not a second button of its own.
             import math
             cr.set_source_rgb(*_NAVY)
-            cr.arc(17 * s, 17 * s, 13 * s, 0, 2 * math.pi)
+            cr.arc(13 * s, 17 * s, 11 * s, 0, 2 * math.pi)
             cr.fill()
             cr.set_source_rgb(*_YELLOW)
+            cr.set_line_width(1.6 * s)
+            for i, x in enumerate((9, 12, 15, 18)):
+                half = (2.5, 5, 3.5, 2)[i] * s
+                cr.move_to(x * s, 17 * s - half)
+                cr.line_to(x * s, 17 * s + half)
+                cr.stroke()
+            cr.set_source_rgb(*_YELLOW)
             cr.select_font_face("Manrope")
-            cr.set_font_size(13 * s)
-            ext = cr.text_extents("Aa")
-            cr.move_to(17 * s - ext.width / 2 - ext.x_bearing,
-                       17 * s - ext.height / 2 - ext.y_bearing)
-            cr.show_text("Aa")
+            cr.set_font_size(9 * s)
+            label = "Ctrl"
+            ext = cr.text_extents(label)
+            cr.move_to(29 * s - ext.width / 2 - ext.x_bearing,
+                       26 * s - ext.height / 2 - ext.y_bearing)
+            cr.show_text(label)
         return False
 
 

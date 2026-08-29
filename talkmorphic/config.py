@@ -101,9 +101,9 @@ DEFAULTS = {
     # while dictating — they are looking at what they are dictating into.
     "sounds": True,
     "sound_theme": "chime",
-    # The personal dictionary as a whole. Off hides the little "teach a
-    # word" button on the floating button too - no point showing a
-    # control for a feature someone has just said they do not want.
+    # The personal dictionary as a whole. Off also turns off Ctrl-click
+    # teaching on the floating button - no point leaving a control live
+    # for a feature someone has just said they do not want.
     "dictionary_enabled": True,
     # Cleared until the first-run notice has been shown once. The notice
     # carries the permission step, which silently breaks everything if
