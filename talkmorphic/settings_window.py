@@ -1332,10 +1332,15 @@ class SettingsWindow(Gtk.Window):
             label.get_style_context().add_class("hint")
             row.pack_start(label, True, True, 0)
             dot_entries.append((row, i18n.t(text_key).lower()))
+        # No title label here: the group header just above already says
+        # "Updates", and repeating it as the first row's own heading too
+        # read as the same word twice in a row.
+        updates_intro = Gtk.Label(label=i18n.t("help.updates"), xalign=0,
+                                  wrap=True)
+        updates_intro.get_style_context().add_class("hint")
         add_group(help_content.UPDATES_CATEGORY,
-                 [(self._help_block("help.updates_title", "help.updates"),
-                   (i18n.t("help.updates_title") + " "
-                    + i18n.t("help.updates")).lower())] + dot_entries)
+                 [(updates_intro, i18n.t("help.updates").lower())]
+                 + dot_entries)
 
         privacy = self._help_block("help.privacy_title", "help.privacy")
         add_group(help_content.PRIVACY_CATEGORY,
