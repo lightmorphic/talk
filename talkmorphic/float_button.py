@@ -97,6 +97,7 @@ class FloatButton(Gtk.Window):
         # treated as a click. The compositor owns the drag on Wayland.
         self._press_x = self._press_y = 0
         self._dragged = False
+        self._press_ctrl = False
 
         # GNOME on Wayland treats "keep above" as a hint and mostly
         # ignores it, so a full-screen-ish window such as a browser ends
@@ -163,9 +164,20 @@ class FloatButton(Gtk.Window):
     def _on_press(self, _widget, event):
         self._press_x, self._press_y = event.x_root, event.y_root
         self._dragged = False
-        if event.button == 1:
+        # Read the modifier here, at press time, and act on it at release
+        # rather than re-reading event.state on the release event itself:
+        # on GNOME/Wayland, begin_move_drag() below hands the rest of this
+        # gesture to the compositor's own interactive-move grab, and the
+        # release event GTK synthesises afterwards does not reliably carry
+        # the modifier keys that were actually held — Ctrl-click was
+        # arriving at _on_release with no Ctrl bit set at all.
+        self._press_ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
+        if event.button == 1 and not self._press_ctrl:
             # Start a compositor-driven move; if the pointer never moves
             # this does nothing and the release below counts as a click.
+            # Skipped for Ctrl-click: that gesture teaches a word, not
+            # moves the button, and handing it to the compositor's move
+            # grab is exactly what was losing the modifier above.
             self.begin_move_drag(event.button, int(event.x_root),
                                  int(event.y_root), event.time)
         return True
@@ -174,10 +186,9 @@ class FloatButton(Gtk.Window):
         moved = (abs(event.x_root - self._press_x) > 4
                  or abs(event.y_root - self._press_y) > 4)
         if not moved and event.button == 1:
-            ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
-            if ctrl and self.dictionary_enabled:
+            if self._press_ctrl and self.dictionary_enabled:
                 self.on_correction()
-            elif not ctrl:
+            elif not self._press_ctrl:
                 self.on_toggle()
         return True
 
