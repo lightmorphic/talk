@@ -1,11 +1,11 @@
-# Talkin — security and code audit
+# Talkmorphic — security and code audit
 
 Reviewed at version 1.0.6, 27 August 2026. Every item below was checked
 against the source, not assumed.
 
 ## What an attacker would have to reach
 
-Talkin runs as you, on your machine, with no server, no accounts and no
+Talkmorphic runs as you, on your machine, with no server, no accounts and no
 listening ports. It touches the network exactly twice in its life: it
 downloads the speech model once on first run, and it asks GitHub for the
 latest release when you click the update dot. Nothing else, ever — after
@@ -38,7 +38,7 @@ the app types into whatever window has focus. Imports are now capped at
 5000 entries of 200 characters, non-object entries are skipped, and both
 fields are coerced to strings.
 
-**A cleanup watcher could be aimed at a temporary path.** Talkin leaves a
+**A cleanup watcher could be aimed at a temporary path.** Talkmorphic leaves a
 login-time script that deletes the model and settings if its AppImage has
 gone. Run from /tmp, that script was pointed at a path guaranteed to
 vanish, so it would delete the real install's data at the next login. It
@@ -71,7 +71,7 @@ arguments. Paths are now quoted and escaped per the desktop entry spec.
 
 ## Accepted risks, stated plainly
 
-**The update is not signed.** Talkin trusts TLS and the fixed GitHub
+**The update is not signed.** Talkmorphic trusts TLS and the fixed GitHub
 repository: it verifies the certificate, checks the file is plausibly
 large, and replaces itself. It does not verify a signature, so anyone who
 could publish a release to that repository could publish a malicious
@@ -80,10 +80,10 @@ against a key fetched from the same place would add ceremony rather than
 security. The real protection is the repository's own account security.
 
 **XTEST on X11 is unrestricted by design.** On an X11 session any client
-can synthesise keystrokes; that is why Talkin needs no permission there,
+can synthesise keystrokes; that is why Talkmorphic needs no permission there,
 and equally why any other program on that session could watch or fake
-input. This is a property of X11, not of Talkin. Wayland's portal exists
-precisely to end it, and on Wayland Talkin asks.
+input. This is a property of X11, not of Talkmorphic. Wayland's portal exists
+precisely to end it, and on Wayland Talkmorphic asks.
 
 **The clipboard briefly holds your transcript.** Pasting is how text gets
 in; the previous clipboard contents are restored immediately afterwards.

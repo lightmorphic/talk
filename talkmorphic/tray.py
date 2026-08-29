@@ -31,7 +31,7 @@ from gi.repository import Gtk, Gdk, GLib
 from .config import ASSET_DIR
 from .i18n import t
 
-log = logging.getLogger("talkin.tray")
+log = logging.getLogger("talkmorphic.tray")
 
 _FPS_MS = 100          # animation frame interval while listening/thinking
 # How much of the panel's icon box the design fills. The disc touches the
@@ -63,12 +63,12 @@ _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 # The AppIndicator fallback's static files (also used for the .desktop
 # icon); the StatusIcon path never touches them.
 _SVG_ICONS = {
-    "loading": "talkin-thinking",
-    "downloading": "talkin-thinking",
-    "idle": "talkin-idle",
-    "listening": "talkin-listening",
-    "thinking": "talkin-thinking",
-    "paused": "talkin-paused",
+    "loading": "talkmorphic-thinking",
+    "downloading": "talkmorphic-thinking",
+    "idle": "talkmorphic-idle",
+    "listening": "talkmorphic-listening",
+    "thinking": "talkmorphic-thinking",
+    "paused": "talkmorphic-paused",
 }
 
 
@@ -196,7 +196,7 @@ class Tray:
         self._menu = self._build_menu(*self._menu_callbacks)
 
         self._icon = Gtk.StatusIcon()
-        self._icon.set_title("Talkin")
+        self._icon.set_title("Talkmorphic")
         self._icon.connect("activate", self._on_left_click)
         self._icon.connect("popup-menu", self._on_right_click)
         self._icon.connect("size-changed", self._on_size_changed)
@@ -211,7 +211,7 @@ class Tray:
             self._set_indicator_state(state)
         else:
             self._icon.set_tooltip_text(
-                "Talkin — " + t("tray.status." + state))
+                "Talkmorphic — " + t("tray.status." + state))
             self._render()
         self._status_item.set_label(t("tray.status." + state))
         self._pause_item.set_label(
@@ -239,7 +239,7 @@ class Tray:
         """
         self._progress = max(0.0, min(1.0, fraction))
         if self._state == "downloading" and self._indicator is None:
-            self._icon.set_tooltip_text("Talkin — {} {}%".format(
+            self._icon.set_tooltip_text("Talkmorphic — {} {}%".format(
                 t("tray.status.downloading"), int(self._progress * 100)))
 
     def set_level(self, level):
@@ -317,15 +317,15 @@ class Tray:
         # lazily — on the first real call, not at import. So a machine
         # without libayatana-appindicator3 imports cleanly and then throws
         # GError here. Everything through the first call must be guarded,
-        # or the tray dies with a traceback and Talkin runs invisibly.
+        # or the tray dies with a traceback and Talkmorphic runs invisibly.
         try:
             gi.require_version("AyatanaAppIndicator3", "0.1")
             from gi.repository import AyatanaAppIndicator3 as AppIndicator
             indicator = AppIndicator.Indicator.new(
-                "talkin", "talkin-idle",
+                "talkmorphic", "talkmorphic-idle",
                 AppIndicator.IndicatorCategory.APPLICATION_STATUS)
             indicator.set_icon_theme_path(ASSET_DIR)
-            indicator.set_title("Talkin")
+            indicator.set_title("Talkmorphic")
             indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             indicator.set_menu(self._menu)
         except (ImportError, ValueError, GLib.GError, TypeError, AttributeError):
@@ -342,10 +342,10 @@ class Tray:
         return False
 
     def _set_indicator_state(self, state):
-        icon = _SVG_ICONS.get(state, "talkin-idle")
+        icon = _SVG_ICONS.get(state, "talkmorphic-idle")
         icon_path = os.path.join(ASSET_DIR, icon + ".svg")
         self._indicator.set_icon_full(
-            icon_path, "Talkin — " + t("tray.status." + state))
+            icon_path, "Talkmorphic — " + t("tray.status." + state))
 
     # -- animation ---------------------------------------------------
 

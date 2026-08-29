@@ -25,7 +25,7 @@ from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH, DEFAULTS
 from .engine import MODEL_NAME, list_microphones
 from . import session
 
-log = logging.getLogger("talkin.settings")
+log = logging.getLogger("talkmorphic.settings")
 
 _YELLOW = "#fbc711"
 
@@ -60,7 +60,7 @@ def _hex_rgb(hexstr):
 # The Lightmorphic style's dark tokens, translated to GTK CSS. This app
 # commits to the brand's dark navy + yellow identity always (like the
 # tray icons and overlay), rather than following the desktop's light/
-# dark setting — there is no "light Talkin" any more than there's a
+# dark setting — there is no "light Talkmorphic" any more than there's a
 # grey tray icon.
 _CSS = b"""
 @define-color lm_bg #09090b;
@@ -84,21 +84,21 @@ _CSS = b"""
 @define-color lm_danger #f34236;
 @define-color lm_danger_bg #350f0c;
 
-window.talkin-settings {
+window.talkmorphic-settings {
   background-color: @lm_bg;
   color: @lm_fg;
   font-family: "Manrope", sans-serif;
 }
-.talkin-settings label, .talkin-settings check, .talkin-settings radio {
+.talkmorphic-settings label, .talkmorphic-settings check, .talkmorphic-settings radio {
   color: @lm_fg;
 }
-.talkin-settings .section-title {
+.talkmorphic-settings .section-title {
   font-weight: 600; font-size: 1.0625rem; color: @lm_fg;
 }
-.talkin-settings .hint { color: @lm_muted_fg; font-size: 0.8125rem; }
-.talkin-settings .field-label { font-weight: 600; font-size: 0.9375rem; }
+.talkmorphic-settings .hint { color: @lm_muted_fg; font-size: 0.8125rem; }
+.talkmorphic-settings .field-label { font-weight: 600; font-size: 0.9375rem; }
 
-.talkin-settings .panel {
+.talkmorphic-settings .panel {
   background-color: @lm_panel;
   border: 1px solid @lm_panel_border;
   border-radius: 1.375rem;
@@ -106,13 +106,13 @@ window.talkin-settings {
   box-shadow: 0 2px 10px alpha(#000000, 0.35);
 }
 
-.talkin-settings button {
+.talkmorphic-settings button {
   border-radius: 0.875rem;
   padding: 6px 14px;
   box-shadow: none;
   -gtk-icon-shadow: none;
 }
-.talkin-settings button.icon-btn {
+.talkmorphic-settings button.icon-btn {
   min-width: 34px; min-height: 34px;
   padding: 0; margin: 0;
   border-radius: 50%;
@@ -121,12 +121,12 @@ window.talkin-settings {
   background-image: none;
   color: @lm_fg;
 }
-.talkin-settings button.icon-btn:hover { background-color: @lm_icon_bg_hover; }
-.talkin-settings button.icon-btn.danger-armed {
+.talkmorphic-settings button.icon-btn:hover { background-color: @lm_icon_bg_hover; }
+.talkmorphic-settings button.icon-btn.danger-armed {
   background-color: @lm_danger_bg;
   color: @lm_danger;
 }
-.talkin-settings button.primary {
+.talkmorphic-settings button.primary {
   background-color: @lm_accent;
   background-image: none;
   color: @lm_on_accent;
@@ -138,27 +138,27 @@ window.talkin-settings {
   text-shadow: none;
   -gtk-icon-shadow: none;
 }
-.talkin-settings button.primary:hover { background-color: @lm_accent_hover; }
-.talkin-settings button.danger-armed {
+.talkmorphic-settings button.primary:hover { background-color: @lm_accent_hover; }
+.talkmorphic-settings button.danger-armed {
   background-color: @lm_danger_bg;
   color: @lm_danger;
   border: 1px solid @lm_danger;
   font-weight: 600;
 }
 
-/* A plain ".talkin-settings label" rule would otherwise reach straight
+/* A plain ".talkmorphic-settings label" rule would otherwise reach straight
    into these buttons' internal label widget and win over the color
    set above - a direct match always beats inherited color in GTK's
    CSS cascade, regardless of specificity or source order. */
-.talkin-settings button.primary label { color: @lm_on_accent; text-shadow: none; }
-.talkin-settings button.danger-armed label { color: @lm_danger; }
+.talkmorphic-settings button.primary label { color: @lm_on_accent; text-shadow: none; }
+.talkmorphic-settings button.danger-armed label { color: @lm_danger; }
 
-.talkin-settings entry, .talkin-settings treeview {
+.talkmorphic-settings entry, .talkmorphic-settings treeview {
   border-radius: 0.875rem;
 }
 
 /* The click-to-open lists that replaced the comboboxes. */
-.talkin-settings button.choice {
+.talkmorphic-settings button.choice {
   background-color: @lm_icon_bg;
   background-image: none;
   border: 1px solid @lm_icon_border;
@@ -166,29 +166,29 @@ window.talkin-settings {
   padding: 6px 12px;
   min-width: 190px;
 }
-.talkin-settings button.choice:hover { background-color: @lm_icon_bg_hover; }
+.talkmorphic-settings button.choice:hover { background-color: @lm_icon_bg_hover; }
 list.choice-list { background-color: @lm_panel; }
 list.choice-list row { border-radius: 0.625rem; }
 list.choice-list row:selected {
   background-color: @lm_accent; color: @lm_on_accent; text-shadow: none;
 }
 list.choice-list row:selected label { color: @lm_on_accent; text-shadow: none; }
-.talkin-settings button.sound-preview {
+.talkmorphic-settings button.sound-preview {
   background: none; background-image: none; box-shadow: none; border: none;
   min-width: 28px; min-height: 28px; padding: 0;
   color: @lm_fg; font-size: 0.8rem;
 }
-.talkin-settings button.sound-preview:hover { color: @lm_accent; }
+.talkmorphic-settings button.sound-preview:hover { color: @lm_accent; }
 list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
-.talkin-settings treeview {
+.talkmorphic-settings treeview {
   background-color: @lm_muted;
   border: 1px solid @lm_border;
 }
-.talkin-settings treeview row {
+.talkmorphic-settings treeview row {
   border-bottom: 1px solid @lm_panel_border;
   min-height: 2rem;
 }
-.talkin-settings treeview header button {
+.talkmorphic-settings treeview header button {
   background-color: @lm_bg;
   border: none;
   border-bottom: 1px solid @lm_border;
@@ -201,25 +201,25 @@ list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
    override actually won against, so this is bypassed entirely rather
    than left in to (at best) do nothing or (at worst) fight it. */
 
-.talkin-settings .category-list {
+.talkmorphic-settings .category-list {
   background-color: @lm_bg;
   border-right: 1px solid @lm_panel_border;
   padding-top: 4px;
 }
-.talkin-settings .category-list row {
+.talkmorphic-settings .category-list row {
   background-color: transparent;
   color: @lm_muted_fg;
   border-left: 3px solid transparent;
 }
-.talkin-settings .category-list row label { color: @lm_muted_fg; }
-.talkin-settings .category-list row:hover {
+.talkmorphic-settings .category-list row label { color: @lm_muted_fg; }
+.talkmorphic-settings .category-list row:hover {
   background-color: alpha(#ffffff, 0.04);
 }
-.talkin-settings .category-list row:selected {
+.talkmorphic-settings .category-list row:selected {
   background-color: alpha(#fbc711, 0.10);
   border-left: 3px solid @lm_accent;
 }
-.talkin-settings .category-list row:selected label {
+.talkmorphic-settings .category-list row:selected label {
   color: @lm_fg; font-weight: 600;
 }
 
@@ -230,21 +230,21 @@ list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
    which is what kept coming back here. box-shadow does follow
    border-radius, so it replaces outline everywhere focus is shown,
    not just on the couple of widgets it was visibly wrong on before. */
-.talkin-settings *:focus {
+.talkmorphic-settings *:focus {
   outline: none;
 }
 /* The ring goes on whole interactive widgets ONLY, never `*` - GTK
    propagates the FOCUSED state down into a widget's internal children,
    so a blanket *:focus draws a second ring floating in the middle of a
    composite control. */
-.talkin-settings button:focus,
-.talkin-settings entry:focus,
-.talkin-settings checkbutton:focus {
+.talkmorphic-settings button:focus,
+.talkmorphic-settings entry:focus,
+.talkmorphic-settings checkbutton:focus {
   box-shadow: 0 0 0 2px @lm_accent;
 }
 /* Buttons that are already accent-colored need a focus ring that
    actually contrasts against them, not more of the same yellow. */
-.talkin-settings button.primary:focus {
+.talkmorphic-settings button.primary:focus {
   box-shadow: 0 0 0 2px @lm_bg;
 }
 """
@@ -301,7 +301,7 @@ class SettingsWindow(Gtk.Window):
         self.history = app_obj.history
 
         self.set_default_size(760, 560)
-        self.get_style_context().add_class("talkin-settings")
+        self.get_style_context().add_class("talkmorphic-settings")
         _load_bundled_font()
         self._apply_css()
         # Popup windows do not always inherit this window's CSS
@@ -313,7 +313,7 @@ class SettingsWindow(Gtk.Window):
         Gtk.Settings.get_default().set_property(
             "gtk-application-prefer-dark-theme", True)
         try:
-            self.set_icon_from_file(os.path.join(ASSET_DIR, "talkin.png"))
+            self.set_icon_from_file(os.path.join(ASSET_DIR, "talkmorphic.png"))
         except GLib.GError:
             log.warning("could not load settings window icon", exc_info=True)
         self.connect("delete-event", self._on_close)
@@ -561,7 +561,7 @@ class SettingsWindow(Gtk.Window):
         button.connect("clicked", on_click)
 
     def _on_uninstall(self):
-        """Remove every trace of Talkin, then quit."""
+        """Remove every trace of Talkmorphic, then quit."""
         problems = uninstall.run()
         if problems:
             log.warning("uninstall left things behind: %s", problems)
@@ -665,7 +665,7 @@ class SettingsWindow(Gtk.Window):
 
         ver_text_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
                                spacing=5)
-        name_label = Gtk.Label(label="Talkin")
+        name_label = Gtk.Label(label="Talkmorphic")
         name_label.get_style_context().add_class("hint")
         ver_text_row.pack_start(name_label, False, False, 0)
         ver_num_label = Gtk.Label(label="v{}".format(__version__))
@@ -674,7 +674,7 @@ class SettingsWindow(Gtk.Window):
 
         ver_event = Gtk.EventBox()
         ver_event.add(ver_text_row)
-        tooltip.attach(ver_event, "talkin.lightmorphic.com")
+        tooltip.attach(ver_event, "talkmorphic.lightmorphic.com")
         ver_event.connect("button-press-event", self._on_version_clicked)
         ver_event.connect("realize", lambda w: w.get_window().set_cursor(
             Gdk.Cursor.new_from_name(w.get_display(), "pointer")))
@@ -705,7 +705,7 @@ class SettingsWindow(Gtk.Window):
 
     def _on_version_clicked(self, _widget, _event):
         import webbrowser
-        webbrowser.open("https://talkin.lightmorphic.com")
+        webbrowser.open("https://talkmorphic.lightmorphic.com")
 
     _PULSE_MS = 40
     _PULSE_BEATS = 3          # how many times it breathes before settling
@@ -1119,10 +1119,10 @@ class SettingsWindow(Gtk.Window):
         dialog.add_buttons(
             i18n.t("correction.cancel"), Gtk.ResponseType.CANCEL,
             i18n.t("settings.dict.export"), Gtk.ResponseType.OK)
-        dialog.set_current_name("talkin-dictionary.json")
+        dialog.set_current_name("talkmorphic-dictionary.json")
         if dialog.run() == Gtk.ResponseType.OK:
             payload = json.dumps(
-                {"talkin_dictionary": 1, "entries": self.dictionary.entries()},
+                {"talkmorphic_dictionary": 1, "entries": self.dictionary.entries()},
                 ensure_ascii=False, indent=2)
             with open(dialog.get_filename(), "w", encoding="utf-8") as f:
                 f.write(payload)
@@ -1146,7 +1146,12 @@ class SettingsWindow(Gtk.Window):
                     data = json.load(fh)
             except (OSError, ValueError):
                 data = {}
-            if data.get("talkin_dictionary") == 1 and \
+            # Accepts either marker: a file exported before the app was
+            # renamed still says "talkin_dictionary", and there is no
+            # reason someone's older backup should stop importing just
+            # because the app it came from is now called something else.
+            if (data.get("talkmorphic_dictionary") == 1
+                    or data.get("talkin_dictionary") == 1) and \
                     isinstance(data.get("entries"), list):
                 merged = {e["heard"].lower(): e
                           for e in self.dictionary.entries()}
@@ -1254,7 +1259,7 @@ class SettingsWindow(Gtk.Window):
         dialog.add_buttons(
             i18n.t("correction.cancel"), Gtk.ResponseType.CANCEL,
             i18n.t("settings.history.export"), Gtk.ResponseType.OK)
-        dialog.set_current_name("talkin-history.txt")
+        dialog.set_current_name("talkmorphic-history.txt")
         if dialog.run() == Gtk.ResponseType.OK:
             lines = ["{}\t{}".format(
                 time.strftime("%Y-%m-%d %H:%M", time.localtime(e["ts"])),
@@ -1438,7 +1443,7 @@ class SettingsWindow(Gtk.Window):
         dialog.add_buttons(
             i18n.t("correction.cancel"), Gtk.ResponseType.CANCEL,
             i18n.t("settings.export_all"), Gtk.ResponseType.OK)
-        dialog.set_current_name("talkin-export.zip")
+        dialog.set_current_name("talkmorphic-export.zip")
         if dialog.run() == Gtk.ResponseType.OK:
             with zipfile.ZipFile(
                     dialog.get_filename(), "w", zipfile.ZIP_DEFLATED) as z:
@@ -1454,11 +1459,11 @@ class SettingsWindow(Gtk.Window):
                             # capability handed to this machine has no
                             # business riding along in it.
                             z.writestr(os.path.join(
-                                "talkin-export", os.path.basename(folder),
+                                "talkmorphic-export", os.path.basename(folder),
                                 name), _settings_without_secrets(path))
                             continue
                         z.write(path, os.path.join(
-                            "talkin-export",
+                            "talkmorphic-export",
                             os.path.basename(folder), name))
         dialog.destroy()
 

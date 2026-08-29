@@ -28,7 +28,7 @@ from gi.repository import GLib
 
 from . import portal
 
-log = logging.getLogger("talkin.inject_portal")
+log = logging.getLogger("talkmorphic.inject_portal")
 
 IFACE = "org.freedesktop.portal.RemoteDesktop"
 
@@ -56,7 +56,7 @@ class PortalInjector:
 
     A single long-lived session is opened at startup so the consent prompt
     happens once, at a moment the user can connect with having just
-    launched Talkin — rather than mid-sentence on first dictation.
+    launched Talkmorphic — rather than mid-sentence on first dictation.
     """
 
     def __init__(self, config, on_lost=None):
@@ -108,7 +108,7 @@ class PortalInjector:
             self._select_devices()
 
         portal.call(IFACE, "CreateSession", "(a{sv})", ({
-            "session_handle_token": GLib.Variant("s", "talkin_inject"),
+            "session_handle_token": GLib.Variant("s", "talkmorphic_inject"),
         },), created, self._start_failed)
 
     def _select_devices(self):
@@ -156,7 +156,7 @@ class PortalInjector:
         The desktop shows a status indicator while an app can control
         input, and clicking it stops the session — which is the user
         exercising exactly the control the portal exists to give them.
-        Without this, Talkin kept running and silently never typed
+        Without this, Talkmorphic kept running and silently never typed
         again, which reads as the app having crashed.
         """
         if self._closed_sub is not None:

@@ -1,4 +1,4 @@
-# Talkin
+# Talkmorphic
 
 Private, on-device dictation for Linux. Click, speak, click again. Your
 words are typed into whatever app you're using, and your voice never
@@ -14,7 +14,7 @@ window manager — with nothing to approve.
 
 - Click the floating button, or the tray icon, and speak. Click again to
   stop. The tray icon shows a live waveform while
-  Talkin hears you, and a revolving spinner while it thinks. Release
+  Talkmorphic hears you, and a revolving spinner while it thinks. Release
   (or click again), and the text appears where your cursor is.
 - Speech recognition runs locally on your CPU using NVIDIA's
   [Parakeet TDT 0.6b v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
@@ -30,13 +30,13 @@ window manager — with nothing to approve.
 
 ## Install
 
-Download the latest `Talkin-x86_64.AppImage` from
-[Releases](https://github.com/lightmorphic/talkin/releases/latest),
+Download the latest `Talkmorphic-x86_64.AppImage` from
+[Releases](https://github.com/lightmorphic/talkmorphic/releases/latest),
 make it executable, and run it, and that's the whole install:
 
 ```bash
-chmod +x Talkin-x86_64.AppImage
-./Talkin-x86_64.AppImage
+chmod +x Talkmorphic-x86_64.AppImage
+./Talkmorphic-x86_64.AppImage
 ```
 
 The speech model (~600 MB) downloads once on first run, then the app
@@ -49,11 +49,11 @@ PulseAudio.** See the notice at the top of this file.
 ## Building from source
 
 ```bash
-git clone https://github.com/lightmorphic/talkin
-cd talkin
+git clone https://github.com/lightmorphic/talkmorphic
+cd talkmorphic
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
-./scripts/talkin.sh
+./scripts/talkmorphic.sh
 ```
 
 Needs Python 3.11+ and GTK 3 with AppIndicator

@@ -1,4 +1,4 @@
-"""The Talkin application: wires audio, model and UI together."""
+"""The Talkmorphic application: wires audio, model and UI together."""
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,7 +21,7 @@ from . import sounds
 from .settings_window import open_settings
 from .tray import Tray
 
-log = logging.getLogger("talkin.app")
+log = logging.getLogger("talkmorphic.app")
 
 
 class TalkinApp:
@@ -348,7 +348,7 @@ class TalkinApp:
         """The desktop withdrew permission to type into other windows.
 
         Usually the user pressing 'stop' on the desktop's own input-control
-        indicator. Say so, because otherwise Talkin looks alive but never
+        indicator. Say so, because otherwise Talkmorphic looks alive but never
         types again — which reads as a crash.
         """
         self.notify(i18n.t("error.input_permission_lost"))
@@ -389,7 +389,7 @@ class TalkinApp:
         open_settings(self)
 
     def apply_settings(self):
-        """Re-read anything that can change while Talkin is running."""
+        """Re-read anything that can change while Talkmorphic is running."""
         i18n.set_language(self.config.get("language"))
         return True
 
@@ -577,8 +577,8 @@ class TalkinApp:
         log.info("notify: %s", message)
         if shutil.which("notify-send"):
             subprocess.Popen(
-                ["notify-send", "--app-name", "Talkin",
-                 "--icon", os.path.join(cfg.ASSET_DIR, "talkin-idle.svg"),
+                ["notify-send", "--app-name", "Talkmorphic",
+                 "--icon", os.path.join(cfg.ASSET_DIR, "talkmorphic-idle.svg"),
                  i18n.t("notify.title"), message],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -611,15 +611,15 @@ def main():
     # The working directory is rescued in __main__, before any import
     # can trip over it; logged here because it explains failures that
     # surface much later and nowhere near the cause.
-    log.info("Talkin starting (pid %s, in %s)", os.getpid(), os.getcwd())
+    log.info("Talkmorphic starting (pid %s, in %s)", os.getpid(), os.getcwd())
 
     # Without this, GLib falls back to argv[0]'s basename for the
     # process identity — which is literally "__main__.py" when running
-    # via `python -m talkin`, and that's what desktop environments show
+    # via `python -m talkmorphic`, and that's what desktop environments show
     # as the tray icon's hover tooltip. Must run before any GTK/GLib
     # object (Tray, dialogs) is created.
-    GLib.set_prgname("talkin")
-    GLib.set_application_name("Talkin")
+    GLib.set_prgname("talkmorphic")
+    GLib.set_application_name("Talkmorphic")
 
     # A source checkout isn't registered in any icon theme, so without
     # this the window manager's taskbar/dock/alt-tab falls back to a
@@ -635,7 +635,7 @@ def main():
     # window icon must never be able to crash startup again.
     try:
         Gtk.Window.set_default_icon_from_file(
-            os.path.join(cfg.ASSET_DIR, "talkin.png"))
+            os.path.join(cfg.ASSET_DIR, "talkmorphic.png"))
     except GLib.GError:
         log.warning("could not load window icon", exc_info=True)
 
@@ -648,12 +648,12 @@ def main():
     _single = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     for attempt in range(20):
         try:
-            _single.bind("\0talkin-single-instance")
+            _single.bind("\0talkmorphic-single-instance")
             break
         except OSError:
             time.sleep(0.5)
     else:
-        print("Talkin is already running.", file=sys.stderr)
+        print("Talkmorphic is already running.", file=sys.stderr)
         sys.exit(0)
 
     app = TalkinApp()
@@ -665,7 +665,7 @@ def main():
             GLib.PRIORITY_DEFAULT, sig, lambda: app.quit() or False)
 
     Gtk.main()
-    log.info("Talkin quit (pid %s)", os.getpid())
+    log.info("Talkmorphic quit (pid %s)", os.getpid())
 
     # Stop here rather than returning. Python's normal exit waits for the
     # speech model's native threads to wind down, which took about thirty
