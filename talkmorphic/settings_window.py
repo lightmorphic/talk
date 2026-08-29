@@ -20,8 +20,9 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
-from . import chooser, cleanup, i18n, sounds, tooltip, uninstall
+from . import chooser, cleanup, help_content, i18n, sounds, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH
+from .download_window import Glyph
 from .engine import MODEL_NAME, list_microphones
 
 log = logging.getLogger("talkmorphic.settings")
@@ -1284,20 +1285,41 @@ class SettingsWindow(Gtk.Window):
     )
 
     def _build_help(self):
-        """What this is, how to work it, and what the colours mean.
+        """Everything the app can be asked about, grouped and searchable.
 
-        The update dot is the whole update interface, so its colours are
-        the one thing here that genuinely needs explaining — and they are
-        explained with the actual dots, drawn the same way, rather than
-        with the names of colours.
+        Long on purpose: a help page that leaves something out just
+        moves the question from here to an email instead. The filter
+        box at the top is what keeps that length usable rather than a
+        wall of text to scroll through — type a word and everything
+        that doesn't match it disappears, header included.
         """
         box = self._section("settings.section.help", "help.intro")
 
         box.pack_start(self._help_block("help.using_title", "help.using"),
                        False, False, 0)
-        box.pack_start(self._help_block("help.updates_title", "help.updates"),
-                       False, False, 0)
 
+        search = Gtk.Entry()
+        search.set_placeholder_text(i18n.t("help.search_placeholder"))
+        box.pack_start(search, False, False, 0)
+
+        groups = []   # (header_label, [(row_widget, searchable_text), ...])
+
+        def add_group(title_key, entries):
+            header = Gtk.Label(label=i18n.t(title_key), xalign=0)
+            header.get_style_context().add_class("section-title")
+            header.set_margin_top(8)
+            box.pack_start(header, False, False, 0)
+            rows = []
+            for row_widget, needle in entries:
+                box.pack_start(row_widget, False, False, 0)
+                rows.append((row_widget, needle))
+            groups.append((header, rows))
+
+        for cat_key, entries in help_content.CATEGORIES:
+            add_group(cat_key, [self._help_qa_row(q, a, glyph)
+                                for q, a, glyph in entries])
+
+        dot_entries = []
         for _state, colour, text_key in self._DOT_STATES:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             swatch = Gtk.DrawingArea()
@@ -1309,16 +1331,57 @@ class SettingsWindow(Gtk.Window):
             label = Gtk.Label(label=i18n.t(text_key), xalign=0, wrap=True)
             label.get_style_context().add_class("hint")
             row.pack_start(label, True, True, 0)
-            box.pack_start(row, False, False, 0)
+            dot_entries.append((row, i18n.t(text_key).lower()))
+        add_group(help_content.UPDATES_CATEGORY,
+                 [(self._help_block("help.updates_title", "help.updates"),
+                   (i18n.t("help.updates_title") + " "
+                    + i18n.t("help.updates")).lower())] + dot_entries)
 
-        box.pack_start(self._help_block("help.privacy_title", "help.privacy"),
-                       False, False, 0)
+        privacy = self._help_block("help.privacy_title", "help.privacy")
+        add_group(help_content.PRIVACY_CATEGORY,
+                 [(privacy, (i18n.t("help.privacy_title") + " "
+                             + i18n.t("help.privacy")).lower())])
 
         contact = Gtk.Label(label=i18n.t("help.contact"), xalign=0, wrap=True)
         contact.get_style_context().add_class("hint")
         contact.set_selectable(True)   # so the address can be copied
-        box.pack_start(contact, False, False, 0)
+        add_group(help_content.CONTACT_CATEGORY,
+                 [(contact, i18n.t("help.contact").lower())])
+
+        def on_search_changed(*_a):
+            needle = search.get_text().strip().lower()
+            for header, rows in groups:
+                any_visible = False
+                for widget, text in rows:
+                    match = not needle or needle in text
+                    widget.set_visible(match)
+                    any_visible = any_visible or match
+                header.set_visible(any_visible)
+        search.connect("changed", on_search_changed)
+
         return box
+
+    def _help_qa_row(self, question_key, answer_key, glyph_kind):
+        """One question: an optional little picture, the question, the
+        answer. Reuses the same small drawings the first-run tutorial
+        uses for the same gestures, rather than inventing new icons for
+        the same thing — one picture per gesture, not two.
+        """
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        if glyph_kind:
+            glyph = Glyph(glyph_kind, size=30)
+            glyph.set_valign(Gtk.Align.START)
+            row.pack_start(glyph, False, False, 0)
+        text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        question = Gtk.Label(label=i18n.t(question_key), xalign=0, wrap=True)
+        question.get_style_context().add_class("field-label")
+        text_box.pack_start(question, False, False, 0)
+        answer = Gtk.Label(label=i18n.t(answer_key), xalign=0, wrap=True)
+        answer.get_style_context().add_class("hint")
+        text_box.pack_start(answer, False, False, 0)
+        row.pack_start(text_box, True, True, 0)
+        needle = (i18n.t(question_key) + " " + i18n.t(answer_key)).lower()
+        return row, needle
 
     def _help_block(self, title_key, body_key):
         block = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
