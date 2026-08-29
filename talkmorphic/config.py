@@ -101,7 +101,7 @@ DEFAULTS = {
     # while dictating — they are looking at what they are dictating into.
     "sounds": True,
     "sound_theme": "chime",
-    # The personal dictionary as a whole. Off also turns off Ctrl-click
+    # The personal dictionary as a whole. Off also turns off right-click
     # teaching on the floating button - no point leaving a control live
     # for a feature someone has just said they do not want.
     "dictionary_enabled": True,

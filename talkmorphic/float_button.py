@@ -7,8 +7,15 @@ such signal to get wrong, which is why this exists.
 
 It draws exactly what the tray icon draws — the same waveform, pulsing
 with your voice — so there is one visual language, not two. Click once to
-start, click again to stop. Ctrl-click it to open the popup for teaching
-it a word, instead of a second button cluttering the thing up.
+start, click again to stop. Right-click it to open the popup for
+teaching it a word, instead of a second button cluttering the thing up.
+
+Teaching used to be Ctrl-click, not right-click. This window refuses
+keyboard focus on purpose (see set_accept_focus(False) below), so a
+click never steals focus from whatever is being dictated into — and on
+Wayland, a client only learns which modifier keys are held on a
+surface that currently has keyboard focus. Ctrl-click could never see
+Ctrl here. A mouse button carries no such requirement.
 
 On Wayland an application cannot place its own window: position is the
 compositor's business. So this is draggable — press and move it anywhere
@@ -96,7 +103,6 @@ class FloatButton(Gtk.Window):
         # Press-and-move drags the window; a press that does not move is
         # treated as a click. The compositor owns the drag on Wayland.
         self._press_x = self._press_y = 0
-        self._press_ctrl = False
 
         # GNOME on Wayland treats "keep above" as a hint and mostly
         # ignores it, so a full-screen-ish window such as a browser ends
@@ -115,7 +121,7 @@ class FloatButton(Gtk.Window):
         self._sync_timer()
 
     def set_dictionary_enabled(self, enabled):
-        """Turn Ctrl-click teaching on or off, to match the setting.
+        """Turn right-click teaching on or off, to match the setting.
 
         Someone who has switched the personal dictionary off entirely
         has no use for a control that only exists to add to it.
@@ -162,37 +168,9 @@ class FloatButton(Gtk.Window):
 
     def _on_press(self, _widget, event):
         self._press_x, self._press_y = event.x_root, event.y_root
-        # Read the modifier here, at press time, and act on it at release
-        # rather than re-reading event.state on the release event itself:
-        # on GNOME/Wayland, begin_move_drag() below hands the rest of this
-        # gesture to the compositor's own interactive-move grab, and the
-        # release event GTK synthesises afterwards does not reliably carry
-        # the modifier keys that were actually held — Ctrl-click was
-        # arriving at _on_release with no Ctrl bit set at all.
-        self._press_ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
-        # TEMPORARY — chasing a report that Ctrl-click still isn't seen
-        # at all, even at press time, on GNOME/Wayland: this window never
-        # accepts keyboard focus (see set_accept_focus(False) above), and
-        # a Wayland compositor only tells a client about modifier keys on
-        # a surface that currently holds keyboard focus. If that is what
-        # is happening here, event.state will show 0 even with Ctrl
-        # physically held down. Log everything GDK is willing to say
-        # about the keyboard right now so the next report has real
-        # numbers instead of another guess.
-        try:
-            seat = self.get_display().get_default_seat()
-            kbd = seat.get_keyboard() if seat else None
-            seat_mask = kbd.get_state(self.get_window())[2] if kbd else None
-        except Exception:
-            seat_mask = "error"
-        log.info("float press: event.state=%r seat_keyboard_mask=%r",
-                 event.state, seat_mask)
-        if event.button == 1 and not self._press_ctrl:
+        if event.button == 1:
             # Start a compositor-driven move; if the pointer never moves
             # this does nothing and the release below counts as a click.
-            # Skipped for Ctrl-click: that gesture teaches a word, not
-            # moves the button, and handing it to the compositor's move
-            # grab is exactly what was losing the modifier above.
             self.begin_move_drag(event.button, int(event.x_root),
                                  int(event.y_root), event.time)
         return True
@@ -200,11 +178,12 @@ class FloatButton(Gtk.Window):
     def _on_release(self, _widget, event):
         moved = (abs(event.x_root - self._press_x) > 4
                  or abs(event.y_root - self._press_y) > 4)
-        if not moved and event.button == 1:
-            if self._press_ctrl and self.dictionary_enabled:
-                self.on_correction()
-            elif not self._press_ctrl:
-                self.on_toggle()
+        if moved:
+            return True
+        if event.button == 1:
+            self.on_toggle()
+        elif event.button == 3 and self.dictionary_enabled:
+            self.on_correction()
         return True
 
     # -- state -----------------------------------------------------------
