@@ -1,4 +1,4 @@
-# Talkmorphic
+# Lightmorphic Talk
 
 Private, on-device dictation for Linux. Click, speak, click again. Your
 words are typed into whatever app you're using, and your voice never
@@ -14,7 +14,7 @@ window manager — with nothing to approve.
 
 - Click the floating button, or the tray icon, and speak. Click again to
   stop. The tray icon shows a live waveform while
-  Talkmorphic hears you, and a revolving spinner while it thinks. Release
+  Lightmorphic Talk hears you, and a revolving spinner while it thinks. Release
   (or click again), and the text appears where your cursor is.
 - Speech recognition runs locally on your CPU using NVIDIA's
   [Parakeet TDT 0.6b v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
@@ -22,21 +22,21 @@ window manager — with nothing to approve.
   with no cloud, no accounts, and no audio ever sent anywhere.
 - A cleanup pass removes filler words (um, uh, etc.) and applies your
   personal dictionary.
-- Teach it words: click the small button beside the record button, type
-  the word it got wrong and the right spelling once. Never see the mistake
+- Teach it words: highlight the word it got wrong, then right-click the
+  floating button and type the right spelling once. Never see the mistake
   again. Your dictionary can be exported and imported as a file.
 - Every visible string lives in `locales/translations.csv`, one
   human-editable file. Add a column, get a new language.
 
 ## Install
 
-Download the latest `Talkmorphic-x86_64.AppImage` from
-[Releases](https://github.com/lightmorphic/talkmorphic/releases/latest),
+Download the latest `LightmorphicTalk-x86_64.AppImage` from
+[Releases](https://github.com/lightmorphic/talk/releases/latest),
 make it executable, and run it, and that's the whole install:
 
 ```bash
-chmod +x Talkmorphic-x86_64.AppImage
-./Talkmorphic-x86_64.AppImage
+chmod +x LightmorphicTalk-x86_64.AppImage
+./LightmorphicTalk-x86_64.AppImage
 ```
 
 The speech model (~600 MB) downloads once on first run, then the app
@@ -49,11 +49,11 @@ PulseAudio.** See the notice at the top of this file.
 ## Building from source
 
 ```bash
-git clone https://github.com/lightmorphic/talkmorphic
-cd talkmorphic
+git clone https://github.com/lightmorphic/talk
+cd talk
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
-./scripts/talkmorphic.sh
+./scripts/talk.sh
 ```
 
 Needs Python 3.11+ and GTK 3 with AppIndicator

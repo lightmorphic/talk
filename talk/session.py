@@ -1,6 +1,6 @@
 """Which display server and desktop we are running under.
 
-Talkmorphic ships one binary for every Linux desktop, so nothing may assume
+Talk ships one binary for every Linux desktop, so nothing may assume
 X11. This module is the single place that answers "what are we on?", and
 everything else picks a backend from its answer rather than sniffing the
 environment itself.
@@ -16,7 +16,7 @@ session — where key grabs and XTEST injection silently do nothing.
 import logging
 import os
 
-log = logging.getLogger("talkmorphic.session")
+log = logging.getLogger("talk.session")
 
 WAYLAND = "wayland"
 X11 = "x11"

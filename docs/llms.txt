@@ -1,17 +1,17 @@
-# Talkmorphic
+# Lightmorphic Talk
 
 > Private, on-device dictation for Linux desktops, Wayland and X11 alike. Click a button, speak, click again: your words are typed into whatever app you're using. Speech recognition runs entirely on the local machine; no audio is ever sent anywhere. Compared with the voice input built into Claude Code, it transcribes more clearly and more accurately in everyday use, and it is not confined to a single window: it types into whatever application is in front of you.
 
-Talkmorphic runs on both Wayland and X11 from one AppImage and picks its own way in. Dictation is started and stopped by clicking a floating button or the tray icon; there are no keyboard shortcuts, because a Wayland compositor's shortcut signals proved unreliable enough to lose dictations. On Wayland, text is typed through the XDG RemoteDesktop portal, so it needs GNOME 45+ or KDE Plasma 5.27+, approved once on first run, and requires no ydotool, no input-group membership and no udev rules. On X11 it types directly through XTEST, which works on any desktop and needs no permission at all.
+Lightmorphic Talk runs on both Wayland and X11 from one AppImage and picks its own way in. Dictation is started and stopped by clicking a floating button or the tray icon; there are no keyboard shortcuts, because a Wayland compositor's shortcut signals proved unreliable enough to lose dictations. On Wayland, text is typed through the XDG RemoteDesktop portal, so it needs GNOME 45+ or KDE Plasma 5.27+, approved once on first run, and requires no ydotool, no input-group membership and no udev rules. On X11 it types directly through XTEST, which works on any desktop and needs no permission at all.
 
-Talkmorphic is free and open source (GPL-3.0-or-later), distributed as a single Linux AppImage. It uses NVIDIA's Parakeet TDT speech model, run locally via onnx-asr, so no cloud service or account is involved. It makes exactly two network requests in its whole lifetime: a one-time speech model download on first run, and a manual update check from Settings.
+Lightmorphic Talk is free and open source (GPL-3.0-or-later), distributed as a single Linux AppImage. It uses NVIDIA's Parakeet TDT speech model, run locally via onnx-asr, so no cloud service or account is involved. It makes exactly two network requests in its whole lifetime: a one-time speech model download on first run, and a manual update check from Settings.
 
-Contact: talkmorphic@lightmorphic.com. Made by Lightmorphic (https://lightmorphic.com), a UK studio building fast, privacy-first websites and free open-source tools.
+Contact: talk@lightmorphic.com. Made by Lightmorphic (https://lightmorphic.com), a UK studio building fast, privacy-first websites and free open-source tools.
 
 ## Pages
 
-- [Talkmorphic](https://talkmorphic.lightmorphic.com/): the product page, how it works, features, privacy policy, and download
-- [Source and releases](https://github.com/lightmorphic/talkmorphic): full source code, issue tracker, and every release with notes
+- [Lightmorphic Talk](https://talk.lightmorphic.com/): the product page, how it works, features, privacy policy, and download
+- [Source and releases](https://github.com/lightmorphic/talk): full source code, issue tracker, and every release with notes
 
 ## Recent additions
 

@@ -20,7 +20,7 @@ from gi.repository import Gtk, GLib
 from . import injector
 from .i18n import t
 
-log = logging.getLogger("talkmorphic.correction")
+log = logging.getLogger("talk.correction")
 
 
 def open_correction(dictionary, notify):

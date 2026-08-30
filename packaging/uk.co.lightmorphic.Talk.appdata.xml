@@ -3,17 +3,17 @@
      which fills in @VERSION@ and @DATE@ from the source tree at build
      time so this file can never quietly fall out of date. -->
 <component type="desktop-application">
-  <id>uk.co.lightmorphic.Talkmorphic</id>
+  <id>uk.co.lightmorphic.Talk</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>Talkmorphic</name>
+  <name>Lightmorphic Talk</name>
   <summary>Private, on-device dictation for Linux</summary>
   <developer id="uk.co.lightmorphic">
     <name>Lightmorphic</name>
   </developer>
   <description>
     <p>
-      Talkmorphic turns speech into text anywhere on the Linux desktop.
+      Lightmorphic Talk turns speech into text anywhere on the Linux desktop.
       Click the floating button, talk, click again - the words appear in
       whatever window has focus, whether that is an email, a document, a
       chat box or a terminal. It works on Wayland and on X11.
@@ -27,12 +27,12 @@
       ships as one self-contained AppImage.
     </p>
   </description>
-  <launchable type="desktop-id">uk.co.lightmorphic.Talkmorphic.desktop</launchable>
-  <url type="homepage">https://talkmorphic.lightmorphic.com</url>
-  <url type="bugtracker">https://github.com/lightmorphic/talkmorphic/issues</url>
+  <launchable type="desktop-id">uk.co.lightmorphic.Talk.desktop</launchable>
+  <url type="homepage">https://talk.lightmorphic.com</url>
+  <url type="bugtracker">https://github.com/lightmorphic/talk/issues</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://talkmorphic.lightmorphic.com/images/talkmorphic-settings.png</image>
+      <image>https://talk.lightmorphic.com/images/talk-settings.png</image>
       <caption>The Settings window: microphone, personal dictionary and local history</caption>
     </screenshot>
   </screenshots>

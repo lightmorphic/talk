@@ -1,4 +1,4 @@
-"""The Talkmorphic application: wires audio, model and UI together."""
+"""The Talk application: wires audio, model and UI together."""
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,10 +21,10 @@ from . import sounds
 from .settings_window import open_settings
 from .tray import Tray
 
-log = logging.getLogger("talkmorphic.app")
+log = logging.getLogger("talk.app")
 
 
-class TalkinApp:
+class TalkApp:
 
     def __init__(self):
         self.config = cfg.Config()
@@ -348,7 +348,7 @@ class TalkinApp:
         """The desktop withdrew permission to type into other windows.
 
         Usually the user pressing 'stop' on the desktop's own input-control
-        indicator. Say so, because otherwise Talkmorphic looks alive but never
+        indicator. Say so, because otherwise Talk looks alive but never
         types again — which reads as a crash.
         """
         self.notify(i18n.t("error.input_permission_lost"))
@@ -389,7 +389,7 @@ class TalkinApp:
         open_settings(self)
 
     def apply_settings(self):
-        """Re-read anything that can change while Talkmorphic is running."""
+        """Re-read anything that can change while Talk is running."""
         i18n.set_language(self.config.get("language"))
         return True
 
@@ -439,7 +439,7 @@ class TalkinApp:
         """
         env = dict(os.environ)
         appdir = env.get("APPDIR")
-        for name in TalkinApp._APPIMAGE_VARS:
+        for name in TalkApp._APPIMAGE_VARS:
             env.pop(name, None)
         # PATH and XDG_DATA_DIRS are prepended to rather than replaced,
         # so they keep the user's real values — only our own entries go.
@@ -577,8 +577,8 @@ class TalkinApp:
         log.info("notify: %s", message)
         if shutil.which("notify-send"):
             subprocess.Popen(
-                ["notify-send", "--app-name", "Talkmorphic",
-                 "--icon", os.path.join(cfg.ASSET_DIR, "talkmorphic-idle.svg"),
+                ["notify-send", "--app-name", "Lightmorphic Talk",
+                 "--icon", os.path.join(cfg.ASSET_DIR, "talk-idle.svg"),
                  i18n.t("notify.title"), message],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -611,15 +611,15 @@ def main():
     # The working directory is rescued in __main__, before any import
     # can trip over it; logged here because it explains failures that
     # surface much later and nowhere near the cause.
-    log.info("Talkmorphic starting (pid %s, in %s)", os.getpid(), os.getcwd())
+    log.info("Talk starting (pid %s, in %s)", os.getpid(), os.getcwd())
 
     # Without this, GLib falls back to argv[0]'s basename for the
     # process identity — which is literally "__main__.py" when running
-    # via `python -m talkmorphic`, and that's what desktop environments show
+    # via `python -m talk`, and that's what desktop environments show
     # as the tray icon's hover tooltip. Must run before any GTK/GLib
     # object (Tray, dialogs) is created.
-    GLib.set_prgname("talkmorphic")
-    GLib.set_application_name("Talkmorphic")
+    GLib.set_prgname("talk")
+    GLib.set_application_name("Lightmorphic Talk")
 
     # A source checkout isn't registered in any icon theme, so without
     # this the window manager's taskbar/dock/alt-tab falls back to a
@@ -635,7 +635,7 @@ def main():
     # window icon must never be able to crash startup again.
     try:
         Gtk.Window.set_default_icon_from_file(
-            os.path.join(cfg.ASSET_DIR, "talkmorphic.png"))
+            os.path.join(cfg.ASSET_DIR, "talk.png"))
     except GLib.GError:
         log.warning("could not load window icon", exc_info=True)
 
@@ -648,15 +648,15 @@ def main():
     _single = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     for attempt in range(20):
         try:
-            _single.bind("\0talkmorphic-single-instance")
+            _single.bind("\0talk-single-instance")
             break
         except OSError:
             time.sleep(0.5)
     else:
-        print("Talkmorphic is already running.", file=sys.stderr)
+        print("Lightmorphic Talk is already running.", file=sys.stderr)
         sys.exit(0)
 
-    app = TalkinApp()
+    app = TalkApp()
     GLib.idle_add(lambda: app.tray.set_state("loading") and False)
 
     import signal
@@ -665,7 +665,7 @@ def main():
             GLib.PRIORITY_DEFAULT, sig, lambda: app.quit() or False)
 
     Gtk.main()
-    log.info("Talkmorphic quit (pid %s)", os.getpid())
+    log.info("Talk quit (pid %s)", os.getpid())
 
     # Stop here rather than returning. Python's normal exit waits for the
     # speech model's native threads to wind down, which took about thirty

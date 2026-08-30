@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://talkmorphic.lightmorphic.com/sitemap.xml
+Sitemap: https://talk.lightmorphic.com/sitemap.xml

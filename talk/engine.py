@@ -17,7 +17,7 @@ import numpy as np
 
 from .config import MODEL_DIR
 
-log = logging.getLogger("talkmorphic.engine")
+log = logging.getLogger("talk.engine")
 
 SAMPLE_RATE = 16000
 MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
@@ -65,7 +65,7 @@ def _resample(audio, orig_rate, target_rate):
     return resampled.astype(np.float32)
 
 
-_DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talkmorphic-download-complete")
+_DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talk-download-complete")
 
 
 # The model is about 600 MB. Anything much smaller than this is not a
@@ -144,7 +144,7 @@ def _mark_cached():
 def _configure_hub(offline):
     """Point the Hugging Face client at our own cache folder.
 
-    Talkmorphic is offline by default. The one exception is the very first
+    Talk is offline by default. The one exception is the very first
     run, before the model has ever been downloaded — that single
     download is allowed, then this pins the process hard-offline for
     good, so no request is ever made again.
