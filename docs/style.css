@@ -1,4 +1,4 @@
-/* Talk — house style, its own layout.
+/* Talk: house style, its own layout.
    Plain CSS, one self-hosted font, no framework, no external requests. */
 
 @font-face {
@@ -28,7 +28,7 @@
   --wrap: 68rem;
 
   /* The session-check panel keeps the brand navy in BOTH themes, the same
-     way the tray icon does — it is identity, not a surface, so it does not
+     way the tray icon does: it is identity, not a surface, so it does not
      follow light/dark. These are its own tokens so components below carry
      no raw colour. */
   --check-bg: var(--brand-navy);
@@ -208,6 +208,7 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem;
 }
 section { padding: 2.5rem 0; }
+section[id] { scroll-margin-top: 4.5rem; }
 .section-intro { color: var(--muted-fg); max-width: 60ch; margin-bottom: 1.5rem; }
 
 /* Columns rather than a grid, so a short card does not leave a hole
@@ -231,7 +232,7 @@ section { padding: 2.5rem 0; }
 .diff { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
 @media (max-width: 48rem) { .diff { grid-template-columns: 1fr; } }
 /* Grey, not amber. A coloured edge is allowed where it stands for
-   something — green for do, red for don't — but these two panels are
+   something (green for do, red for don't), but these two panels are
    not warnings, so the colour was decoration, and the accent is never
    decoration. */
 .diff .panel { border-left: 3px solid var(--panel-border); }
