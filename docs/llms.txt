@@ -24,7 +24,7 @@ Contact: talk@lightmorphic.com. Made by Lightmorphic (https://lightmorphic.com),
 
 - Platform: Linux desktop (Wayland or X11; PipeWire/PulseAudio)
 - Dictation languages: 25 European languages, detected automatically (NVIDIA Parakeet TDT 0.6b v3); one language per dictation, not mixed within a single recording
-- Interface languages: the same 25 — chosen on the first-run screen and in Settings
+- Interface languages: the same 25, chosen on the first-run screen and in Settings
 - Distribution: single AppImage, no installer
 - Licence: GPL-3.0-or-later; the bundled speech model is CC-BY-4.0 (NVIDIA)
 - Privacy: no telemetry, no analytics, no accounts, no cloud processing, no cookies on the website
