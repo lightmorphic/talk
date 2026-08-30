@@ -13,7 +13,7 @@ portal call follows the same awkward shape, so it lives here once:
 Subscribing before calling matters: the portal can answer immediately and
 we would miss a signal we had not subscribed to yet.
 
-All calls are asynchronous. Talkmorphic's GTK main loop must never block on a
+All calls are asynchronous. Talk's GTK main loop must never block on a
 portal, because several of these calls wait on a human clicking a consent
 dialog — a synchronous call there would freeze the tray and the settings
 window for as long as the dialog is up.
@@ -30,17 +30,17 @@ from gi.repository import Gio, GLib
 
 from .config import desktop_exec
 
-log = logging.getLogger("talkmorphic.portal")
+log = logging.getLogger("talk.portal")
 
 BUS_NAME = "org.freedesktop.portal.Desktop"
 OBJECT_PATH = "/org/freedesktop/portal/desktop"
 REQUEST_IFACE = "org.freedesktop.portal.Request"
 REGISTRY_IFACE = "org.freedesktop.host.portal.Registry"
 
-# Reverse-DNS id matching packaging/uk.co.lightmorphic.Talkmorphic.appdata.xml.
+# Reverse-DNS id matching packaging/uk.co.lightmorphic.Talk.appdata.xml.
 # Used only if we cannot find the .desktop file we were actually launched
 # from (AppImage integrators name that file themselves).
-DEFAULT_APP_ID = "uk.co.lightmorphic.Talkmorphic"
+DEFAULT_APP_ID = "uk.co.lightmorphic.Talk"
 
 _counter = [0]
 
@@ -156,11 +156,11 @@ def _existing_entries(executable):
     """
     found = {}
     # Match on the app's stem, not on this build's exact filename. An
-    # installed copy is called talkmorphic.appimage while a locally built one
-    # is Talkmorphic-x86_64.AppImage: comparing full filenames misses that
+    # installed copy is called talk.appimage while a locally built one
+    # is Talk-x86_64.AppImage: comparing full filenames misses that
     # they are the same app, and the entry we wrote then survives
     # alongside the installed one as a second icon.
-    stem = DEFAULT_APP_ID.rsplit(".", 1)[-1].lower()   # "talkmorphic"
+    stem = DEFAULT_APP_ID.rsplit(".", 1)[-1].lower()   # "talk"
     for directory in _application_dirs():
         for path in glob.glob(os.path.join(directory, "*.desktop")):
             name = os.path.basename(path)[:-len(".desktop")]
@@ -178,7 +178,7 @@ def _existing_entries(executable):
     for name, which in found.items():
         if which == "another copy":
             log.warning("desktop entry %r points at a different copy of "
-                        "Talkmorphic; launching it runs that one, not this",
+                        "Talk; launching it runs that one, not this",
                         name)
     return set(found)
 
@@ -246,16 +246,16 @@ def ensure_desktop_entry():
         return None
     icon = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "assets", "talkmorphic.png")
+        "assets", "talk.png")
     entry = ("[Desktop Entry]\n"
              "Type=Application\n"
-             "Name=Talkmorphic\n"
+             "Name=Lightmorphic Talk\n"
              "Comment=Private, on-device dictation for Linux\n"
              "Exec={}\n"
              "Icon={}\n"
              "Categories=Utility;Accessibility;\n"
              "Terminal=false\n"
-             "StartupWMClass=talkmorphic\n").format(desktop_exec(appimage), icon)
+             "StartupWMClass=talk\n").format(desktop_exec(appimage), icon)
     try:
         os.makedirs(directory, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
@@ -278,7 +278,7 @@ def app_id_candidates():
     executable they launch rather than by guessing at their names.
 
     Matching on a name substring was tried and was a bug: the filter
-    looked for "talkmorphic", which is not a substring of "talkmorphic", so this
+    looked for "talk", which is not a substring of "talk", so this
     app skipped its own desktop file and had no identity at all.
     """
     candidates = []
@@ -289,7 +289,7 @@ def app_id_candidates():
 
     executable = os.environ.get("APPIMAGE") or os.path.abspath(sys.argv[0])
     ours = os.path.basename(executable).lower()
-    stem = DEFAULT_APP_ID.rsplit(".", 1)[-1].lower()   # "talkmorphic"
+    stem = DEFAULT_APP_ID.rsplit(".", 1)[-1].lower()   # "talk"
     by_name = []
     for directory in _application_dirs():
         for path in glob.glob(os.path.join(directory, "*.desktop")):
@@ -337,7 +337,7 @@ def call(iface, method, signature, values, on_ok, on_error=None):
     """
     conn = _connection()
     _counter[0] += 1
-    token = "talkmorphic_{}_{}".format(os.getpid(), _counter[0])
+    token = "talk_{}_{}".format(os.getpid(), _counter[0])
 
     def fail(message):
         log.warning("%s.%s: %s", iface.rsplit(".", 1)[-1], method, message)

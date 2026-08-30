@@ -33,13 +33,13 @@ jobs:
       - name: Verify the build actually runs
         run: |
           # Run from outside the checkout, not from the repo root: the
-          # repo has its own talkmorphic/ package sitting right there, and
+          # repo has its own talk/ package sitting right there, and
           # Python's -m always prepends the current directory to
           # sys.path — so testing from inside the checkout can "pass"
           # by silently importing the source tree instead of whatever
           # got bundled into the AppImage, masking real packaging bugs.
-          rm -rf ~/.local/share/talkmorphic
-          APPIMAGE_PATH="$(readlink -f ./Talkmorphic-x86_64.AppImage)"
+          rm -rf ~/.local/share/talk
+          APPIMAGE_PATH="$(readlink -f ./LightmorphicTalk-x86_64.AppImage)"
           cd /tmp
           xvfb-run -a "$APPIMAGE_PATH" &
           pid=$!
@@ -47,14 +47,14 @@ jobs:
             sleep 2
             if ! kill -0 "$pid" 2>/dev/null; then
               echo "AppImage exited early — build is broken" >&2
-              cat ~/.local/share/talkmorphic/data/talkmorphic.log 2>&1 || true
+              cat ~/.local/share/talk/data/talk.log 2>&1 || true
               exit 1
             fi
-            grep -q "model ready" ~/.local/share/talkmorphic/data/talkmorphic.log 2>/dev/null && break
+            grep -q "model ready" ~/.local/share/talk/data/talk.log 2>/dev/null && break
           done
-          grep -q "model ready" ~/.local/share/talkmorphic/data/talkmorphic.log 2>/dev/null || {
-            echo "Talkmorphic never finished starting up" >&2
-            cat ~/.local/share/talkmorphic/data/talkmorphic.log 2>&1 || true
+          grep -q "model ready" ~/.local/share/talk/data/talk.log 2>/dev/null || {
+            echo "Talk never finished starting up" >&2
+            cat ~/.local/share/talk/data/talk.log 2>&1 || true
             exit 1
           }
           kill "$pid"
@@ -72,14 +72,14 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Talkmorphic-AppImage-${{ github.sha }}
-          path: Talkmorphic-x86_64.AppImage
+          name: LightmorphicTalk-AppImage-${{ github.sha }}
+          path: LightmorphicTalk-x86_64.AppImage
           if-no-files-found: error
           retention-days: 14
 
       - name: Create versioned copy
         if: startsWith(github.ref, 'refs/tags/')
-        run: cp Talkmorphic-x86_64.AppImage "Talkmorphic-${{ github.ref_name }}-x86_64.AppImage"
+        run: cp LightmorphicTalk-x86_64.AppImage "LightmorphicTalk-${{ github.ref_name }}-x86_64.AppImage"
 
       # Tags only: a workflow_dispatch run must never create a release.
       - name: Upload release assets
@@ -87,7 +87,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Talkmorphic-x86_64.AppImage
-            Talkmorphic-${{ github.ref_name }}-x86_64.AppImage
+            LightmorphicTalk-x86_64.AppImage
+            LightmorphicTalk-${{ github.ref_name }}-x86_64.AppImage
           fail_on_unmatched_files: true
           generate_release_notes: true

@@ -3,7 +3,7 @@
 Only translation keys live here — the actual English words are in
 locales/translations.csv like every other user-facing string, so the
 Help page translates the same way the rest of the app does. `glyph` is
-an optional talkmorphic.download_window.Glyph kind, drawn beside a
+an optional talk.download_window.Glyph kind, drawn beside a
 question when the same gesture already has a picture there.
 """
 

@@ -36,7 +36,7 @@ from gi.repository import Gtk, Gdk, GLib
 from . import portal, session
 from .inject_portal import PortalInjector
 
-log = logging.getLogger("talkmorphic.injector")
+log = logging.getLogger("talk.injector")
 
 _backend = None
 
@@ -50,7 +50,7 @@ def setup(config, on_ready=None, on_lost=None):
 
     On Wayland the portal session is started here rather than lazily: it
     puts the compositor's consent prompt right after launch, where the
-    user connects it with having just started Talkmorphic, instead of
+    user connects it with having just started Talk, instead of
     springing it mid-sentence on the first dictation. On X11 there is
     nothing to consent to, so this is immediate.
     """

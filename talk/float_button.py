@@ -34,7 +34,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from .tray import _draw_frame
 
-log = logging.getLogger("talkmorphic.float")
+log = logging.getLogger("talk.float")
 
 BUTTON_SIZE = 56       # the round record button
 _FPS_MS = 100

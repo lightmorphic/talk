@@ -5,7 +5,7 @@ import os
 # directory has been deleted still runs, but Python's own import
 # machinery stats that directory and raises "No such file or directory"
 # — an error with no filename on it, arriving far from its cause. It
-# happens when a copy of Talkmorphic starts inside the temporary mount of the
+# happens when a copy of Talk starts inside the temporary mount of the
 # copy that launched it and that mount then disappears, and it is what
 # left a fresh install unable to download its speech model.
 try:

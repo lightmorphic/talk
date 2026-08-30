@@ -22,7 +22,7 @@ import time
 
 from gi.repository import GLib
 
-log = logging.getLogger("talkmorphic.inject_xtest")
+log = logging.getLogger("talk.inject_xtest")
 
 
 class XTestInjector:

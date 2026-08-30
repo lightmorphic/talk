@@ -43,7 +43,7 @@ import tempfile
 import threading
 import wave
 
-log = logging.getLogger("talkmorphic.sounds")
+log = logging.getLogger("talk.sounds")
 
 RATE = 44100
 _GAIN = 0.08           # quiet: this is a cue, not an alert
@@ -157,7 +157,7 @@ def _wav_path(theme_id, which):
         if path and os.path.exists(path):
             return path
         handle, path = tempfile.mkstemp(
-            prefix="talkmorphic-{}-{}-".format(theme_id, which), suffix=".wav")
+            prefix="talk-{}-{}-".format(theme_id, which), suffix=".wav")
         os.close(handle)
         with wave.open(path, "wb") as out:
             out.setnchannels(1)

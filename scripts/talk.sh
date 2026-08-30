@@ -1,6 +1,6 @@
 #!/bin/bash
-# Talkmorphic launcher. Offline/online is decided in talkmorphic/engine.py: the
+# Talk launcher. Offline/online is decided in talk/engine.py: the
 # very first run is allowed to download the speech model once, then
 # every run after that is pinned hard-offline. Nothing is forced here.
 cd "$(dirname "$0")/.." || exit 1
-exec .venv/bin/python -m talkmorphic "$@"
+exec .venv/bin/python -m talk "$@"
