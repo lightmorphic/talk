@@ -27,6 +27,12 @@
   --panel-radius: 1.375rem;
   --wrap: 68rem;
 
+  /* The accent yellow is a 1.6:1 contrast ring on a white page — fine
+     as a fill, invisible as an outline. Light mode gets the near-black
+     text colour instead; dark mode keeps the accent, where it already
+     passes at 12.6:1. */
+  --focus-ring: var(--brand-navy);
+
   /* The session-check panel keeps the brand navy in BOTH themes, the same
      way the tray icon does: it is identity, not a surface, so it does not
      follow light/dark. These are its own tokens so components below carry
@@ -51,6 +57,7 @@
     --link: #2295f1;
     --success: #4bae4f;
     --warning: #ffc006;
+    --focus-ring: var(--accent);
   }
 }
 
@@ -63,6 +70,7 @@
   --link: #2295f1;
   --success: #4bae4f;
   --warning: #ffc006;
+  --focus-ring: var(--accent);
 }
 
 * { box-sizing: border-box; }
@@ -83,8 +91,9 @@ body {
 .wrap { width: min(100% - 2.5rem, var(--wrap)); margin-inline: auto; }
 
 a { color: var(--link); }
-a:focus-visible, button:focus-visible, .btn:focus-visible {
-  outline: 2px solid var(--accent);
+a:focus-visible, button:focus-visible, .btn:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -109,14 +118,21 @@ p:last-child { margin-bottom: 0; }
   background: var(--bg);
   border-bottom: 1px solid var(--panel-border);
 }
-.topnav-inner { display: flex; align-items: center; gap: 1rem; padding: .75rem 0; }
+.topnav-inner { display: flex; align-items: center; gap: 1rem; padding: .3rem 0; }
+/* Padding moved from the bar onto each link rather than just added on
+   top of it - a nav link's own clickable box was ~24px tall before
+   this, under the 44px a touch target wants; this keeps the bar close
+   to its old height while giving every link room of its own. */
 .brand {
   display: inline-flex; align-items: center; gap: .5rem;
   font-weight: 700; color: var(--fg); text-decoration: none;
-  letter-spacing: -.01em;
+  letter-spacing: -.01em; padding: .65rem 0;
 }
 .nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.25rem; }
-.nav-links a { color: var(--muted-fg); text-decoration: none; font-size: .9375rem; font-weight: 600; }
+.nav-links a {
+  color: var(--muted-fg); text-decoration: none; font-size: .9375rem;
+  font-weight: 600; padding: .65rem 0;
+}
 .nav-links a:hover { color: var(--fg); }
 @media (max-width: 40rem) { .nav-links .hide-sm { display: none; } }
 
@@ -208,7 +224,7 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem;
 }
 section { padding: 2.5rem 0; }
-section[id] { scroll-margin-top: 4.5rem; }
+section[id] { scroll-margin-top: 5.5rem; }
 .section-intro { color: var(--muted-fg); max-width: 60ch; margin-bottom: 1.5rem; }
 
 /* Columns rather than a grid, so a short card does not leave a hole
@@ -266,6 +282,7 @@ section[id] { scroll-margin-top: 4.5rem; }
 }
 .foot-inner { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
 .foot-links { margin-left: auto; display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.foot-links a, .badge { display: inline-flex; align-items: center; padding: .65rem 0; }
 .badge img { display: block; height: 34px; width: auto; }
 .badge .dark-only { display: none; }
 @media (prefers-color-scheme: dark) {
