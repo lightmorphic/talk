@@ -11,7 +11,7 @@ import tempfile
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 
 from . import cleanup, config as cfg, correction, i18n, injector, session, uninstall
 from .engine import Recorder, Transcriber
@@ -612,6 +612,14 @@ def main():
     # can trip over it; logged here because it explains failures that
     # surface much later and nowhere near the cause.
     log.info("Talk starting (pid %s, in %s)", os.getpid(), os.getcwd())
+    # Whether the floating button can ever stay above another window
+    # depends entirely on this: X11 (even via XWayland) respects "keep
+    # above", native Wayland cannot, by design, no matter what config
+    # or code asks for it. Logged as plain fact rather than left to be
+    # inferred from prefer_x11()'s own log lines two files away.
+    _display = Gdk.Display.get_default()
+    log.info("GDK display backend: %s",
+             type(_display).__name__ if _display else "none")
 
     # Without this, GLib falls back to argv[0]'s basename for the
     # process identity — which is literally "__main__.py" when running

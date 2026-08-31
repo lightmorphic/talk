@@ -22,6 +22,12 @@ from . import config
 # carry over settings and the speech model from this app's old name.
 config.migrate_from_talkin()
 
+# Right after migration, not before it (see setup_logging's own
+# docstring for why the order matters), and before prefer_x11() below:
+# that one decides, silently until now, whether this run can ever keep
+# the floating button above another window at all.
+config.setup_logging()
+
 # Must run before anything (even lazily) imports sounddevice.
 config.patch_library_lookup()
 
