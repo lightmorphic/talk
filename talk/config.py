@@ -318,21 +318,31 @@ def prefer_x11():
     XWayland restores both, at the cost of slightly softer edges on a
     scaled display.
 
-    The AppImage already runs this way — its GTK bundle sets the backend
-    before we get a say — so this only affects running from source, where
-    the two would otherwise behave differently and only one of them ever
-    gets tested.
+    The bundled GTK supports both backends — checked directly against the
+    built AppImage's libgdk-3.so, which exports both gdk_wayland_* and
+    gdk_x11_* symbols — so nothing about the bundle forces X11 on its
+    own. This function choosing not to re-exec, for any reason, is the
+    one thing standing between "always on top" working and the floating
+    button quietly running under native Wayland instead, where no
+    application can ever stay above another. Logged at every branch so
+    that is never invisible again.
 
     It has to happen before GTK opens a display connection, so it
     replaces the process rather than changing anything in it.
     """
     if os.environ.get("GDK_BACKEND"):
-        return                      # someone has already chosen
+        log.info("prefer_x11: GDK_BACKEND already set to %r, leaving it",
+                 os.environ["GDK_BACKEND"])
+        return
     if not os.environ.get("WAYLAND_DISPLAY"):
-        return                      # already on X11
+        log.info("prefer_x11: no WAYLAND_DISPLAY, already on X11")
+        return
     if not os.environ.get("DISPLAY"):
-        return                      # no XWayland to fall back to
+        log.info("prefer_x11: WAYLAND_DISPLAY set but no DISPLAY — "
+                 "no XWayland to fall back to, staying on native Wayland")
+        return
     import sys
+    log.info("prefer_x11: re-executing under GDK_BACKEND=x11")
     os.environ["GDK_BACKEND"] = "x11"
     argv = [sys.executable]
     if sys.flags.no_site:
@@ -341,7 +351,7 @@ def prefer_x11():
     try:
         os.execv(sys.executable, argv)
     except OSError:
-        # Carry on natively rather than not starting at all.
+        log.exception("prefer_x11: re-exec failed, carrying on natively")
         os.environ.pop("GDK_BACKEND", None)
 
 
@@ -421,6 +431,21 @@ def set_autostart(enabled):
 
 
 def setup_logging():
+    """Safe to call more than once — only the first call does anything.
+
+    Needs to run before migrate_from_talkin() and prefer_x11() so their
+    own log.info() calls land somewhere instead of being silently
+    dropped (the root logger has no handler at all until this runs, and
+    plain log.info() with no handler configured just vanishes). It also
+    needs to run AFTER migrate_from_talkin(), because creating DATA_DIR
+    here would make that function's own "does the new folder already
+    exist" check true before migration ever got a chance to run. main()
+    calls this again regardless, since it cannot assume __main__ already
+    did — the guard is what makes that free.
+    """
+    root = logging.getLogger()
+    if root.handlers:
+        return logging.getLogger(APP_NAME)
     _private_dir(DATA_DIR)
     _private_dir(_LOG_DIR)
     handler = logging.handlers.RotatingFileHandler(
@@ -428,7 +453,6 @@ def setup_logging():
     _private_file(LOG_PATH)
     handler.setFormatter(logging.Formatter(
         "%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    root = logging.getLogger()
     root.setLevel(logging.INFO)
     root.addHandler(handler)
     return logging.getLogger(APP_NAME)
