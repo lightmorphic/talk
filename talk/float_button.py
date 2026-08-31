@@ -63,6 +63,13 @@ class FloatButton(Gtk.Window):
 
         self.set_decorated(False)
         self.set_keep_above(True)
+        # A stable, distinctive title. GTK derives WM_CLASS from argv[0],
+        # which varies with how the app is launched (AppImage, -m talk,
+        # a frozen binary) — the title is the one identity a companion
+        # GNOME Shell extension (see gnome-extension/) can match on to
+        # force this specific window above others, everywhere native
+        # Wayland compositors refuse it to a client.
+        self.set_title("Lightmorphic Talk — Float Button")
         self.set_resizable(False)
         self.set_skip_taskbar_hint(True)
         self.set_skip_pager_hint(True)
