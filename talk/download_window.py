@@ -398,6 +398,13 @@ class DownloadWindow(Gtk.Window):
         box.pack_start(_card("teach", step + 1, t("firstrun.teach_title"),
                              t("firstrun.teach")), False, False, 0)
 
+        if self._gnome_wayland:
+            gnome_note = Gtk.Label(label=t("firstrun.gnome_note"),
+                                    xalign=0, wrap=True)
+            gnome_note.set_max_width_chars(44)
+            gnome_note.get_style_context().add_class("card-body")
+            box.pack_start(gnome_note, False, False, 0)
+
         self.retry_button = Gtk.Button(label=t("download.retry"))
         self.retry_button.get_style_context().add_class("suggested-action")
         self.retry_button.set_halign(Gtk.Align.CENTER)
@@ -442,6 +449,14 @@ class DownloadWindow(Gtk.Window):
         """Whether this desktop has a permission step at all."""
         from . import session
         return session.is_wayland()
+
+    @property
+    def _gnome_wayland(self):
+        """GNOME's Wayland compositor is the one that won't keep the
+        floating button above other windows for its own reasons — KDE
+        and other Wayland compositors don't have this restriction."""
+        from . import session
+        return session.is_wayland() and session.desktop() == "gnome"
 
     def permission_granted(self):
         """True only once Talk can actually type.
