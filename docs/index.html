@@ -136,6 +136,14 @@
         },
         {
           "@type": "Question",
+          "name": "Why does the floating button sometimes end up behind other windows?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction."
+          }
+        },
+        {
+          "@type": "Question",
           "name": "Can I dictate in a language other than English?",
           "acceptedAnswer": {
             "@type": "Answer",
@@ -361,6 +369,10 @@
       <details class="faq-item">
         <summary><h3>Does it work on Wayland or on X11?</h3></summary>
         <p>Both, from the same download. On Wayland it types through the desktop's RemoteDesktop portal, which needs GNOME 45 or later, or KDE Plasma 5.27 or later, and which you approve once. On X11 it types directly and works on any desktop, including Cinnamon, XFCE, MATE and bare window managers.</p>
+      </details>
+      <details class="faq-item">
+        <summary><h3>Why does the floating button sometimes end up behind other windows?</h3></summary>
+        <p>This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction.</p>
       </details>
       <details class="faq-item">
         <summary><h3>Can I dictate in a language other than English?</h3></summary>
