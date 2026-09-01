@@ -24,6 +24,8 @@ from . import chooser, cleanup, help_content, i18n, sounds, tooltip, uninstall
 from .config import ASSET_DIR, BASE_DIR, DATA_DIR, LOG_PATH
 from .download_window import Glyph
 from .engine import MODEL_NAME, list_microphones
+from .float_button import BUTTON_SIZES
+from .tray import _draw_frame
 
 log = logging.getLogger("talk.settings")
 
@@ -623,7 +625,8 @@ class SettingsWindow(Gtk.Window):
                 from .float_button import FloatButton
                 app.float_button = FloatButton(
                     on_toggle=app._toggle, on_correction=app._correction,
-                    dictionary_enabled=self.config.get("dictionary_enabled"))
+                    dictionary_enabled=self.config.get("dictionary_enabled"),
+                    button_size=self.config.get("button_size"))
                 app.float_button.set_state(app.state)
             elif not value and app.float_button is not None:
                 app.float_button.stop()
@@ -634,6 +637,9 @@ class SettingsWindow(Gtk.Window):
             # broken.
             if self.app_obj.float_button is not None:
                 self.app_obj.float_button.set_dictionary_enabled(value)
+        if key == "button_size":
+            if self.app_obj.float_button is not None:
+                self.app_obj.float_button.set_button_size(value)
         if key == "sounds" and value:
             # Play it on the spot, so the switch says what it does
             # instead of describing it.
@@ -788,6 +794,41 @@ class SettingsWindow(Gtk.Window):
 
         return False
 
+    def _button_size_row(self):
+        """The size chooser, with a preview drawn by the button's own
+        code so what you see here is exactly what you'll get.
+        """
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+
+        preview_area = max(BUTTON_SIZES.values())
+        preview = Gtk.DrawingArea()
+        preview.set_size_request(preview_area, preview_area)
+
+        def draw_preview(_widget, cr):
+            size = BUTTON_SIZES.get(self.config.get("button_size"),
+                                    BUTTON_SIZES["full"])
+            pixbuf = _draw_frame(size, "idle", 0.0, 0.0, 0.0)
+            offset = (preview_area - size) / 2
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, offset, offset)
+            cr.paint()
+            return False
+
+        preview.connect("draw", draw_preview)
+
+        def on_change(value):
+            self._set("button_size", value)
+            preview.queue_draw()
+
+        size_button = chooser.choice_button(
+            [("full", i18n.t("settings.button_size.full")),
+             ("three_quarters", i18n.t("settings.button_size.three_quarters")),
+             ("half", i18n.t("settings.button_size.half"))],
+            self.config.get("button_size"), on_change)
+
+        row.pack_start(size_button, False, False, 0)
+        row.pack_start(preview, False, False, 0)
+        return row
+
     def _build_general(self):
         box = self._section("settings.section.general")
 
@@ -814,6 +855,11 @@ class SettingsWindow(Gtk.Window):
         # arrive late or early, so it works where the keyboard does not.
         box.pack_start(
             self._switch_row("float_button", "settings.float_button"),
+            False, False, 0)
+
+        box.pack_start(
+            self._row(i18n.t("settings.button_size"),
+                     self._button_size_row()),
             False, False, 0)
 
         # While dictating you are looking at the document, not at the
@@ -1385,6 +1431,7 @@ class SettingsWindow(Gtk.Window):
         text_box.pack_start(question, False, False, 0)
         answer = Gtk.Label(label=i18n.t(answer_key), xalign=0, wrap=True)
         answer.get_style_context().add_class("hint")
+        answer.set_selectable(True)   # some answers are a link to copy
         text_box.pack_start(answer, False, False, 0)
         row.pack_start(text_box, True, True, 0)
         needle = (i18n.t(question_key) + " " + i18n.t(answer_key)).lower()

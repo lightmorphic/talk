@@ -16,6 +16,7 @@ CATEGORIES = [
         ("help.q.permission", "help.a.permission", None),
         ("help.q.move_button", "help.a.move_button", None),
         ("help.q.button_missing", "help.a.button_missing", None),
+        ("help.q.gnome_extension", "help.a.gnome_extension", None),
         ("help.q.language", "help.a.language", None),
         ("help.q.autostart", "help.a.autostart", "toggle"),
     ]),

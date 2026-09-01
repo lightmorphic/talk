@@ -53,7 +53,8 @@ class TalkApp:
         if self.config.get("float_button"):
             self.float_button = FloatButton(
                 on_toggle=self._toggle, on_correction=self._correction,
-                dictionary_enabled=self.config.get("dictionary_enabled"))
+                dictionary_enabled=self.config.get("dictionary_enabled"),
+                button_size=self.config.get("button_size"))
 
         self.recorder = Recorder(self.config, on_level=self._on_level)
         self.transcriber = Transcriber(

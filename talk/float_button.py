@@ -36,8 +36,16 @@ from .tray import _draw_frame
 
 log = logging.getLogger("talk.float")
 
-BUTTON_SIZE = 56       # the round record button
+BUTTON_SIZE = 56       # the round record button, at the "full" size
 _FPS_MS = 100
+
+# The three sizes offered in Settings, as pixel diameters. Three
+# quarters and half are of BUTTON_SIZE, rounded to a whole pixel.
+BUTTON_SIZES = {
+    "full": BUTTON_SIZE,
+    "three_quarters": round(BUTTON_SIZE * 0.75),
+    "half": round(BUTTON_SIZE * 0.5),
+}
 
 # Right at the bottom edge of the usable area. The work area already
 # excludes panels and docks, so this is a hair of breathing room rather
@@ -50,11 +58,13 @@ _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 class FloatButton(Gtk.Window):
     """A small always-on-top record button."""
 
-    def __init__(self, on_toggle, on_correction, dictionary_enabled=True):
+    def __init__(self, on_toggle, on_correction, dictionary_enabled=True,
+                 button_size="full"):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.on_toggle = on_toggle
         self.on_correction = on_correction
         self.dictionary_enabled = dictionary_enabled
+        self._size = BUTTON_SIZES.get(button_size, BUTTON_SIZE)
         self._state = "loading"
         self._phase = 0.0
         self._level = 0.0
@@ -93,7 +103,7 @@ class FloatButton(Gtk.Window):
         self.add(row)
 
         self.canvas = Gtk.DrawingArea()
-        self.canvas.set_size_request(BUTTON_SIZE, BUTTON_SIZE)
+        self.canvas.set_size_request(self._size, self._size)
         # No tooltip here on purpose. The button sits wherever it was
         # dragged, directly under the pointer that just clicked it, so a
         # tooltip pops up over the work every time — and it only repeats
@@ -135,6 +145,18 @@ class FloatButton(Gtk.Window):
         """
         self.dictionary_enabled = enabled
 
+    def set_button_size(self, button_size):
+        """Resize live, in place, rather than closing and reopening.
+
+        A size change shifts where "bottom centre" is, so place_default()
+        runs again afterward, the same as after any other reshow.
+        """
+        self._size = BUTTON_SIZES.get(button_size, BUTTON_SIZE)
+        self.canvas.set_size_request(self._size, self._size)
+        self.canvas.queue_draw()
+        self.resize(self._size, self._size)
+        self.place_default()
+
     def place_default(self):
         """Put the button near the bottom middle of the screen.
 
@@ -156,8 +178,8 @@ class FloatButton(Gtk.Window):
             area = monitor.get_workarea()
             width, height = self.get_size()
             if width < 2 or height < 2:      # not yet realised
-                width = BUTTON_SIZE
-                height = BUTTON_SIZE
+                width = self._size
+                height = self._size
             x = area.x + (area.width - width) // 2
             y = area.y + area.height - height - _BOTTOM_GAP
             self.move(x, y)
@@ -232,7 +254,7 @@ class FloatButton(Gtk.Window):
         return True
 
     def _on_draw(self, _widget, cr):
-        pixbuf = _draw_frame(BUTTON_SIZE, self._state, self._phase,
+        pixbuf = _draw_frame(self._size, self._state, self._phase,
                              self._level, self._progress)
         Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
         cr.paint()

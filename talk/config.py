@@ -94,6 +94,8 @@ DEFAULTS = {
     # click has no such signal to get wrong — so this and the tray icon
     # are the only ways in.
     "float_button": True,
+    # The floating button's on-screen size: full | three_quarters | half.
+    "button_size": "full",
     # Leave the transcript on the clipboard after typing it, instead of
     # putting the previous contents back. The safety net for the
     # commonest failure: nothing was focused when you spoke, the paste

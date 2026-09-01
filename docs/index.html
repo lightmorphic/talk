@@ -139,7 +139,7 @@
           "name": "Why does the floating button sometimes end up behind other windows?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction."
+            "text": "This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction. There is also an optional GNOME Shell extension at github.com/lightmorphic/talk (in the gnome-extension folder) that keeps the button on top for you."
           }
         },
         {
@@ -339,6 +339,7 @@
         <p>On X11, highlighting a misheard word before right-clicking the floating button opens the correction popup with it already filled in. Wayland does not let a background app read your selection, deliberately, so there the popup asks you to type the word instead.</p>
       </article>
     </div>
+    <p class="section-intro">On GNOME, the floating button can occasionally end up behind another window: GNOME's own limitation, not something Lightmorphic Talk does wrong. An optional <a href="https://github.com/lightmorphic/talk/tree/main/gnome-extension">GNOME Shell extension</a> fixes it, with install steps in its README.</p>
   </div>
 </section>
 
@@ -372,7 +373,7 @@
       </details>
       <details class="faq-item">
         <summary><h3>Why does the floating button sometimes end up behind other windows?</h3></summary>
-        <p>This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction.</p>
+        <p>This is a GNOME limitation, not a bug in Lightmorphic Talk. GNOME's Wayland compositor does not let any application ask to stay on top of others, so the button can occasionally get covered. Click the tray icon to bring it back. Other desktops such as KDE Plasma do not have this restriction. There is also an optional <a href="https://github.com/lightmorphic/talk/tree/main/gnome-extension">GNOME Shell extension</a> that keeps the button on top for you.</p>
       </details>
       <details class="faq-item">
         <summary><h3>Can I dictate in a language other than English?</h3></summary>
