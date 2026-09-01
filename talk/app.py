@@ -23,6 +23,12 @@ from .tray import Tray
 
 log = logging.getLogger("talk.app")
 
+# The gap between clicking stop and the microphone actually closing.
+# Sound card latency and the moment it takes to react to the click mean
+# a word spoken right around the click can otherwise still be on its
+# way in when capture ends.
+_STOP_TAIL_MS = 2000
+
 
 class TalkApp:
 
@@ -62,6 +68,7 @@ class TalkApp:
             on_error=lambda key: GLib.idle_add(self._fail, key),
             on_downloading=lambda: GLib.idle_add(self._downloading))
         self._listening = False
+        self._stop_timer = None
 
         # On Wayland this opens the portal session now, so the consent
         # prompt lands at startup rather than mid-sentence on the first
@@ -272,9 +279,22 @@ class TalkApp:
 
     def _toggle(self):
         if self.state == "listening" and self._listening:
-            self._finish_recording()
+            if self._stop_timer is not None:
+                # A second click while the tail is still running: the
+                # extra couple of seconds have done their job, so stop
+                # right away instead of making an impatient click wait.
+                GLib.source_remove(self._stop_timer)
+                self._stop_timer = None
+                self._finish_recording()
+            else:
+                self._begin_stop()
         elif self._can_start():
             self._start_recording()
+
+    def _begin_stop(self):
+        self._blip("stop")
+        self._stop_timer = GLib.timeout_add(_STOP_TAIL_MS,
+                                            self._finish_recording)
 
     def _start_recording(self):
         try:
@@ -289,16 +309,17 @@ class TalkApp:
         self._set_state("listening")
 
     def _finish_recording(self):
+        self._stop_timer = None
         audio = self.recorder.stop()
         capped = self.recorder.capped
         self._listening = False
-        self._blip("stop")
         log.info("recorded %.1fs, transcribing", len(audio) / 16000)
         self._set_state("thinking")
         self.transcriber.submit(
             audio,
             lambda text, err: GLib.idle_add(
                 self._transcribed, text, err, capped))
+        return False
 
     def _transcribed(self, text, error_key, capped=False):
         if error_key is not None:
@@ -381,6 +402,9 @@ class TalkApp:
                 return
             self._set_state("idle")
         else:
+            if self._stop_timer is not None:
+                GLib.source_remove(self._stop_timer)
+                self._stop_timer = None
             if self.recorder.recording:
                 self.recorder.stop()
                 self._listening = False
