@@ -11,6 +11,7 @@ Contact: talk@lightmorphic.com. Made by Lightmorphic (https://lightmorphic.com),
 ## Pages
 
 - [Lightmorphic Talk](https://talk.lightmorphic.com/): the product page, how it works, features, privacy policy, and download
+- [Help](https://talk.lightmorphic.com/help.html): how to dictate, teach it words, choose a microphone, and fix problems, illustrated
 - [Source and releases](https://github.com/lightmorphic/talk): full source code, issue tracker, and every release with notes
 
 ## Recent additions
