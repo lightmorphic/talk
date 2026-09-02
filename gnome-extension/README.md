@@ -27,6 +27,23 @@ Check it's running:
 gnome-extensions info talk-always-on-top@lightmorphic.com
 ```
 
+## If it says "State: OUT OF DATE"
+
+GNOME switches an extension off the moment the running Shell version is
+not one the extension claims to support, which is what happens after a
+GNOME upgrade. Updating the copy in
+`~/.local/share/gnome-shell/extensions/` to the latest `metadata.json`
+here fixes it, but GNOME keeps the old one in memory, so on Wayland it
+takes a log out and back in before it reads the new file. There is no
+way around that: `ReloadExtension` is deprecated and Shell cannot
+restart itself in place under Wayland.
+
+To stop GNOME disabling extensions over version numbers at all:
+
+```bash
+gsettings set org.gnome.shell disable-extension-version-validation true
+```
+
 ## Uninstall
 
 ```bash
