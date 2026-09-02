@@ -226,6 +226,7 @@ class Recorder:
         self._warned = False
         self._capped = False
         self._native_rate = SAMPLE_RATE
+        self._started_at = None
         self._lock = threading.Lock()
 
     def _device(self):
@@ -257,6 +258,7 @@ class Recorder:
             self._frames = 0
             self._warned = False
             self._capped = False
+            self._started_at = time.monotonic()
             device = self._device()
             self._native_rate = self._device_rate(device)
             cap_frames = self._native_rate * MAX_SECONDS
@@ -329,11 +331,34 @@ class Recorder:
         with self._lock:
             stream, self._stream = self._stream, None
             native_rate = self._native_rate
+            started_at = self._started_at
         if stream is not None:
             stream.stop()
             stream.close()
         with self._lock:
             chunks, self._chunks = self._chunks, []
+            frames = self._frames
+
+        # Did the sound system actually hand over as much audio as the
+        # clock says it should have? Nothing else in this pipeline can
+        # tell. A dictation that comes back missing its last stretch
+        # looks identical whether the words were never captured or were
+        # lost later, and every other stage has been ruled out by
+        # measurement — so measure this one too rather than trusting it.
+        # PortAudio reports a status flag for overflows it notices; this
+        # catches the case where frames simply never arrive and nothing
+        # is flagged at all.
+        if started_at is not None and native_rate:
+            wall = time.monotonic() - started_at
+            captured = frames / float(native_rate)
+            if wall > 1.0 and captured < wall * 0.97:
+                log.warning(
+                    "captured %.1fs of audio but the microphone was open "
+                    "for %.1fs — %.1fs (%.0f%%) never arrived",
+                    captured, wall, wall - captured,
+                    100 * (wall - captured) / wall)
+            else:
+                log.info("captured %.1fs of audio in %.1fs", captured, wall)
         if not chunks:
             return np.zeros(0, dtype=np.float32)
         audio = np.concatenate(chunks)
