@@ -312,3 +312,63 @@ section[id] { scroll-margin-top: 5.5rem; }
 .foot-meta { max-width: 46ch; }
 .foot-meta p { color: var(--muted-fg); font-size: .875rem; margin: 0 0 .4rem; }
 .foot-updated { font-size: .8125rem; }
+
+/* ---- help page ------------------------------------------------------ */
+
+.help-hero { padding: 2.5rem 0 1rem; }
+.help-hero h1 { font-size: clamp(1.9rem, 4.2vw, 2.9rem); line-height: 1.1; margin: 0 0 .6rem; }
+.help-hero .lede { max-width: 54ch; }
+
+/* Jump cards: the page opens with a picture of where to go, not a list. */
+.help-nav {
+  display: grid; gap: .875rem; margin: 1.75rem 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+}
+.help-nav a {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .9rem 1rem; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: var(--radius); box-shadow: var(--shadow-panel);
+}
+.help-nav a:hover { border-color: var(--accent); }
+.help-nav svg { flex: none; }
+.help-nav b { display: block; font-size: .9375rem; }
+.help-nav span { display: block; color: var(--muted-fg); font-size: .8125rem; }
+
+/* The three gestures, drawn large. These are the whole interface. */
+.gestures {
+  display: grid; gap: 1rem; margin: 2rem 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.gesture {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius); box-shadow: var(--shadow-panel);
+  padding: 1.5rem 1.25rem; text-align: center;
+}
+.gesture figure { margin: 0 0 .9rem; }
+.gesture h3 { margin: 0 0 .35rem; font-size: 1.0625rem; }
+.gesture p { margin: 0; color: var(--muted-fg); font-size: .9375rem; }
+
+.help-section { padding: 2.25rem 0 0; }
+.help-section > .wrap > h2 {
+  display: flex; align-items: center; gap: .6rem;
+  font-size: 1.375rem; margin: 0 0 .25rem; scroll-margin-top: 5.5rem;
+}
+.help-section .section-intro { margin-top: 0; }
+
+/* The update dot legend draws the actual colours rather than naming them. */
+.dot-legend { display: grid; gap: .6rem; margin: .5rem 0 0; padding: 0; list-style: none; }
+.dot-legend li { display: flex; align-items: baseline; gap: .65rem; font-size: .9375rem; }
+.dot-legend .dot {
+  width: .7rem; height: .7rem; border-radius: 50%; flex: none;
+  transform: translateY(1px);
+}
+
+.help-note {
+  display: flex; gap: .85rem; align-items: flex-start;
+  background: var(--accent-container); color: var(--on-accent-container);
+  border-radius: var(--radius); padding: .9rem 1.05rem; margin: 1rem 0 0;
+  font-size: .9375rem;
+}
+.help-note svg { flex: none; margin-top: .1rem; }
+.help-note a { color: inherit; }
