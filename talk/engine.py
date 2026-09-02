@@ -10,6 +10,7 @@ loaded once at startup (in the background) and kept in memory.
 import logging
 import os
 import queue
+import sys
 import threading
 import time
 
@@ -169,6 +170,24 @@ def _configure_hub(offline):
         os.environ["HF_HUB_OFFLINE"] = "1"
     else:
         os.environ.pop("HF_HUB_OFFLINE", None)
+    # The environment variable alone is not enough once the library is
+    # already loaded: huggingface_hub reads every one of them at import
+    # time into module constants and never looks at the environment
+    # again. The call that pins this process offline happens after the
+    # first-run download, which is necessarily after the import — so it
+    # silently did nothing, on the one run where it was the only thing
+    # standing between "downloaded the model once" and "free to make
+    # further requests for the rest of the session". Setting the
+    # constant too is what actually closes it. Only if the library is
+    # already loaded: importing it here just to set a flag would drag a
+    # heavy import into startup for no reason.
+    hub = sys.modules.get("huggingface_hub")
+    if hub is not None:
+        try:
+            hub.constants.HF_HUB_OFFLINE = bool(offline)
+        except Exception:
+            log.warning("could not pin huggingface_hub offline=%s", offline,
+                        exc_info=True)
 
 
 def list_microphones():

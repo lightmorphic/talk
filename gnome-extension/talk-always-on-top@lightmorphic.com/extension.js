@@ -25,11 +25,14 @@ export default class TalkAlwaysOnTopExtension extends Extension {
         if (!this._matches(metaWindow))
             return;
         this._apply(metaWindow);
-        const raisedId = metaWindow.connect('raised', w => this._apply(w));
-        const unmanagedId = metaWindow.connect('unmanaged', () => {
-            metaWindow.disconnect(raisedId);
-            metaWindow.disconnect(unmanagedId);
-        });
+        // Owned by `this`, so disable() can drop every one of them at
+        // once. Connecting by hand instead leaves a live handler on any
+        // window still open when the extension is switched off, which
+        // then fires into disabled code.
+        metaWindow.connectObject(
+            'raised', w => this._apply(w),
+            'unmanaged', () => metaWindow.disconnectObject(this),
+            this);
     }
 
     enable() {
@@ -66,6 +69,12 @@ export default class TalkAlwaysOnTopExtension extends Extension {
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
             this._timeoutId = null;
+        }
+        // Every per-window handler connected above, in one go.
+        for (const actor of global.get_window_actors()) {
+            const metaWindow = actor.get_meta_window();
+            if (metaWindow)
+                metaWindow.disconnectObject(this);
         }
     }
 }
