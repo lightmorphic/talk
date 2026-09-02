@@ -24,17 +24,6 @@ MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
 MAX_SECONDS = 1200  # hard cap on one dictation, keeps memory bounded
 WARMUP_SECONDS = 0.12  # discarded from the start of every recording
 
-# How much audio goes through the model in one pass. onnx-asr documents
-# 20-30 seconds as the practical limit for most of its models, and a
-# 122-second dictation came back missing its last stretch: the recording
-# itself was complete in the log, so it was the model quietly losing the
-# end rather than anything dropped on the way in. Anything longer than
-# this is split up and the pieces joined back together.
-CHUNK_SECONDS = 20
-# How far back from a boundary to hunt for a pause to cut on.
-PAUSE_SEARCH_SECONDS = 3.0
-_PAUSE_FRAME_MS = 20
-
 
 def _resample(audio, orig_rate, target_rate):
     """Bandlimited resample via FFT (numpy only — no scipy).
@@ -74,41 +63,6 @@ def _resample(audio, orig_rate, target_rate):
     resampled = np.fft.irfft(spectrum, n=n_target)
     resampled *= (n_target / len(audio))
     return resampled.astype(np.float32)
-
-
-def _quietest_cut(audio, lo, hi, frame):
-    """Where in audio[lo:hi] the sound is at its faintest.
-
-    Where a split lands matters more than where it was aimed: cut in the
-    middle of a word and that word is mangled in both halves. In speech
-    the quietest moment in any few-second stretch is a pause between
-    words, so that is where the cut goes.
-    """
-    region = np.abs(audio[lo:hi])
-    usable = (len(region) // frame) * frame
-    if usable < frame:
-        return hi
-    frames = region[:usable].reshape(-1, frame).mean(axis=1)
-    return lo + int(frames.argmin()) * frame
-
-
-def _split_for_model(audio, sample_rate):
-    """Cut a long recording into pieces the model can hear all of."""
-    limit = int(CHUNK_SECONDS * sample_rate)
-    if len(audio) <= limit:
-        return [audio]
-    frame = max(1, int(_PAUSE_FRAME_MS / 1000 * sample_rate))
-    search = int(PAUSE_SEARCH_SECONDS * sample_rate)
-    pieces = []
-    start = 0
-    while len(audio) - start > limit:
-        target = start + limit
-        cut = _quietest_cut(audio, max(start + frame, target - search),
-                            target, frame)
-        pieces.append(audio[start:cut])
-        start = cut
-    pieces.append(audio[start:])
-    return pieces
 
 
 _DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talk-download-complete")
@@ -507,18 +461,7 @@ class Transcriber:
     def _recognize(self, audio):
         if len(audio) < SAMPLE_RATE // 4:  # under 0.25s: nothing said
             return ""
-        pieces = _split_for_model(audio, SAMPLE_RATE)
-        if len(pieces) > 1:
-            log.info("split %.1fs into %s pieces for the model",
-                     len(audio) / SAMPLE_RATE, len(pieces))
-        said = []
-        for piece in pieces:
-            if len(piece) < SAMPLE_RATE // 4:
-                continue
-            text = self._model.recognize(piece, sample_rate=SAMPLE_RATE).strip()
-            if text:
-                said.append(text)
-        return " ".join(said)
+        return self._model.recognize(audio, sample_rate=SAMPLE_RATE).strip()
 
     def submit(self, audio, callback):
         """Queue audio; callback(text, error_key) runs on worker thread."""
