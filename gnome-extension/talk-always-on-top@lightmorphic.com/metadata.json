@@ -3,6 +3,6 @@
     "name": "Lightmorphic Talk: Always on Top",
     "description": "Keeps the Lightmorphic Talk floating record button above other windows. GNOME's Wayland compositor does not let an ordinary application do this for itself; a Shell extension runs with the compositor's own privileges and can.",
     "url": "https://github.com/lightmorphic/talk",
-    "shell-version": ["45", "46", "47", "48"],
-    "version": 1
+    "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
+    "version": 2
 }
