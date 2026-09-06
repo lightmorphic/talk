@@ -9,33 +9,30 @@
 }
 
 :root {
-  color-scheme: light dark;
-  --bg: #ffffff;  --fg: #09090b;
-  --panel: #ffffff;  --panel-border: rgba(24, 24, 40, 0.10);
-  --border: #e4e4e7;  --muted: #f4f4f5;  --muted-fg: #71717a;
-  --shadow-panel: 0 1px 2px rgba(24,24,40,.05), 0 8px 24px -16px rgba(24,24,40,.18);
+  color-scheme: dark;
+  --bg: #09090b;  --fg: #fafafa;
+  --panel: #1b1d29;  --panel-border: rgba(255,255,255,.09);
+  --border: #27272a;  --muted: #1c1c1f;  --muted-fg: #a1a1aa;
+  --shadow-panel: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -16px rgba(0,0,0,.6);
 
   --accent: #fbc711;  --accent-hover: #ddaf0f;  --on-accent: #645007;
-  --accent-container: #fff8e2;  --on-accent-container: #5f4c06;
+  --accent-container: #4b3c05;  --on-accent-container: #fde694;
 
   --brand-navy: #111827;
-  --link: #1b74bc;
-  --success: #38813a;
-  --warning: #8f6c03;
+  --link: #2295f1;
+  --success: #4bae4f;
+  --warning: #ffc006;
 
   --radius: 0.875rem;
   --panel-radius: 1.375rem;
   --wrap: 68rem;
 
-  /* The accent yellow is a 1.6:1 contrast ring on a white page — fine
-     as a fill, invisible as an outline. Light mode gets the near-black
-     text colour instead; dark mode keeps the accent, where it already
-     passes at 12.6:1. */
-  --focus-ring: var(--brand-navy);
+  /* The accent yellow reads at 12.6:1 on this background, so it is the
+     focus ring here. */
+  --focus-ring: var(--accent);
 
-  /* The session-check panel keeps the brand navy in BOTH themes, the same
-     way the tray icon does: it is identity, not a surface, so it does not
-     follow light/dark. These are its own tokens so components below carry
+  /* The session-check panel keeps the brand navy deliberately: it is
+     identity, not a surface. Its own tokens, so components below carry
      no raw colour. */
   --check-bg: var(--brand-navy);
   --check-fg: #fafafa;
@@ -45,32 +42,6 @@
   --check-edge: rgba(255,255,255,.09);
   --yes-bg: #4bae4f;  --on-yes: #0d1f0e;
   --no-bg: #9e9d9e;   --on-no: #1a1a1a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #09090b;  --fg: #fafafa;
-    --panel: #1b1d29;  --panel-border: rgba(255,255,255,.09);
-    --border: #27272a;  --muted: #1c1c1f;  --muted-fg: #a1a1aa;
-    --shadow-panel: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -16px rgba(0,0,0,.6);
-    --accent-container: #4b3c05;  --on-accent-container: #fde694;
-    --link: #2295f1;
-    --success: #4bae4f;
-    --warning: #ffc006;
-    --focus-ring: var(--accent);
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #09090b;  --fg: #fafafa;
-  --panel: #1b1d29;  --panel-border: rgba(255,255,255,.09);
-  --border: #27272a;  --muted: #1c1c1f;  --muted-fg: #a1a1aa;
-  --shadow-panel: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -16px rgba(0,0,0,.6);
-  --accent-container: #4b3c05;  --on-accent-container: #fde694;
-  --link: #2295f1;
-  --success: #4bae4f;
-  --warning: #ffc006;
-  --focus-ring: var(--accent);
 }
 
 * { box-sizing: border-box; }
@@ -284,13 +255,7 @@ section[id] { scroll-margin-top: 5.5rem; }
 .foot-links { margin-left: auto; display: flex; gap: 1.25rem; flex-wrap: wrap; }
 .foot-links a, .badge { display: inline-flex; align-items: center; padding: .65rem 0; }
 .badge img { display: block; height: 34px; width: auto; }
-.badge .dark-only { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .badge .light-only { display: none; }
-  :root:not([data-theme="light"]) .badge .dark-only { display: block; }
-}
-:root[data-theme="dark"] .badge .light-only { display: none; }
-:root[data-theme="dark"] .badge .dark-only { display: block; }
+.badge .dark-only { display: block; }
 
 /* ---- questions ------------------------------------------------------ */
 
@@ -384,3 +349,45 @@ section[id] { scroll-margin-top: 5.5rem; }
   .topnav-inner { gap: .6rem; }
   .nav-links { gap: .85rem; }
 }
+
+/* ---- legal sub-footer ----------------------------------------------- */
+
+.legal {
+  border-top: 1px solid var(--panel-border);
+  background: var(--bg);
+  padding: 1.25rem 0 1.75rem;
+}
+.legal-inner {
+  display: flex; flex-wrap: wrap; gap: 1rem 2rem;
+  align-items: flex-start; justify-content: space-between;
+}
+.legal-text {
+  margin: 0; color: var(--muted-fg);
+  font-size: .8125rem; line-height: 1.6; max-width: 60ch;
+}
+.legal-links {
+  display: flex; flex-wrap: wrap; gap: 1.25rem;
+  margin-left: auto; justify-content: flex-end;
+}
+.legal-links a {
+  color: var(--muted-fg); text-decoration: none;
+  font-size: .8125rem; font-weight: 600; padding: .55rem 0;
+}
+.legal-links a:hover { color: var(--fg); text-decoration: underline; }
+
+/* On a narrow screen the links go under the address rather than being
+   squeezed against it, still reading left to right in the same order. */
+@media (max-width: 46rem) {
+  .legal-links { margin-left: 0; justify-content: flex-start; gap: 1rem; }
+}
+
+/* ---- legal pages ----------------------------------------------------- */
+
+.legal-page { padding: 2.5rem 0 1rem; }
+.legal-page h1 { font-size: clamp(1.7rem, 3.6vw, 2.4rem); margin: 0 0 .5rem; }
+.legal-page .updated { color: var(--muted-fg); font-size: .875rem; margin: 0 0 1.75rem; }
+.legal-body { max-width: 68ch; }
+.legal-body h2 { font-size: 1.25rem; margin: 2rem 0 .5rem; }
+.legal-body p, .legal-body li { color: var(--fg); line-height: 1.65; }
+.legal-body ul { padding-left: 1.15rem; }
+.legal-body li { margin: .35rem 0; }

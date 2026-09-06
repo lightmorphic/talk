@@ -256,7 +256,6 @@ class WaterCircle(Gtk.DrawingArea):
         cx = cy = size / 2.0
         r = size / 2.0 - 6
 
-        dark = _is_dark()
         # Brand navy well in both themes: the water reads as brand yellow
         # against it, and the shape stays identity rather than surface.
         cr.set_source_rgb(*_NAVY)
@@ -286,7 +285,7 @@ class WaterCircle(Gtk.DrawingArea):
         cr.restore()
 
         # A hairline rim, the same one-pixel border panels get.
-        cr.set_source_rgba(1, 1, 1, 0.16 if dark else 0.10)
+        cr.set_source_rgba(1, 1, 1, 0.16)
         cr.set_line_width(1.5)
         cr.arc(cx, cy, r, 0, 2 * math.pi)
         cr.stroke()
@@ -303,16 +302,6 @@ class WaterCircle(Gtk.DrawingArea):
                    cy - extents.height / 2 - extents.y_bearing)
         cr.show_text(label)
         return False
-
-
-def _is_dark():
-    settings = Gtk.Settings.get_default()
-    if settings is None:
-        return True
-    try:
-        return bool(settings.get_property("gtk-application-prefer-dark-theme"))
-    except Exception:
-        return True
 
 
 class DownloadWindow(Gtk.Window):

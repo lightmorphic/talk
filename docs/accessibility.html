@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility: Lightmorphic Talk</title>
+<meta name="description" content="How accessible this website is, what we have tested, and how to tell us when we have got it wrong.">
+<link rel="canonical" href="https://talk.lightmorphic.com/accessibility.html">
+<link rel="icon" href="images/talk.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/talk-512.png">
+<link rel="preload" href="fonts/Manrope-VariableFont_wght.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="style.css">
+<meta name="theme-color" content="#09090b">
+<meta property="og:title" content="Accessibility: Lightmorphic Talk">
+<meta property="og:description" content="How accessible this website is, what we have tested, and how to tell us when we have got it wrong.">
+<meta property="og:url" content="https://talk.lightmorphic.com/accessibility.html">
+<meta property="og:type" content="article">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://talk.lightmorphic.com/accessibility.html",
+  "url": "https://talk.lightmorphic.com/accessibility.html",
+  "name": "Accessibility",
+  "description": "How accessible this website is, what we have tested, and how to tell us when we have got it wrong.",
+  "inLanguage": "en-GB",
+  "dateModified": "2026-09-06",
+  "isPartOf": { "@id": "https://talk.lightmorphic.com/#website" }
+}
+</script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="topnav">
+  <div class="wrap topnav-inner">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#111827"/>
+        <g stroke="#fbc711" stroke-width="1.9" stroke-linecap="round">
+          <line x1="6.5" y1="9.5" x2="6.5" y2="14.5"/>
+          <line x1="9.25" y1="7.5" x2="9.25" y2="16.5"/>
+          <line x1="12" y1="6" x2="12" y2="18"/>
+          <line x1="14.75" y1="7.5" x2="14.75" y2="16.5"/>
+          <line x1="17.5" y1="9.5" x2="17.5" y2="14.5"/>
+        </g>
+      </svg>
+      Lightmorphic Talk
+    </a>
+    <div class="nav-links">
+      <a class="hide-sm" href="./#how">How it works</a>
+      <a class="hide-sm" href="./#wayland">Wayland &amp; X11</a>
+      <a class="hide-sm" href="./#requirements">Requirements</a>
+      <a href="help.html">Help</a>
+      <a class="btn primary" href="./#download">Download</a>
+      <div id="all-apps"></div>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<section class="legal-page">
+  <div class="wrap">
+    <h1>Accessibility</h1>
+    <p class="updated">Last updated 6 September 2026.</p>
+    <div class="legal-body">
+      <h2>Our aim</h2>
+      <p>This website is intended to conform to the <a href="https://www.w3.org/TR/WCAG21/">Web Content Accessibility Guidelines 2.1</a> at level AA.</p>
+      
+      <h2>What we have done</h2>
+      <ul>
+        <li>Every page works from the keyboard alone, and the focus outline is visible against the background at every step.</li>
+        <li>Text and background colours were measured for contrast rather than eyeballed, and meet the level AA thresholds.</li>
+        <li>Headings are in order, landmarks are marked up, and each page starts with a skip link.</li>
+        <li>Links and buttons have touch targets of at least 44 by 44 pixels.</li>
+        <li>Illustrations are drawn as inline graphics with text alternatives; those that are decorative are hidden from screen readers.</li>
+        <li>The layout reflows to a narrow screen without horizontal scrolling, down to 320 pixels wide.</li>
+        <li>Nothing moves, flashes or auto-plays.</li>
+      </ul>
+      
+      <h2>Known limitations</h2>
+      <p>The grid-of-dots launcher in the top bar, which lists our other applications, is supplied by a shared script rather than written for this page. We believe it to be keyboard operable, but it has not been through the same testing as the rest of the site.</p>
+      
+      <h2>The application</h2>
+      <p>Lightmorphic Talk itself exists to help people who find typing difficult or slow. It is operated by clicking one button, has no keyboard shortcuts to memorise, and offers three sizes of that button. Its interface has not been formally audited against a desktop accessibility standard, and it does not yet have a full screen-reader-only workflow.</p>
+      
+      <h2>Telling us about a problem</h2>
+      <p>If something on this site or in the application shuts you out, we want to know, and we will fix it. Write to <a href="mailto:complaints@lightmorphic.com">complaints@lightmorphic.com</a> and say what you were trying to do and what got in the way.</p>
+      <p>This statement was prepared on 6 September 2026 based on our own testing of the site.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <a class="badge" href="https://lightmorphic.com" aria-label="Created by Lightmorphic">
+      <img src="images/lightmorphic-badge-dark.webp" alt="Created by Lightmorphic" width="120" height="34" loading="lazy">
+    </a>
+    <div class="foot-meta">
+      <p>Lightmorphic Talk is made by <a href="https://lightmorphic.com">Lightmorphic</a> (<a href="https://find-and-update.company-information.service.gov.uk/company/17423646">Lightmorphic Ltd</a>, company number 17423646), a UK studio building fast, privacy-first websites and free open-source tools. Written and used daily by someone who dictates for a living.</p>
+      <p>Questions or a bug to report? Open an issue on <a href="https://github.com/lightmorphic/talk/issues">the issue tracker</a>.</p>
+      <p class="foot-updated">Version 1.1.5 · updated <time datetime="2026-09-02">2026-09-02</time></p>
+      <p class="foot-copyright">&copy; 2026 Lightmorphic</p>
+    </div>
+    <div class="foot-links">
+      <a href="./">Home</a>
+      <a href="https://github.com/lightmorphic/talk">Source</a>
+      <a href="https://github.com/lightmorphic/talk/releases">Releases</a>
+    </div>
+  </div>
+</footer>
+
+<div class="legal">
+  <div class="wrap legal-inner">
+    <p class="legal-text">
+      &copy; Lightmorphic Ltd. Registered in England and Wales, company number 17423646.<br>
+      Registered office: 82A James Carter Road, Mildenhall, IP28 7DE.<br>
+      Page last updated: 6 September 2026.
+    </p>
+    <nav class="legal-links" aria-label="Legal">
+      <a href="privacy.html">Privacy</a>
+      <a href="cookies.html">Cookies</a>
+      <a href="terms.html">Terms</a>
+      <a href="accessibility.html">Accessibility</a>
+      <a href="complaints.html">Complaints</a>
+    </nav>
+  </div>
+</div>
+
+<script src="https://apps.lightmorphic.com/launcher.js" defer></script>
+</body>
+</html>
