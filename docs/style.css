@@ -252,15 +252,21 @@ section[id] { scroll-margin-top: 5.5rem; }
   color: var(--muted-fg); font-size: .875rem;
 }
 .foot-inner {
-  display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center;
+  display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-start;
 }
-.foot-nav { margin-left: auto; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+/* A column, the way a footer menu is normally read, rather than a
+   second horizontal bar repeating the one at the top of the page. */
+.foot-nav {
+  margin-left: auto; display: flex; flex-direction: column;
+  align-items: flex-end; text-align: right;
+}
 .foot-nav a {
   color: var(--muted-fg); text-decoration: none; font-weight: 600;
 }
 .foot-nav a:hover { color: var(--fg); }
 .foot-nav a[aria-current="page"] { color: var(--fg); }
-.foot-nav a, .badge { display: inline-flex; align-items: center; padding: .65rem 0; }
+/* .7rem each side of a 22px line clears the 44px a touch target wants. */
+.foot-nav a, .badge { display: inline-flex; align-items: center; padding: .7rem 0; }
 .badge img { display: block; height: 34px; width: auto; }
 .badge .dark-only { display: block; }
 
@@ -432,5 +438,5 @@ section[id] { scroll-margin-top: 5.5rem; }
 
 @media (max-width: 46rem) {
   .gh-links { margin-left: 0; justify-content: flex-start; gap: 1rem; }
-  .foot-nav { margin-left: 0; gap: 1rem; }
+  .foot-nav { margin-left: 0; align-items: flex-start; text-align: left; }
 }
