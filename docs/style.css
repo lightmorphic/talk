@@ -248,23 +248,50 @@ section[id] { scroll-margin-top: 5.5rem; }
 
 .foot {
   border-top: 1px solid var(--panel-border);
-  padding: 1.75rem 0;
+  padding: 2.75rem 0 2.25rem;
   color: var(--muted-fg); font-size: .875rem;
 }
 .foot-inner {
-  display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-start;
+  display: flex; flex-wrap: wrap; gap: 2rem 4rem;
+  align-items: flex-start; justify-content: space-between;
 }
-/* A column, the way a footer menu is normally read, rather than a
-   second horizontal bar repeating the one at the top of the page. */
-.foot-nav {
-  margin-left: auto; display: flex; flex-direction: column;
-  align-items: flex-end; text-align: right;
+
+/* The brand side carries the weight: mark, name, a line saying what
+   this is, and who made it. Without it the row was an image at one
+   edge and a list at the other with nothing in between. */
+.foot-brand {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1rem; max-width: 52ch;
+}
+.foot-lockup {
+  display: inline-flex; align-items: center; gap: .6rem;
+  font-size: 1.0625rem; font-weight: 700; letter-spacing: -.01em;
+  color: var(--fg); text-decoration: none; padding: .35rem 0;
+}
+.foot-lockup:hover { color: var(--accent); }
+.foot-tagline {
+  margin: 0; color: var(--muted-fg);
+  font-size: .875rem; line-height: 1.65;
+}
+
+.foot-nav { display: flex; flex-direction: column; }
+.foot-nav-title {
+  margin: 0 0 .35rem; font-size: .75rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--muted-fg);
+}
+/* Column-major: the list reads downwards and then across, the way a
+   menu is read, rather than left-to-right along each row. */
+.foot-nav-links {
+  display: grid; grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  column-gap: 3rem;
 }
 .foot-nav a {
-  color: var(--muted-fg); text-decoration: none; font-weight: 600;
+  color: var(--fg); text-decoration: none; font-weight: 600;
+  opacity: .8;
 }
-.foot-nav a:hover { color: var(--fg); }
-.foot-nav a[aria-current="page"] { color: var(--fg); }
+.foot-nav a:hover { opacity: 1; color: var(--accent); }
+.foot-nav a[aria-current="page"] { opacity: 1; color: var(--accent); }
 /* .7rem each side of a 22px line clears the 44px a touch target wants. */
 .foot-nav a, .badge { display: inline-flex; align-items: center; padding: .7rem 0; }
 .badge img { display: block; height: 34px; width: auto; }
@@ -438,5 +465,4 @@ section[id] { scroll-margin-top: 5.5rem; }
 
 @media (max-width: 46rem) {
   .gh-links { margin-left: 0; justify-content: flex-start; gap: 1rem; }
-  .foot-nav { margin-left: 0; align-items: flex-start; text-align: left; }
 }
