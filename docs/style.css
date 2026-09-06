@@ -372,3 +372,15 @@ section[id] { scroll-margin-top: 5.5rem; }
 }
 .help-note svg { flex: none; margin-top: .1rem; }
 .help-note a { color: inherit; }
+
+/* The bar carries one more item than it used to: the all-apps launcher,
+   which is the last thing on the right and has to stay reachable at
+   every width. On a narrow screen the brand was also wrapping onto two
+   lines, which pushed the bar to 83px tall and squeezed the links until
+   Download ran off the edge. Keeping the name on one line and trimming
+   the gaps buys back the room the launcher needs. */
+@media (max-width: 40rem) {
+  .brand { white-space: nowrap; font-size: .9375rem; gap: .4rem; }
+  .topnav-inner { gap: .6rem; }
+  .nav-links { gap: .85rem; }
+}
