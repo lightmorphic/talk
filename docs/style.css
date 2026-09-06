@@ -363,8 +363,12 @@ section[id] { scroll-margin-top: 5.5rem; }
 }
 .legal-text {
   margin: 0; color: var(--muted-fg);
-  font-size: .8125rem; line-height: 1.6; max-width: 60ch;
+  font-size: .8125rem; line-height: 1.6;
 }
+/* Each of the three lines breaks where its own <br> says, not where a
+   measure runs out: the company line was wrapping mid-sentence. It
+   still wraps on a screen too narrow to hold it, which is the one
+   place wrapping is the right answer. */
 .legal-links {
   display: flex; flex-wrap: wrap; gap: 1.25rem;
   margin-left: auto; justify-content: flex-end;
