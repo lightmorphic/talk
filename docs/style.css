@@ -395,3 +395,37 @@ section[id] { scroll-margin-top: 5.5rem; }
 .legal-body p, .legal-body li { color: var(--fg); line-height: 1.65; }
 .legal-body ul { padding-left: 1.15rem; }
 .legal-body li { margin: .35rem 0; }
+
+/* ---- open-source sub-footer ------------------------------------------ */
+
+.gh-foot {
+  border-top: 1px solid var(--panel-border);
+  padding: 1.25rem 0;
+}
+.gh-inner {
+  display: flex; flex-wrap: wrap; gap: 1rem 2rem;
+  align-items: center; justify-content: space-between;
+}
+.gh-marks { display: flex; align-items: center; gap: 1rem; }
+.gh-marks a {
+  display: inline-flex; align-items: center;
+  color: var(--muted-fg); padding: .4rem 0;
+}
+.gh-marks a:hover { color: var(--fg); }
+.gh-links {
+  display: flex; flex-wrap: wrap; gap: 1.5rem;
+  margin-left: auto; justify-content: flex-end;
+}
+.gh-links a {
+  color: var(--muted-fg); text-decoration: none;
+  font-size: .875rem; padding: .55rem 0;
+}
+.gh-links a:hover { color: var(--fg); text-decoration: underline; }
+
+/* The legal links sit level with the last line of the address, as in
+   the reference, rather than floating up beside the first. */
+.legal-inner { align-items: flex-end; }
+
+@media (max-width: 46rem) {
+  .gh-links { margin-left: 0; justify-content: flex-start; gap: 1rem; }
+}
