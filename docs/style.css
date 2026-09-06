@@ -274,10 +274,12 @@ section[id] { scroll-margin-top: 5.5rem; }
   font-size: .875rem; line-height: 1.65;
 }
 
-.foot-nav { display: flex; flex-direction: column; }
+.foot-nav { display: flex; flex-direction: column; margin-right: 3rem; }
 .foot-nav-title {
-  margin: 0 0 .35rem; font-size: .75rem; font-weight: 700;
+  margin: 0 0 .6rem; padding-bottom: .5rem;
+  font-size: .75rem; font-weight: 700;
   letter-spacing: .09em; text-transform: uppercase; color: var(--muted-fg);
+  border-bottom: 1px solid var(--panel-border);
 }
 /* Column-major: the list reads downwards and then across, the way a
    menu is read, rather than left-to-right along each row. */
@@ -293,9 +295,7 @@ section[id] { scroll-margin-top: 5.5rem; }
 .foot-nav a:hover { opacity: 1; color: var(--accent); }
 .foot-nav a[aria-current="page"] { opacity: 1; color: var(--accent); }
 /* .7rem each side of a 22px line clears the 44px a touch target wants. */
-.foot-nav a, .badge { display: inline-flex; align-items: center; padding: .7rem 0; }
-.badge img { display: block; height: 34px; width: auto; }
-.badge .dark-only { display: block; }
+.foot-nav a { display: inline-flex; align-items: center; padding: .7rem 0; }
 
 /* ---- questions ------------------------------------------------------ */
 
@@ -465,4 +465,5 @@ section[id] { scroll-margin-top: 5.5rem; }
 
 @media (max-width: 46rem) {
   .gh-links { margin-left: 0; justify-content: flex-start; gap: 1rem; }
+  .foot-nav { margin-right: 0; }
 }
