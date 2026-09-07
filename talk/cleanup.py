@@ -1,7 +1,7 @@
 """Text cleanup: filler-word removal and personal-dictionary corrections.
 
 Runs entirely locally on the transcript text. The dictionary maps
-"what Parakeet heard" -> "what Charlie actually means", built up via
+"what the model heard" -> "what Charlie actually means", built up via
 the teach-a-word popup or the Settings page.
 """
 

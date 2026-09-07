@@ -96,7 +96,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
 from gi.repository import Gtk, AyatanaAppIndicator3
-import cairo, numpy, sounddevice, onnx_asr, onnxruntime
+import cairo, numpy, sounddevice, faster_whisper, ctranslate2
 import httpx
 from huggingface_hub import snapshot_download
 print('CLEAN')

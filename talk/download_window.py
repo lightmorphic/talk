@@ -28,10 +28,10 @@ from .i18n import t
 
 log = logging.getLogger("talk.download")
 
-# The model is a little over 600 MB. Only used to draw the bar and ring;
+# The model is about 464 MB. Only used to draw the bar and ring;
 # the MB counter always shows real bytes, so an imprecise total can make
 # the bar slightly wrong but never the number.
-EXPECTED_BYTES = 620 * 1024 * 1024
+EXPECTED_BYTES = 464 * 1024 * 1024
 
 _POLL_MS = 700
 

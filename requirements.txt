@@ -1,4 +1,6 @@
-onnx-asr[cpu,hub]>=0.12.0
+# Whisper via CTranslate2. Replaced onnx-asr/Parakeet, which
+# dropped whole sentences out of long dictations.
+faster-whisper>=1.2.0
 sounddevice>=0.5.0
 # X11 keystroke injection (XTEST). Unused on Wayland, where the portal
 # does the typing, but the one binary has to cover both.

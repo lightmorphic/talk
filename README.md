@@ -17,7 +17,7 @@ window manager — with nothing to approve.
   Lightmorphic Talk hears you, and a revolving spinner while it thinks. Release
   (or click again), and the text appears where your cursor is.
 - Speech recognition runs locally on your CPU using NVIDIA's
-  [Parakeet TDT 0.6b v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
+  [Whisper small](https://huggingface.co/Systran/faster-whisper-small)
   model (CC-BY-4.0) via [onnx-asr](https://github.com/istupakov/onnx-asr),
   with no cloud, no accounts, and no audio ever sent anywhere.
 - A cleanup pass removes filler words (um, uh, etc.) and applies your
@@ -77,6 +77,6 @@ GitHub.
 
 ## Licence
 
-GPL-3.0-or-later. The Parakeet model is CC-BY-4.0 (© NVIDIA).
+GPL-3.0-or-later. The Whisper model is MIT (© OpenAI).
 
 Created by [Lightmorphic](https://lightmorphic.com).

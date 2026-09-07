@@ -1,7 +1,7 @@
 """Audio capture and speech recognition.
 
 Recording happens on a PortAudio callback thread; transcription runs on
-a single worker thread so the UI never blocks. The Parakeet model is
+a single worker thread so the UI never blocks. The Whisper model is
 loaded once at startup (in the background) and kept in memory.
 """
 
@@ -21,7 +21,18 @@ from .config import MODEL_DIR
 log = logging.getLogger("talk.engine")
 
 SAMPLE_RATE = 16000
-MODEL_NAME = "nemo-parakeet-tdt-0.6b-v3"
+# Whisper, not Parakeet. Parakeet's multilingual build drops whole
+# sentences out of the middle of a long dictation: measured on one
+# 175-second recording it kept 28 of 30, where every English-only
+# Parakeet variant and every Whisper size kept all 30. Splitting the
+# recording made it worse (21-25 of 30 - each cut damages a sentence at
+# the join), and full precision was no better (26 of 30). Whisper small
+# keeps everything, costs 21 seconds against 14 on that recording,
+# downloads 464 MB rather than 600, and hears far more languages.
+MODEL_NAME = "small"
+# What its cache folder is called, for telling a finished download from
+# a half-finished one, and from the model this app used to use.
+MODEL_DIR_NAME = "models--Systran--faster-whisper-small"
 MAX_SECONDS = 1200  # hard cap on one dictation, keeps memory bounded
 WARMUP_SECONDS = 0.12  # discarded from the start of every recording
 
@@ -69,33 +80,65 @@ def _resample(audio, orig_rate, target_rate):
 _DOWNLOADED_MARKER = os.path.join(MODEL_DIR, ".talk-download-complete")
 
 
-# The model is about 600 MB. Anything much smaller than this is not a
+# The model is about 464 MB. Anything much smaller than this is not a
 # model, whatever the folder looks like — it is the wreckage of a
 # download that stopped early.
-_MIN_CACHED_BYTES = 400 * 1024 * 1024
+_MIN_CACHED_BYTES = 380 * 1024 * 1024
 
 
 def _cached_bytes():
-    """Bytes of finished model data on disk, and whether any is partial."""
-    hub_dir = os.path.join(MODEL_DIR, "hub")
+    """Bytes of finished model data on disk, and whether any is partial.
+
+    Counts THIS model's folder alone. It used to add up every
+    "models--" folder it found, which was fine while only one model had
+    ever been downloaded — but the app has changed model since, and an
+    old 600 MB Parakeet left behind would otherwise be counted as proof
+    that Whisper is present, sending the app offline around a model it
+    has not got.
+    """
+    model_dir = os.path.join(MODEL_DIR, MODEL_DIR_NAME)
     total = 0
     partial = False
     try:
-        for entry in os.listdir(hub_dir):
-            if not entry.startswith("models--"):
-                continue
-            blobs_dir = os.path.join(hub_dir, entry, "blobs")
-            for blob in os.scandir(blobs_dir):
-                if blob.name.endswith(".incomplete"):
+        for root, _dirs, files in os.walk(model_dir):
+            for name in files:
+                path = os.path.join(root, name)
+                if name.endswith(".incomplete"):
                     partial = True
                     continue
                 try:
-                    total += blob.stat().st_size
+                    if not os.path.islink(path):
+                        total += os.path.getsize(path)
                 except OSError:
                     continue
     except OSError:
         pass
     return total, partial
+
+
+def _purge_superseded_models():
+    """Delete the model this app used to use, once the new one is in.
+
+    Six hundred megabytes of a model nothing loads any more, sitting in
+    a folder the user never chose and cannot see. Removing it is the
+    only decent thing to do, and it happens after the replacement is
+    known good so a failure here can never leave someone with neither.
+    """
+    import shutil
+    for parent in (MODEL_DIR, os.path.join(MODEL_DIR, "hub")):
+        try:
+            entries = os.listdir(parent)
+        except OSError:
+            continue
+        for entry in entries:
+            if not entry.startswith("models--") or entry == MODEL_DIR_NAME:
+                continue
+            path = os.path.join(parent, entry)
+            try:
+                shutil.rmtree(path)
+                log.info("removed the superseded model at %s", path)
+            except OSError:
+                log.warning("could not remove %s", path, exc_info=True)
 
 
 def _model_cached():
@@ -425,7 +468,7 @@ class Recorder:
 
 
 class Transcriber:
-    """Owns the Parakeet model and a serial transcription queue."""
+    """Owns the Whisper model and a serial transcription queue."""
 
     def __init__(self, on_ready=None, on_error=None, on_downloading=None):
         self._model = None
@@ -479,29 +522,37 @@ class Transcriber:
             log.info("model not cached — this run will download it once")
             if self.on_downloading is not None:
                 self.on_downloading()
-        import onnx_asr
-        log.info("loading %s", MODEL_NAME)
+        from faster_whisper import WhisperModel
+        log.info("loading whisper %s", MODEL_NAME)
         if cached:
-            self._model = onnx_asr.load_model(MODEL_NAME, quantization="int8")
+            # local_files_only is the real lock, not the environment
+            # variable: it makes the library incapable of reaching the
+            # network for this model rather than merely disinclined.
+            self._model = WhisperModel(
+                MODEL_NAME, device="cpu", compute_type="int8",
+                download_root=MODEL_DIR, local_files_only=True)
         else:
-            self._model = self._download_with_retries(onnx_asr)
-        if not cached:
+            self._model = self._download_with_retries(WhisperModel)
             _mark_cached()
             _configure_hub(offline=True)
         log.info("model ready")
+        # Only once the replacement is loaded and working.
+        _purge_superseded_models()
         if self.on_ready is not None:
             self.on_ready()
 
-    # The first-run download is ~600 MB over a public endpoint, and a
+    # The first-run download is ~464 MB over a public endpoint, and a
     # stalled transfer is common enough that one attempt is not enough.
     _DOWNLOAD_ATTEMPTS = 5
 
-    def _download_with_retries(self, onnx_asr):
+    def _download_with_retries(self, WhisperModel):
         """Fetch the model, resuming after a stall rather than hanging."""
         last = None
         for attempt in range(1, self._DOWNLOAD_ATTEMPTS + 1):
             try:
-                return onnx_asr.load_model(MODEL_NAME, quantization="int8")
+                return WhisperModel(
+                    MODEL_NAME, device="cpu", compute_type="int8",
+                    download_root=MODEL_DIR, local_files_only=False)
             except Exception as exc:
                 last = exc
                 log.warning("model download attempt %d/%d failed: %s",
@@ -533,7 +584,16 @@ class Transcriber:
     def _recognize(self, audio):
         if len(audio) < SAMPLE_RATE // 4:  # under 0.25s: nothing said
             return ""
-        return self._model.recognize(audio, sample_rate=SAMPLE_RATE).strip()
+        # language=None: the model settles on whichever one is being
+        # spoken, which is what the app has always promised and why
+        # there is no language to choose before dictating.
+        # beam_size=1 is greedy decoding - the wider search costs
+        # seconds per dictation and changed nothing measurable here.
+        segments, _info = self._model.transcribe(
+            audio, language=None, beam_size=1)
+        # transcribe() returns a generator: nothing is actually decoded
+        # until this is walked.
+        return " ".join(s.text.strip() for s in segments).strip()
 
     def submit(self, audio, callback):
         """Queue audio; callback(text, error_key) runs on worker thread."""

@@ -4,7 +4,7 @@
 # scripts/build-appimage.sh builds a bundle from scratch and needs the
 # host to supply python3-gi, python3-cairo and friends. This script takes
 # the shortcut instead: it reuses the runtime already inside a Talk
-# AppImage (same Python, same GTK, same onnx-asr) and swaps Talk's
+# AppImage (same Python, same GTK, same speech engine) and swaps Talk's
 # source in. Fine for a personal build; use the real script for anything
 # published.
 set -euo pipefail
