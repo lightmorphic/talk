@@ -292,6 +292,25 @@ chmod +x AppDir/usr/bin/talk
 
 # -- 4. bundle GTK/GObject-Introspection + resolve every shared lib -----
 
+# Wheels repaired by auditwheel keep private copies of the native
+# libraries they need in a sibling "<package>.libs" directory, and find
+# them at runtime through an $ORIGIN-relative RPATH baked into the
+# extension module. linuxdeploy resolves dependencies with its own
+# ldd-style walk, which does not carry that RPATH once it is examining
+# one of those libraries on its own account — so ctranslate2's vendored
+# libgomp came back as "Could not find dependency" and stopped the
+# build outright. Naming those directories on LD_LIBRARY_PATH lets the
+# walk find them by name, without touching how anything resolves at
+# runtime. numpy and av ship the same layout.
+VENDORED=""
+while IFS= read -r d; do
+  VENDORED="$VENDORED${VENDORED:+:}$d"
+done < <(find AppDir -type d -name "*.libs")
+if [ -n "$VENDORED" ]; then
+  echo "-- vendored library dirs: $VENDORED"
+  export LD_LIBRARY_PATH="$VENDORED${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+
 echo "-- running linuxdeploy (this is the slow part) --"
 SO_ARGS=()
 while IFS= read -r so; do
