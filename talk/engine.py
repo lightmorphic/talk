@@ -190,6 +190,33 @@ def _configure_hub(offline):
                         exc_info=True)
 
 
+def _save_debug_copy(audio):
+    """Keep the recording as a file, but only when asked to in so many words.
+
+    Off unless TALK_SAVE_AUDIO is set in the environment. There is no
+    setting for it and no way to turn it on by accident: this app's whole
+    claim is that what you say stays in memory and goes nowhere, so
+    writing your voice to disk has to be a deliberate act taken to
+    diagnose one fault, not a switch someone can leave on and forget.
+    """
+    if not os.environ.get("TALK_SAVE_AUDIO") or len(audio) == 0:
+        return
+    import wave
+    from .config import _LOG_DIR
+    path = os.path.join(
+        _LOG_DIR, time.strftime("talk-audio-%Y%m%d-%H%M%S.wav"))
+    try:
+        pcm = np.clip(audio * 32767.0, -32768, 32767).astype(np.int16)
+        with wave.open(path, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(SAMPLE_RATE)
+            w.writeframes(pcm.tobytes())
+        log.warning("TALK_SAVE_AUDIO is on: recording written to %s", path)
+    except Exception:
+        log.exception("could not write the debug recording")
+
+
 def list_microphones():
     """Input devices as (id, name) with the system default first."""
     import sounddevice as sd
@@ -377,6 +404,7 @@ class Recorder:
             audio = audio[warmup:]
         if native_rate != SAMPLE_RATE:
             audio = _resample(audio, native_rate, SAMPLE_RATE)
+        _save_debug_copy(audio)
         return audio
 
     @property
