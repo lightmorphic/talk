@@ -179,26 +179,6 @@ list.choice-list row:selected label { color: @lm_on_accent; text-shadow: none; }
   color: @lm_fg; font-size: 0.8rem;
 }
 .talk-settings button.sound-preview:hover { color: @lm_accent; }
-
-/* Switches carry the brand accent rather than the desktop theme's own
-   blue, which is the one place a stock GTK colour was still showing
-   through in a window that otherwise commits to navy and yellow. */
-.talk-settings switch:checked {
-  background-color: @lm_accent;
-  border-color: @lm_accent;
-}
-.talk-settings switch:checked:hover {
-  background-color: @lm_accent_hover;
-  border-color: @lm_accent_hover;
-}
-.talk-settings switch:checked slider {
-  background-color: #ffffff;
-  border-color: alpha(#000000, 0.18);
-}
-.talk-settings switch:checked:disabled {
-  background-color: #7d6309;
-  border-color: #7d6309;
-}
 list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
 .talk-settings treeview {
   background-color: @lm_muted;
