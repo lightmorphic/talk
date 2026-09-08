@@ -181,6 +181,26 @@ list.choice-list row:selected label { color: @lm_on_accent; text-shadow: none; }
   color: @lm_fg; font-size: 0.8rem;
 }
 .talk-settings button.sound-preview:hover { color: @lm_accent; }
+
+/* Switches carry the brand accent rather than the desktop theme's own
+   blue, which is the one place a stock GTK colour was still showing
+   through in a window that otherwise commits to navy and yellow. */
+.talk-settings switch:checked {
+  background-color: @lm_accent;
+  border-color: @lm_accent;
+}
+.talk-settings switch:checked:hover {
+  background-color: @lm_accent_hover;
+  border-color: @lm_accent_hover;
+}
+.talk-settings switch:checked slider {
+  background-color: #ffffff;
+  border-color: alpha(#000000, 0.18);
+}
+.talk-settings switch:checked:disabled {
+  background-color: #7d6309;
+  border-color: #7d6309;
+}
 list.choice-list row:selected button.sound-preview { color: @lm_on_accent; }
 .talk-settings treeview {
   background-color: @lm_muted;
@@ -671,9 +691,8 @@ class SettingsWindow(Gtk.Window):
 
         ver_text_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
                                spacing=5)
-        name_label = Gtk.Label(label="Lightmorphic Talk")
-        name_label.get_style_context().add_class("hint")
-        ver_text_row.pack_start(name_label, False, False, 0)
+        # Just the version and the dot. The name is on the window title
+        # and the page you are already looking at.
         ver_num_label = Gtk.Label(label="v{}".format(__version__))
         ver_num_label.get_style_context().add_class("hint")
         ver_text_row.pack_start(ver_num_label, False, False, 0)
