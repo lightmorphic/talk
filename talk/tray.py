@@ -124,7 +124,7 @@ def _draw_frame(size, state, phase, level, progress=0.0, fill=1.0,
             cr.stroke()
     elif state == "downloading":
         # A filling ring, not a spinner. A spinner conveys "busy" and
-        # nothing else; during a 600 MB download the one thing worth
+        # nothing else; during a 464 MB download the one thing worth
         # knowing is how far along it is, and whether it is moving at
         # all. The arc grows clockwise from the top until it closes.
         cr.set_source_rgba(*_YELLOW, 0.22)

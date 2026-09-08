@@ -1,6 +1,6 @@
 """The first-run model download, said once and quietly.
 
-Talk needs a ~600 MB speech model before it can do anything, fetched
+Talk needs a ~464 MB speech model before it can do anything, fetched
 once on first run. Doing that behind a spinning tray icon is
 indefensible — a stalled transfer looks exactly like a broken app — but
 the answer is not a large window either. A small notice says what is

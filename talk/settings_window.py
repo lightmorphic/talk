@@ -49,9 +49,7 @@ _LM_SUCCESS = "#4bae4f"
 _LM_WARNING = "#ffc006"
 _LM_DANGER = "#f34236"
 _LM_MUTED = "#a1a1aa"
-_LM_ON_ACCENT = "#645007"
 _LM_READY = "#2295f1"     # palette Blue: update downloaded, restart me
-_LM_ON_READY = "#0a2a43"  # Blue's own contrast-checked on-accent
 _LM_FG = "#fafafa"
 
 
@@ -1499,7 +1497,7 @@ class SettingsWindow(Gtk.Window):
         actions.pack_start(export_btn, False, False, 0)
         box.pack_start(actions, False, False, 0)
 
-        # Deleting the AppImage leaves the 600 MB model, the settings and
+        # Deleting the AppImage leaves the model, the settings and
         # the menu entry behind, so "removed" does not mean removed. This
         # is the only thing that can honestly take it all away.
         removable = uninstall.total_bytes()

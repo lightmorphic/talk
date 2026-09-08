@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # When packaged as an AppImage, BASE_DIR resolves inside that version's
 # read-only, throwaway squashfs mount. Anything Talk needs to WRITE —
 # its own settings, and the downloaded speech model, which must survive
-# every future update without re-downloading 600 MB — lives instead in
+# every future update without re-downloading it — lives instead in
 # one persistent per-user folder outside the bundle. A source checkout
 # has no such throwaway mount, so it keeps everything in the repo, as
 # a single self-contained folder.
@@ -44,7 +44,7 @@ def migrate_from_talkin():
 
     This app has been called Talkin, then Talkmorphic, before Lightmorphic
     Talk. Each rename that quietly left the settings, the personal
-    dictionary and — worse — the 600 MB speech model behind would mean
+    dictionary and — worse — the speech model behind would mean
     everyone's first run of the new name looks exactly like a fresh
     install, including the download. Moving the whole folder across, once,
     the first time the new name finds nothing of its own, avoids that —
@@ -75,7 +75,7 @@ CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
 DICT_PATH = os.path.join(DATA_DIR, "dictionary.json")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.jsonl")
 # TALK_LOG_DIR redirects only the log, leaving settings, history and
-# the 600 MB model cache where they are. It exists so a log can be written
+# the model cache where they are. It exists so a log can be written
 # somewhere a helper can actually read when diagnosing a fault, without
 # disturbing the install.
 _LOG_DIR = os.environ.get("TALK_LOG_DIR") or DATA_DIR

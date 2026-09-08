@@ -128,7 +128,7 @@ class TalkApp:
     def _downloading(self):
         """First run: the model is being fetched.
 
-        A spinning tray icon is not enough. A 600 MB download can take
+        A spinning tray icon is not enough. A 464 MB download can take
         minutes and can stall for minutes more, and with nothing on
         screen that is indistinguishable from a broken app — which is
         exactly how it was reported. Show the size, the progress, and

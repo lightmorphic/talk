@@ -1,9 +1,10 @@
 """Removing Talk completely.
 
-Deleting the AppImage is not uninstalling. It leaves behind the ~600 MB
+Deleting the AppImage is not uninstalling. It leaves behind the ~464 MB
 speech model, the settings, the history and dictionary, the launcher
 entry in the applications menu, and the autostart entry — so the icon
-still appears, and 600 MB stays on disk with nothing to explain it.
+still appears, and half a gigabyte stays on disk with nothing to
+explain it.
 
 This removes all of it, including the AppImage itself, so "remove the
 program" means what it says. Everything it touches is something Talk

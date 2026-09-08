@@ -45,7 +45,6 @@ KEYSYM_SHIFT_L = 0xFFE1
 KEYSYM_U = 0x75
 KEYSYM_V = 0x76
 KEYSYM_RETURN = 0xFF0D
-KEYSYM_SPACE = 0x20
 
 # Config key holding the portal's restore token.
 RESTORE_TOKEN_KEY = "wayland_restore_token"

@@ -186,12 +186,13 @@ def _mark_cached():
 
 
 def _configure_hub(offline):
-    """Point the Hugging Face client at our own cache folder.
+    """Keep the model download inside our own folder, and quiet.
 
-    Talk is offline by default. The one exception is the very first
-    run, before the model has ever been downloaded — that single
-    download is allowed, then this pins the process hard-offline for
-    good, so no request is ever made again.
+    The real offline lock is local_files_only=True on the loaded model,
+    which makes the library incapable of reaching the network rather
+    than merely disinclined; this is the belt to that pair of braces,
+    and it keeps anything the hub writes on its own account inside the
+    app's folder instead of the user's home cache.
     """
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     # Make the folder before pointing anything at it. On a first run it
