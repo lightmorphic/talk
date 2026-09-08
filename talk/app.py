@@ -572,6 +572,16 @@ class TalkApp:
     def _restart_failed(self):
         """Say it plainly rather than leaving someone waiting."""
         self._set_state("idle" if self.transcriber.ready else "paused")
+        # The dot is left breathing on "restarting" by the click that
+        # got us here. Nothing else would ever put it back, so it would
+        # pulse for as long as Settings stayed open, promising a restart
+        # that is not coming and refusing the click that would retry it.
+        window = getattr(self, "_settings_window", None)
+        if window is not None:
+            try:
+                window.restart_did_not_happen()
+            except Exception:
+                log.debug("could not reset the update dot", exc_info=True)
         self.notify(i18n.t("error.restart_failed"))
 
     def quit(self):

@@ -727,7 +727,7 @@ class SettingsWindow(Gtk.Window):
         check had started. Pulsing, rather than blinking: a blink reads
         as a fault, a slow swell reads as work in progress.
         """
-        want = self._update_state == "checking"
+        want = self._update_state in ("checking", "restarting")
         if want and self._pulse_timer is None:
             self._pulse = 0.0
             self._pulse_timer = GLib.timeout_add(self._PULSE_MS, self._beat)
@@ -741,7 +741,12 @@ class SettingsWindow(Gtk.Window):
         self._pulse += self._PULSE_MS / 1000.0
         self._update_dot.queue_draw()
         # Three beats and then steady, even if the answer is slow: an
-        # animation that never stops stops meaning anything.
+        # animation that never stops stops meaning anything. Restarting
+        # is the exception and keeps breathing: there it is the only
+        # sign anything is happening, and it ends on its own when this
+        # process is replaced a few seconds later.
+        if self._update_state == "restarting":
+            return True
         if self._pulse > self._PULSE_BEATS * self._PULSE_PERIOD:
             self._pulse_timer = None
             return False
@@ -775,9 +780,9 @@ class SettingsWindow(Gtk.Window):
         color = {
             "checking": _LM_MUTED, "uptodate": _LM_SUCCESS,
             "available": _LM_WARNING, "ready": _LM_READY,
-            "error": _LM_DANGER,
+            "restarting": _LM_READY, "error": _LM_DANGER,
         }.get(state, _LM_MUTED)
-        if state == "checking" and self._pulse_timer is not None:
+        if state in ("checking", "restarting") and self._pulse_timer is not None:
             swell = 0.5 - 0.5 * math.cos(
                 2 * math.pi * self._pulse / self._PULSE_PERIOD)
             cr.set_source_rgba(*_hex_rgb(color), 0.30 + 0.70 * swell)
@@ -1613,6 +1618,15 @@ class SettingsWindow(Gtk.Window):
             tooltip.flash(self._update_dot, seconds=3.0)
         return False
 
+    def restart_did_not_happen(self):
+        """Put the dot back to ready after a restart that did not take.
+
+        Called by the app when the replacement process failed to come
+        up. The update is still downloaded and still installable, so
+        the dot goes back to the state that offers it.
+        """
+        self._set_update_dot("ready", i18n.t("update.restart_tip"))
+
     def _on_update_dot_clicked(self, _widget, _event):
         # The dot is the whole interface: yellow starts the download,
         # the ready state restarts, and green/red re-check (green to
@@ -1623,6 +1637,10 @@ class SettingsWindow(Gtk.Window):
         if self._update_state == "available":
             self._apply_update()
         elif self._update_state == "ready":
+            # Restarting takes a few seconds - the replacement has to
+            # start and prove itself alive before this one lets go - and
+            # a dot that just sat there read as a click that missed.
+            self._set_update_dot("restarting", i18n.t("update.restarting"))
             self.app_obj.restart()
         elif self._update_state in ("uptodate", "error"):
             self._check_update()
