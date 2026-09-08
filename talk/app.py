@@ -26,8 +26,10 @@ log = logging.getLogger("talk.app")
 # The gap between clicking stop and the microphone actually closing.
 # Sound card latency and the moment it takes to react to the click mean
 # a word spoken right around the click can otherwise still be on its
-# way in when capture ends.
-_STOP_TAIL_MS = 2000
+# way in when capture ends. Two seconds while the old model was also
+# losing the ends of things; one is enough for the latency alone, and
+# it is a second less staring at a button that has not finished.
+_STOP_TAIL_MS = 1000
 
 
 class TalkApp:
