@@ -68,6 +68,7 @@ class TalkApp:
             on_ready=lambda: GLib.idle_add(self._model_ready),
             on_error=lambda key: GLib.idle_add(self._fail, key),
             on_downloading=lambda: GLib.idle_add(self._downloading))
+        self.transcriber.language = self._dictation_language()
         self._listening = False
         self._stop_timer = None
 
@@ -417,7 +418,17 @@ class TalkApp:
     def apply_settings(self):
         """Re-read anything that can change while Talk is running."""
         i18n.set_language(self.config.get("language"))
+        self.transcriber.language = self._dictation_language()
         return True
+
+    def _dictation_language(self):
+        """The language to transcribe as, or None to let it decide."""
+        choice = self.config.get("dictation_language")
+        if choice == "auto":
+            return None
+        if choice == "app":
+            return self.config.get("language")
+        return choice
 
     def retranslate(self):
         """Put the whole interface into the language just chosen.

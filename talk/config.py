@@ -83,6 +83,15 @@ LOG_PATH = os.path.join(_LOG_DIR, "talk.log")
 
 DEFAULTS = {
     "language": "en",
+    # Which language to transcribe as. "app" follows the setting above,
+    # "auto" lets the model work it out, anything else is a language
+    # code. Not "auto" by default: the model decides that from the
+    # opening of a recording and when it decides wrong the whole
+    # dictation comes back in the wrong language - English transcribed
+    # phonetically as Welsh, in the case that prompted this. Someone who
+    # dictates in the language the app is already set to should never be
+    # exposed to that guess at all.
+    "dictation_language": "app",
     "injection": "paste",  # paste | type
     "mic": "default",
     "cleanup_fillers": True,

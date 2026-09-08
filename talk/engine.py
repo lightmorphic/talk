@@ -473,6 +473,13 @@ class Transcriber:
 
     def __init__(self, on_ready=None, on_error=None, on_downloading=None):
         self._model = None
+        # None means "work it out yourself". Whisper decides that from
+        # the opening of the recording, and when it decides wrong the
+        # whole dictation comes out in the wrong language - English
+        # transcribed phonetically as Welsh, in the case that prompted
+        # this. Set from the settings, so the common case never asks it
+        # to guess at all.
+        self.language = None
         self._queue = queue.Queue()
         self.on_ready = on_ready
         self.on_error = on_error
@@ -585,9 +592,6 @@ class Transcriber:
     def _recognize(self, audio):
         if len(audio) < SAMPLE_RATE // 4:  # under 0.25s: nothing said
             return ""
-        # language=None: the model settles on whichever one is being
-        # spoken, which is what the app has always promised and why
-        # there is no language to choose before dictating.
         # beam_size=1 is greedy decoding - the wider search costs
         # seconds per dictation and changed nothing measurable here.
         # condition_on_previous_text=False stops each window being
@@ -603,9 +607,15 @@ class Transcriber:
         # sentence, and clips with long pauses all came back identical.
         # The silence model ships inside the package, so this needs no
         # download and cannot break the offline promise.
-        segments, _info = self._model.transcribe(
-            audio, language=None, beam_size=1,
+        segments, info = self._model.transcribe(
+            audio, language=self.language, beam_size=1,
             condition_on_previous_text=False, vad_filter=True)
+        # Worth a line in the log either way: when a dictation comes
+        # back as nonsense, the first thing worth knowing is which
+        # language it thought it was hearing.
+        if self.language is None:
+            log.info("language detected as %s (%.0f%% sure)",
+                     info.language, info.language_probability * 100)
         # transcribe() returns a generator: nothing is actually decoded
         # until this is walked.
         return " ".join(s.text.strip() for s in segments).strip()

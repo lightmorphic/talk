@@ -850,6 +850,23 @@ class SettingsWindow(Gtk.Window):
         box.pack_start(self._row(i18n.t("settings.language"), lang_button),
                        False, False, 0)
 
+        # Which language to transcribe as, separate from the language
+        # the app itself speaks: someone can run it in English and
+        # dictate in French. "Same as the app" first and default,
+        # because letting the model guess is what produced a whole
+        # dictation of English rendered phonetically as Welsh.
+        dictation = chooser.choice_button(
+            [("app", i18n.t("settings.dictation_same")),
+             ("auto", i18n.t("settings.dictation_auto"))]
+            + list(i18n.available_languages()),
+            self.config.get("dictation_language"),
+            lambda value: self._set("dictation_language", value),
+            searchable=True,
+            filter_placeholder=i18n.t("settings.filter"))
+        box.pack_start(
+            self._row(i18n.t("settings.dictation_language"), dictation),
+            False, False, 0)
+
         box.pack_start(self._switch_row("autostart", "settings.autostart"),
                        False, False, 0)
 
