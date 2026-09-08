@@ -277,8 +277,7 @@ class WaterCircle(Gtk.DrawingArea):
         level = cy + r - (2 * r * max(0.0, min(1.0, self.fraction)))
         amp = 4.0 if self.fraction < 1.0 else 1.5
 
-        for band, (alpha, speed, shift) in enumerate(
-                ((0.35, 1.0, 0.0), (1.0, 1.4, 1.1))):
+        for alpha, speed, shift in ((0.35, 1.0, 0.0), (1.0, 1.4, 1.1)):
             cr.set_source_rgba(*_YELLOW, alpha)
             cr.move_to(cx - r, size)
             x = cx - r

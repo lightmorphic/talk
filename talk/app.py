@@ -48,7 +48,6 @@ class TalkApp:
         # fed the live mic level below.
         self._download_window = None
         self._progress_fraction = 0.0
-        self._announced_ready = False
         self.tray = Tray(
             on_settings=self.open_settings,
             on_toggle_pause=self.toggle_pause,
@@ -136,6 +135,13 @@ class TalkApp:
         """
         self._set_state("downloading")
         self.notify(i18n.t("notify.downloading"))
+        self._ensure_download_window()
+
+    def _ensure_download_window(self):
+        """Build the first-run window once, wired the same way wherever
+        it is asked for. Two callers had their own identical copy of
+        this, so a new callback had to be remembered in both.
+        """
         if self._download_window is None:
             self._download_window = DownloadWindow(
                 self.config,
@@ -175,14 +181,7 @@ class TalkApp:
                 percent=int(self._progress_fraction * 100)))
 
     def _show_first_run(self):
-        if self._download_window is None:
-            self._download_window = DownloadWindow(
-                self.config,
-                on_progress=self._on_progress,
-                on_dismissed=self._download_hidden,
-                on_quit=self.quit,
-                is_ready=injector.ready,
-                on_language_changed=self._rebuild_first_run)
+        self._ensure_download_window()
         self.config.update({"first_run_seen": True})
         return False
 

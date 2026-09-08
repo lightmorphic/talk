@@ -183,10 +183,6 @@ class Config:
         with _lock:
             return self._values.get(key, DEFAULTS.get(key))
 
-    def all(self):
-        with _lock:
-            return dict(self._values)
-
     def update(self, changes):
         with _lock:
             for key in DEFAULTS:

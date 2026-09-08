@@ -84,9 +84,6 @@ class PortalInjector:
         """
         return self._session is not None and self._started
 
-    @property
-    def failed(self):
-        return self._failed
 
     # -- session lifecycle -----------------------------------------------
 

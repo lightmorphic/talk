@@ -39,10 +39,6 @@ class XTestInjector:
         # accept keystrokes. There is no consent step to wait for.
         return self._ok
 
-    @property
-    def failed(self):
-        return not self._ok
-
     def start(self, on_ready=None):
         if on_ready:
             GLib.idle_add(lambda: (on_ready(True), False)[1])

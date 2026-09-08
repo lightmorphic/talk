@@ -57,10 +57,6 @@ def t(key):
     return row.get(_language) or row.get("en") or key
 
 
-def language():
-    return _language
-
-
 def available_languages():
     """(code, native name) for every language column in the CSV.
 

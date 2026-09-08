@@ -334,7 +334,7 @@ class Recorder:
             self._native_rate = self._device_rate(device)
             cap_frames = self._native_rate * MAX_SECONDS
 
-            def callback(indata, frames, time_info, status):
+            def callback(indata, frames, _time_info, status):
                 # The MAX_SECONDS cap compares ACTUAL captured frames,
                 # counted as they arrive. It used to be estimated as
                 # len(chunks) * this callback's frame count - but with
