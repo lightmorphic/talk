@@ -23,6 +23,7 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
 from .config import MODEL_DIR
+from .engine import MODEL_DIR_NAME
 from .inject_portal import RESTORE_TOKEN_KEY
 from .i18n import t
 
@@ -42,9 +43,16 @@ STALL_AFTER_S = 20
 
 
 def cache_bytes():
-    """Bytes downloaded so far, counted straight off the disk."""
+    """Bytes of the model being fetched, counted straight off the disk.
+
+    This model's own folder, not everything under MODEL_DIR. Someone
+    upgrading still has the previous 600 MB model on disk while the new
+    one downloads - it is only deleted once the replacement has loaded -
+    and counting that too put the bar at 100% and the counter at
+    "646 of 464 MB" before the download had really started.
+    """
     total = 0
-    for root, _dirs, files in os.walk(MODEL_DIR):
+    for root, _dirs, files in os.walk(os.path.join(MODEL_DIR, MODEL_DIR_NAME)):
         for name in files:
             try:
                 total += os.path.getsize(os.path.join(root, name))

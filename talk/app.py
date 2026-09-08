@@ -581,23 +581,20 @@ class TalkApp:
         # speech model and its native thread pool took half a minute in
         # use — and until the icon disappears the app looks hung. So the
         # visible parts go now and the rest follows.
-        try:
-            self.tray.hide()
-        except Exception:
-            pass
-        try:
-            if self.float_button is not None:
-                self.float_button.stop()
-        except Exception:
-            pass
-        try:
-            injector.shutdown()
-        except Exception:
-            pass
-        try:
-            sounds.cleanup()
-        except Exception:
-            pass
+        #
+        # Every step runs even if an earlier one throws: a tray icon
+        # that will not hide must not be able to leave the microphone
+        # open behind it. Logged rather than swallowed outright, so a
+        # tear-down that starts failing is not invisible.
+        for step in (
+                self.tray.hide,
+                lambda: self.float_button and self.float_button.stop(),
+                injector.shutdown,
+                sounds.cleanup):
+            try:
+                step()
+            except Exception:
+                log.debug("quit: a tear-down step failed", exc_info=True)
         Gtk.main_quit()
 
     def notify(self, message):
