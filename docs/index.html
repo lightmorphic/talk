@@ -70,7 +70,7 @@
       "description": "Private, on-device dictation for Linux, in 25 European languages. Click the button, speak, click again. Your words are typed into any app. Speech recognition runs locally, and no audio ever leaves the machine. On Wayland it types through the XDG RemoteDesktop portal (GNOME 45+ or KDE Plasma 5.27+); on X11 it types directly, on any desktop.",
       "url": "https://talk.lightmorphic.com/",
       "downloadUrl": "https://github.com/lightmorphic/talk/releases/latest",
-      "softwareVersion": "1.3.0",
+      "softwareVersion": "1.3.1",
       "dateModified": "2026-09-08",
       "offers": {
         "@type": "Offer",
@@ -121,7 +121,7 @@
           "name": "Does my voice leave the machine?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. The speech model runs on your own processor. After the one-time download of the model on first run, Lightmorphic Talk makes no network requests at all except when you ask it to check for an update."
+            "text": "No. The speech model runs on your own processor. After the one-time download of the model on first run, Lightmorphic Talk makes no network requests at all except the update checks you ask for: one for the application, one for the speech model."
           }
         },
         {
@@ -283,7 +283,7 @@
           <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
           Private by design
         </h3>
-        <p>Speech recognition runs on your CPU using OpenAI's open Whisper model. After the one-time model download, the app pins itself offline. Unplug the internet and Lightmorphic Talk will not notice. It makes exactly two kinds of network request in its whole life: fetching the model once, and checking for updates when you ask it to.</p>
+        <p>Speech recognition runs on your CPU using OpenAI's open Whisper model. After the one-time model download, the app pins itself offline. Unplug the internet and Lightmorphic Talk will not notice. It makes three kinds of network request in its whole life, all of them at your request: fetching the speech model, checking for a new version of the application, and checking for a new version of the speech model.</p>
       </article>
       <article class="panel">
         <h3>
@@ -365,7 +365,7 @@
     <div class="panel faq">
       <details class="faq-item">
         <summary><h3>Does my voice leave the machine?</h3></summary>
-        <p>No. The speech model runs on your own processor. After the one-time download of the model on first run, Lightmorphic Talk makes no network requests at all except when you ask it to check for an update.</p>
+        <p>No. The speech model runs on your own processor. After the one-time download of the model on first run, Lightmorphic Talk makes no network requests at all except the update checks you ask for: one for the application, one for the speech model.</p>
       </details>
       <details class="faq-item">
         <summary><h3>Does it work on Wayland or on X11?</h3></summary>

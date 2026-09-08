@@ -415,6 +415,24 @@ class TalkApp:
     def open_settings(self):
         open_settings(self)
 
+    def model_update_available(self, available):
+        """A newer speech model exists, or no longer does.
+
+        Told to the tray so the icon carries a mark: Settings may well
+        be closed by the time the check comes back, and a 464 MB
+        download nobody knows about is not something to announce only
+        where nobody is looking.
+        """
+        if getattr(self, "_model_update_flagged", False) == bool(available):
+            return
+        self._model_update_flagged = bool(available)
+        try:
+            self.tray.set_model_update(bool(available))
+        except Exception:
+            log.debug("could not mark the tray", exc_info=True)
+        if available:
+            self.notify(i18n.t("model.notify_available"))
+
     def apply_settings(self):
         """Re-read anything that can change while Talk is running."""
         i18n.set_language(self.config.get("language"))

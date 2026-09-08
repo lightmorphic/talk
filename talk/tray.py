@@ -73,7 +73,7 @@ _SVG_ICONS = {
 
 
 def _draw_frame(size, state, phase, level, progress=0.0, fill=1.0,
-                bold_ring=False):
+                bold_ring=False, badge=False):
     """One frame as a pixbuf: the SVG design, animated.
 
     `fill` scales the whole design about the centre. The design leaves a
@@ -168,6 +168,19 @@ def _draw_frame(size, state, phase, level, progress=0.0, fill=1.0,
             cr.line_to(x * s, (12 + half) * s)
             cr.stroke()
 
+    if badge:
+        # A dot in the corner, the way every application says "there is
+        # something here for you" without saying what. Blue, matching
+        # the update dot's own "downloaded, your move" colour, and
+        # drawn last so nothing else covers it.
+        cr.set_source_rgb(0x22 / 255, 0x95 / 255, 0xF1 / 255)
+        cr.arc(18.0 * s, 6.0 * s, 4.2 * s, 0, 2 * math.pi)
+        cr.fill()
+        cr.set_source_rgba(0, 0, 0, 0.45)
+        cr.set_line_width(1.0 * s)
+        cr.arc(18.0 * s, 6.0 * s, 4.2 * s, 0, 2 * math.pi)
+        cr.stroke()
+
     return Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
 
 
@@ -185,6 +198,11 @@ class Tray:
         self._phase = 0.0
         self._level = 0.0
         self._progress = 0.0   # 0..1 while downloading; fills the ring
+        # A newer speech model exists and has not been fetched. Shown as
+        # a corner dot, because Settings is usually closed when the
+        # check comes back and a 464 MB download should not be
+        # announced only where nobody is looking.
+        self._model_update = False
         self._level_lock = threading.Lock()
         self._timer = None
         self._size = 24
@@ -229,6 +247,12 @@ class Tray:
         if self._indicator is not None:
             self._indicator.set_menu(self._menu)
         self.set_state(self._state)
+
+    def set_model_update(self, available):
+        if self._model_update == bool(available):
+            return
+        self._model_update = bool(available)
+        self._render()
 
     def set_progress(self, fraction):
         """How full the download ring should be (0..1).
@@ -371,4 +395,5 @@ class Tray:
         size = max(16, int(round(self._size * _TRAY_OVERSIZE)))
         self._icon.set_from_pixbuf(
             _draw_frame(size, self._state, self._phase, level,
-                        self._progress, fill=_TRAY_FILL, bold_ring=True))
+                        self._progress, fill=_TRAY_FILL, bold_ring=True,
+                        badge=self._model_update))

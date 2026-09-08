@@ -341,6 +341,7 @@ class SettingsWindow(Gtk.Window):
             ("general", "settings.section.general", self._build_general),
             ("microphone", "settings.section.microphone",
              self._build_microphone),
+            ("model", "settings.section.model", self._build_model),
             ("output", "settings.section.output", self._build_output),
             ("sounds", "settings.section.sounds", self._build_sounds),
             ("dictionary", "settings.section.dictionary",
@@ -1043,6 +1044,116 @@ class SettingsWindow(Gtk.Window):
 
     # -- output / cleanup ----------------------------------------------
 
+    def _build_model(self):
+        box = self._section("settings.section.model", "settings.model_hint")
+
+        self._model_state = Gtk.Label(xalign=0, wrap=True)
+        self._model_state.get_style_context().add_class("hint")
+        box.pack_start(self._model_state, False, False, 0)
+
+        # A bar rather than the update dot's ring: this is a 464 MB
+        # download that people are told the size of before they agree
+        # to it, and a bar is the shape that says how far through
+        # something long is. Hidden until there is something to show.
+        self._model_progress = Gtk.ProgressBar()
+        self._model_progress.set_show_text(True)
+        self._model_progress.set_no_show_all(True)
+        box.pack_start(self._model_progress, False, False, 0)
+
+        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._model_check_button = Gtk.Button(label=i18n.t("model.check"))
+        self._model_check_button.connect("clicked", self._on_model_check)
+        buttons.pack_start(self._model_check_button, False, False, 0)
+
+        self._model_get_button = Gtk.Button(label=i18n.t("model.download"))
+        self._model_get_button.get_style_context().add_class("suggested-action")
+        self._model_get_button.set_no_show_all(True)
+        self._model_get_button.connect("clicked", self._on_model_download)
+        buttons.pack_start(self._model_get_button, False, False, 0)
+        box.pack_start(buttons, False, False, 0)
+
+        self._describe_model()
+        return box
+
+    def _describe_model(self, extra=None):
+        """What is installed, and how big it is. Never a promise about
+        whether it is current: that costs a request, and only the button
+        is allowed to make one."""
+        from . import model_updater
+        size = model_updater.installed_bytes()
+        here = model_updater.local_revision()
+        if here is None:
+            text = i18n.t("model.none")
+        else:
+            text = i18n.t("model.installed").format(
+                name=model_updater.REPO, size=int(size / (1024 * 1024)),
+                revision=here[:8])
+        if extra:
+            text = text + "\n" + extra
+        self._model_state.set_text(text)
+
+    def _on_model_check(self, _button):
+        from . import model_updater
+        self._model_check_button.set_sensitive(False)
+        self._describe_model(i18n.t("model.checking"))
+
+        def run():
+            state, detail = model_updater.check()
+            GLib.idle_add(self._model_checked, state, detail)
+
+        import threading
+        threading.Thread(target=run, daemon=True).start()
+
+    def _model_checked(self, state, detail):
+        self._model_check_button.set_sensitive(True)
+        if state == "available":
+            self._describe_model(i18n.t("model.available"))
+            self._model_get_button.show()
+            self.app_obj.model_update_available(True)
+        elif state == "missing":
+            self._describe_model(i18n.t("model.none"))
+            self._model_get_button.show()
+        elif state == "uptodate":
+            self._describe_model(i18n.t("model.uptodate"))
+            self._model_get_button.hide()
+            self.app_obj.model_update_available(False)
+        else:
+            self._describe_model(i18n.t("model.check_failed").format(
+                reason=str(detail)[:120]))
+        return False
+
+    def _on_model_download(self, _button):
+        from . import model_updater
+        self._model_get_button.set_sensitive(False)
+        self._model_check_button.set_sensitive(False)
+        self._model_progress.set_fraction(0.0)
+        self._model_progress.set_text(i18n.t("model.downloading"))
+        self._model_progress.show()
+
+        def on_progress(fraction):
+            GLib.idle_add(self._model_progress.set_fraction, fraction)
+
+        def run():
+            ok = model_updater.download(on_progress=on_progress)
+            GLib.idle_add(self._model_downloaded, ok)
+
+        import threading
+        threading.Thread(target=run, daemon=True).start()
+
+    def _model_downloaded(self, ok):
+        self._model_check_button.set_sensitive(True)
+        self._model_get_button.set_sensitive(True)
+        if ok:
+            self._model_progress.set_fraction(1.0)
+            self._model_progress.set_text(i18n.t("model.done"))
+            self._model_get_button.hide()
+            self._describe_model(i18n.t("model.done_hint"))
+            self.app_obj.model_update_available(False)
+        else:
+            self._model_progress.hide()
+            self._describe_model(i18n.t("model.download_failed"))
+        return False
+
     def _build_output(self):
         box = self._section("settings.section.output")
         injection = chooser.choice_button(
@@ -1665,7 +1776,14 @@ class SettingsWindow(Gtk.Window):
     def _apply_update(self):
         from . import updater
         self._download_fraction = 0.0
-        self._set_update_dot("downloading", i18n.t("update.installing"))
+        # One beat first, then the ring. Going straight to a ring at
+        # zero looks identical to a dot that ignored the click, and the
+        # first bytes can take a moment to arrive.
+        self._set_update_dot("checking", i18n.t("update.installing"))
+        GLib.timeout_add(
+            int(self._PULSE_PERIOD * 1000),
+            lambda: (self._set_update_dot(
+                "downloading", i18n.t("update.installing")), False)[1])
 
         def on_progress(fraction):
             GLib.idle_add(self._set_download_progress, fraction)
