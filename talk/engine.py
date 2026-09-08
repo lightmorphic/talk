@@ -590,8 +590,22 @@ class Transcriber:
         # there is no language to choose before dictating.
         # beam_size=1 is greedy decoding - the wider search costs
         # seconds per dictation and changed nothing measurable here.
+        # condition_on_previous_text=False stops each window being
+        # prompted with the last one's output, which is the documented
+        # way this model gets stuck repeating itself on speech with
+        # pauses in it. vad_filter skips the silence rather than
+        # decoding it, which is where it otherwise invents words.
+        # Neither changed accuracy on a 175-second test (30 of 30
+        # either way) but together they took it from 16 seconds to 12,
+        # and both guard against failures that only show up
+        # occasionally - the kind this test cannot reproduce. Checked
+        # they cost nothing at the short end too: one word, one
+        # sentence, and clips with long pauses all came back identical.
+        # The silence model ships inside the package, so this needs no
+        # download and cannot break the offline promise.
         segments, _info = self._model.transcribe(
-            audio, language=None, beam_size=1)
+            audio, language=None, beam_size=1,
+            condition_on_previous_text=False, vad_filter=True)
         # transcribe() returns a generator: nothing is actually decoded
         # until this is walked.
         return " ".join(s.text.strip() for s in segments).strip()

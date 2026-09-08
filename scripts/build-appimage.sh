@@ -97,6 +97,13 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('AyatanaAppIndicator3', '0.1')
 from gi.repository import Gtk, AyatanaAppIndicator3
 import cairo, numpy, sounddevice, faster_whisper, ctranslate2
+# onnxruntime and the Silero asset are what vad_filter=True runs on.
+# Neither is imported by the lines above, so without this a bundle
+# missing either would build clean and fail on the first dictation.
+import onnxruntime, os.path
+assert os.path.exists(os.path.join(
+    os.path.dirname(faster_whisper.__file__), 'assets', 'silero_vad_v6.onnx')), \
+    'the silence-detection model is missing from the bundle'
 import httpx
 from huggingface_hub import snapshot_download
 print('CLEAN')
