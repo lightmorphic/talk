@@ -49,6 +49,11 @@ KEYSYM_RETURN = 0xFF0D
 # Config key holding the portal's restore token.
 RESTORE_TOKEN_KEY = "wayland_restore_token"
 
+# How long to wait before each fresh attempt at a session, in seconds.
+# Short at first, because the usual cause clears in moments; then slow,
+# so a desktop that will never grant it is not asked all day.
+_RETRY_DELAYS = (5, 15, 60, 300)
+
 
 class PortalInjector:
     """Keyboard injection over RemoteDesktop.
@@ -69,6 +74,8 @@ class PortalInjector:
         self._closed_sub = None
         self._reconnecting = False
         self._started = False
+        self._retry_timer = None
+        self._retry_step = 0
 
     # -- availability ----------------------------------------------------
 
@@ -137,6 +144,8 @@ class PortalInjector:
             self._starting = False
             self._reconnecting = False
             self._started = True
+            self._failed = False
+            self._retry_step = 0
             self._watch_for_close()
             log.info("keyboard injection ready via the portal")
             self._flush(True)
@@ -189,6 +198,53 @@ class PortalInjector:
         self._failed = True
         self._session = None
         self._flush(False)
+        self._schedule_retry()
+
+    def _schedule_retry(self):
+        """Ask again later, and go on asking, slower each time.
+
+        A failure here is usually not a refusal. Locking the screen
+        stops every remote-access session the desktop is running and
+        refuses new ones until it is unlocked - "Session creation
+        inhibited", for as long as the lock lasts. Giving up after the
+        one attempt two seconds later meant that locking the laptop
+        cost Talk its typing for the rest of the day, with nothing to
+        say so: it went on hearing, transcribing and putting the words
+        in History, and never typed another one.
+
+        With a stored permission token these attempts are silent, so
+        going on asking costs the user nothing.
+        """
+        if self._retry_timer is not None:
+            return
+        delay = _RETRY_DELAYS[min(self._retry_step, len(_RETRY_DELAYS) - 1)]
+        self._retry_step += 1
+        log.info("will ask for input permission again in %ds", delay)
+        self._retry_timer = GLib.timeout_add_seconds(delay, self._retry_now)
+
+    def _retry_now(self):
+        self._retry_timer = None
+        if self._session is None and not self._starting:
+            log.info("asking for input permission again")
+            self.start()
+        return False
+
+    def recover(self):
+        """Try again right now, because there is text waiting.
+
+        Called when a dictation arrives with nowhere to go. The user is
+        by definition at the keyboard at that moment, so this is the
+        one time a permission prompt is welcome rather than a
+        surprise.
+        """
+        if self.ready or self._starting:
+            return
+        if self._retry_timer is not None:
+            GLib.source_remove(self._retry_timer)
+            self._retry_timer = None
+        self._retry_step = 0
+        log.info("asking for input permission again, on demand")
+        self.start()
 
     def _flush(self, ok):
         waiters, self._waiters = self._waiters, []
@@ -197,6 +253,9 @@ class PortalInjector:
 
     def stop(self):
         self._started = False
+        if self._retry_timer is not None:
+            GLib.source_remove(self._retry_timer)
+            self._retry_timer = None
         portal.unsubscribe(self._closed_sub)
         self._closed_sub = None
         portal.close_session(self._session)

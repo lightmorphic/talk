@@ -84,6 +84,16 @@ def ready():
     return _backend is not None and _backend.ready
 
 
+def recover():
+    """Ask the backend for permission again, now.
+
+    Only the portal backend can lose permission; XTEST either works or
+    was never there.
+    """
+    if _backend is not None and hasattr(_backend, "recover"):
+        _backend.recover()
+
+
 def _clipboard():
     return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
@@ -116,7 +126,8 @@ def _paste(text, done, keep=False):
         GLib.idle_add(apply)
 
     if not ready():
-        log.warning("injection not ready; dropping %d chars", len(text))
+        log.warning("injection not ready; %d chars go to History", len(text))
+        recover()
         restore(False)
         return False
 
@@ -132,7 +143,8 @@ def _type(text, done, keep=False):
         clipboard.set_text(text, -1)
         clipboard.store()
     if not ready():
-        log.warning("injection not ready; dropping %d chars", len(text))
+        log.warning("injection not ready; %d chars go to History", len(text))
+        recover()
         GLib.idle_add(lambda: (done(False), False)[1])
         return
     _backend.send_text(text, done)
