@@ -90,7 +90,7 @@
 
       <div class="gesture">
         <figure>
-          <svg viewBox="0 0 150 96" width="150" height="96" role="img" aria-label="A right click on the button teaches it a word">
+          <svg viewBox="0 0 150 96" width="150" height="96" role="img" aria-label="A right click on the button opens its menu">
             <circle cx="58" cy="46" r="30" fill="#111827"/>
             <g stroke="#fbc711" stroke-width="4" stroke-linecap="round">
               <line x1="44" y1="38" x2="44" y2="54"/>
@@ -106,8 +106,8 @@
             <line x1="94" y1="44" x2="124" y2="44" stroke="#111827" stroke-width="2.5"/>
           </svg>
         </figure>
-        <h3>Right-click to teach</h3>
-        <p>Highlight a misheard word, right-click the button, and type how it should be spelt.</p>
+        <h3>Right-click for the menu</h3>
+        <p>Settings, teaching a word, pause and quit. Highlight a misheard word first and Teach a word already knows it.</p>
       </div>
 
       <div class="gesture">
@@ -258,7 +258,7 @@
     <div class="panel faq">
       <details class="faq-item" open>
         <summary><h3>How do I teach it a word it keeps getting wrong?</h3></summary>
-        <p>Highlight the misheard word wherever it was typed, then right-click the floating button. It reads the highlighted word straight away and asks how it should have been spelt. From then on it corrects that word automatically.</p>
+        <p>Highlight the misheard word wherever it was typed, then right-click the floating button and choose <b>Teach a word</b>. It reads the highlighted word straight away and asks how it should have been spelt. From then on it corrects that word automatically.</p>
       </details>
       <details class="faq-item">
         <summary><h3>It asked me to type the word instead of reading my highlight. Why?</h3></summary>
@@ -266,7 +266,7 @@
       </details>
       <details class="faq-item">
         <summary><h3>What does the personal dictionary switch do?</h3></summary>
-        <p>Turns the whole feature off: no words you have taught it get corrected any more, and right-clicking the floating button no longer offers to teach it one, until you switch it back on.</p>
+        <p>Turns the whole feature off: no words you have taught it get corrected any more, and <b>Teach a word</b> disappears from the floating button's menu, until you switch it back on.</p>
       </details>
       <details class="faq-item">
         <summary><h3>Where can I see, edit or remove the words I have taught it?</h3></summary>
@@ -385,9 +385,13 @@
       </svg>
       Troubleshooting
     </h2>
-    <p class="section-intro">The four things that actually go wrong, and what to do about each.</p>
+    <p class="section-intro">The five things that actually go wrong, and what to do about each.</p>
     <div class="panel faq">
       <details class="faq-item" open>
+        <summary><h3>There is no icon in the top bar. How do I get to Settings?</h3></summary>
+        <p>Right-click the floating button. That menu has Settings on it, and it is there whatever your desktop does with tray icons. On Ubuntu and other stock GNOME desktops the top-bar icon needs the AppIndicator extension, which Ubuntu ships and switches on by default; if it has been turned off, or your desktop has no tray at all, the floating button's menu is the way in.</p>
+      </details>
+      <details class="faq-item">
         <summary><h3>It hears me and shows the words, but nothing gets typed.</h3></summary>
         <p>The typing permission from first setup was likely lost, which can happen after a desktop update or a Wayland session restart. Lightmorphic Talk tells you when this happens: open Settings and restart the app to be asked for permission again.</p>
       </details>
@@ -397,7 +401,7 @@
       </details>
       <details class="faq-item">
         <summary><h3>It keeps mishearing the same word.</h3></summary>
-        <p>Teach it: highlight the word after it is typed, then right-click the floating button. See <a href="#teach">Teaching it words</a> above.</p>
+        <p>Teach it: highlight the word after it is typed, then right-click the floating button and choose <b>Teach a word</b>. See <a href="#teach">Teaching it words</a> above.</p>
       </details>
       <details class="faq-item">
         <summary><h3>How do I report a problem?</h3></summary>

@@ -10,10 +10,17 @@ those and is gone). Frames are drawn with cairo directly - no SVG
 loading in-process, so no dependence on the librsvg gdk-pixbuf loader
 that isn't reliably present inside the AppImage.
 
-AppIndicator remains as an automatic fallback for desktops that never
-embed legacy status icons (stock GNOME): same menu, static SVG icons,
-no left-click - degraded but functional. The fallback triggers only
-when the status icon reports it isn't embedded after a grace period.
+AppIndicator is used instead on GNOME, and as an automatic fallback
+anywhere else the status icon never gets embedded: same menu, static
+SVG icons, no left-click - degraded but functional.
+
+GNOME is decided up front rather than by asking the status icon,
+because on Ubuntu the answer is a lie. Something in the session claims
+the X11 tray-manager selection without ever drawing anything, so
+is_embedded() reports True, the fallback never runs, and the icon goes
+nowhere - no tray icon and, since Settings lived only on its menu, no
+way into Settings at all. GNOME has not embedded legacy status icons
+since 3.26, so there is nothing to test for there anyway.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -184,16 +191,26 @@ def _draw_frame(size, state, phase, level, progress=0.0, fill=1.0,
     return Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
 
 
+def _is_gnome():
+    return "gnome" in os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
+
+
 class Tray:
     """on_activate fires on a left-click of the icon (the caller wires
     it to start/stop dictation); the other callbacks come from the
-    right-click menu exactly as before."""
+    right-click menu exactly as before.
+
+    The menu is also handed out through popup_at_pointer, so the
+    floating button can raise the same one."""
 
     def __init__(self, on_settings, on_toggle_pause, on_restart, on_quit,
-                 on_activate=None, on_show_button=None):
+                 on_activate=None, on_show_button=None, on_teach=None,
+                 dictionary_enabled=True):
         self.on_toggle_pause = on_toggle_pause
         self.on_activate = on_activate
         self.on_show_button = on_show_button
+        self.on_teach = on_teach
+        self._dictionary_enabled = dictionary_enabled
         self._state = "loading"
         self._phase = 0.0
         self._level = 0.0
@@ -219,7 +236,10 @@ class Tray:
         self._icon.connect("popup-menu", self._on_right_click)
         self._icon.connect("size-changed", self._on_size_changed)
         self._render()
-        GLib.timeout_add_seconds(_EMBED_GRACE_S, self._check_embedded)
+        if _is_gnome() and self._start_indicator():
+            self._icon.set_visible(False)
+        else:
+            GLib.timeout_add_seconds(_EMBED_GRACE_S, self._check_embedded)
 
     # -- public API --------------------------------------------------
 
@@ -295,13 +315,27 @@ class Tray:
         self._status_item.set_sensitive(False)
         menu.append(self._status_item)
         menu.append(Gtk.SeparatorMenuItem())
+        # Teaching a word used to be the floating button's right-click
+        # on its own. That click now raises this menu, so the action it
+        # replaced has to be on it.
+        self._teach_item = None
+        if self.on_teach is not None:
+            self._teach_item = Gtk.MenuItem(label=t("float.teach"))
+            self._teach_item.connect("activate", lambda *_: self.on_teach())
+            self._teach_item.set_no_show_all(True)
+            self._teach_item.set_visible(self._dictionary_enabled)
+            menu.append(self._teach_item)
         settings_item = Gtk.MenuItem(label=t("tray.open_settings"))
         settings_item.connect("activate", lambda *_: on_settings())
         menu.append(settings_item)
+        self._show_item = None
         if self.on_show_button is not None:
-            show_item = Gtk.MenuItem(label=t("tray.show_button"))
-            show_item.connect("activate", lambda *_: self.on_show_button())
-            menu.append(show_item)
+            self._show_item = Gtk.MenuItem(label=t("tray.show_button"))
+            self._show_item.connect("activate",
+                                    lambda *_: self.on_show_button())
+            self._show_item.set_no_show_all(True)
+            self._show_item.set_visible(True)
+            menu.append(self._show_item)
         self._pause_item = Gtk.MenuItem(label=t("tray.pause"))
         self._pause_item.connect("activate", lambda *_: on_toggle_pause())
         menu.append(self._pause_item)
@@ -315,11 +349,37 @@ class Tray:
         menu.show_all()
         return menu
 
+    def popup_at_pointer(self, event):
+        """Raise the menu wherever the pointer is.
+
+        Used by the floating button's right-click. popup_at_pointer is
+        the only placement that works on Wayland - the older popup()
+        wants screen coordinates an application there cannot know.
+
+        "Show the floating button" comes off it: the button is the
+        thing that was just clicked.
+        """
+        if self._show_item is not None:
+            self._show_item.set_visible(False)
+        self._menu.popup_at_pointer(event)
+
+    def set_dictionary_enabled(self, enabled):
+        """Show or hide the teach item, to match the setting.
+
+        Someone who has switched the personal dictionary off entirely
+        has no use for an item that only exists to add to it.
+        """
+        self._dictionary_enabled = bool(enabled)
+        if self._teach_item is not None:
+            self._teach_item.set_visible(self._dictionary_enabled)
+
     def _on_left_click(self, _icon):
         if self.on_activate is not None:
             self.on_activate()
 
     def _on_right_click(self, _icon, button, activate_time):
+        if self._show_item is not None:
+            self._show_item.set_visible(True)
         self._menu.popup(None, None, Gtk.StatusIcon.position_menu,
                          self._icon, button, activate_time)
 
@@ -334,7 +394,12 @@ class Tray:
             return False
         log.info("tray: status icon never embedded; "
                  "falling back to AppIndicator (menu only)")
+        self._start_indicator()
         self._icon.set_visible(False)
+        return False
+
+    def _start_indicator(self):
+        """Put the icon up through AppIndicator. True if that worked."""
         # Importing AppIndicator is NOT proof that it works. Only the
         # typelib ships with the bundle; the matching shared library is
         # always the host's, and a GI typelib dlopen()s that library
@@ -363,7 +428,8 @@ class Tray:
 
         self._indicator = indicator
         self._set_indicator_state(self._state)
-        return False
+        log.info("tray: AppIndicator icon up (menu only, no left-click)")
+        return True
 
     def _set_indicator_state(self, state):
         icon = _SVG_ICONS.get(state, "talk-idle")

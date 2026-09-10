@@ -7,10 +7,12 @@ such signal to get wrong, which is why this exists.
 
 It draws exactly what the tray icon draws — the same waveform, pulsing
 with your voice — so there is one visual language, not two. Click once to
-start, click again to stop. Right-click it to open the popup for
-teaching it a word, instead of a second button cluttering the thing up.
+start, click again to stop. Right-click opens the same menu the tray
+icon carries - Settings, teaching a word, pause, quit - because on a
+desktop that shows no tray icon at all this button is the only way in,
+and a right-click that does nothing reads as a broken app.
 
-Teaching used to be Ctrl-click, not right-click. This window refuses
+Teaching used to be Ctrl-click, then right-click on its own. This window refuses
 keyboard focus on purpose (see set_accept_focus(False) below), so a
 click never steals focus from whatever is being dictated into — and on
 Wayland, a client only learns which modifier keys are held on a
@@ -58,12 +60,10 @@ _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 class FloatButton(Gtk.Window):
     """A small always-on-top record button."""
 
-    def __init__(self, on_toggle, on_correction, dictionary_enabled=True,
-                 button_size="full"):
+    def __init__(self, on_toggle, on_menu, button_size="full"):
         super().__init__(type=Gtk.WindowType.TOPLEVEL)
         self.on_toggle = on_toggle
-        self.on_correction = on_correction
-        self.dictionary_enabled = dictionary_enabled
+        self.on_menu = on_menu
         self._size = BUTTON_SIZES.get(button_size, BUTTON_SIZE)
         self._state = "loading"
         self._phase = 0.0
@@ -137,14 +137,6 @@ class FloatButton(Gtk.Window):
                  self.get_visible(), *self.get_size())
         self._sync_timer()
 
-    def set_dictionary_enabled(self, enabled):
-        """Turn right-click teaching on or off, to match the setting.
-
-        Someone who has switched the personal dictionary off entirely
-        has no use for a control that only exists to add to it.
-        """
-        self.dictionary_enabled = enabled
-
     def set_button_size(self, button_size):
         """Resize live, in place, rather than closing and reopening.
 
@@ -211,8 +203,8 @@ class FloatButton(Gtk.Window):
             return True
         if event.button == 1:
             self.on_toggle()
-        elif event.button == 3 and self.dictionary_enabled:
-            self.on_correction()
+        elif event.button == 3:
+            self.on_menu(event)
         return True
 
     # -- state -----------------------------------------------------------

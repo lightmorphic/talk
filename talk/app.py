@@ -54,13 +54,14 @@ class TalkApp:
             on_restart=self.restart,
             on_quit=self.quit,
             on_activate=self._tray_click,
-            on_show_button=self._show_float_button)
+            on_show_button=self._show_float_button,
+            on_teach=self._correction,
+            dictionary_enabled=self.config.get("dictionary_enabled"))
 
         self.float_button = None
         if self.config.get("float_button"):
             self.float_button = FloatButton(
-                on_toggle=self._toggle, on_correction=self._correction,
-                dictionary_enabled=self.config.get("dictionary_enabled"),
+                on_toggle=self._toggle, on_menu=self._button_menu,
                 button_size=self.config.get("button_size"))
 
         self.recorder = Recorder(self.config, on_level=self._on_level)
@@ -221,6 +222,15 @@ class TalkApp:
     def _blip(self, which):
         if self.config.get("sounds"):
             sounds.play(which, self.config.get("sound_theme"))
+
+    def _button_menu(self, event):
+        """Right-click on the floating button: the tray's own menu.
+
+        One menu, not two. On GNOME the tray icon has no left-click and
+        on a desktop with no tray at all it has nothing, so this is
+        often the only route to Settings.
+        """
+        self.tray.popup_at_pointer(event)
 
     def _tray_click(self):
         """Left-click on the tray icon: get the floating button back.

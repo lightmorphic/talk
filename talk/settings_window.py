@@ -623,8 +623,7 @@ class SettingsWindow(Gtk.Window):
             if value and app.float_button is None:
                 from .float_button import FloatButton
                 app.float_button = FloatButton(
-                    on_toggle=app._toggle, on_correction=app._correction,
-                    dictionary_enabled=self.config.get("dictionary_enabled"),
+                    on_toggle=app._toggle, on_menu=app._button_menu,
                     button_size=self.config.get("button_size"))
                 app.float_button.set_state(app.state)
             elif not value and app.float_button is not None:
@@ -634,8 +633,7 @@ class SettingsWindow(Gtk.Window):
             # Live, the same reasoning as float_button just above: a
             # setting that only takes effect after a restart reads as
             # broken.
-            if self.app_obj.float_button is not None:
-                self.app_obj.float_button.set_dictionary_enabled(value)
+            self.app_obj.tray.set_dictionary_enabled(value)
         if key == "button_size":
             if self.app_obj.float_button is not None:
                 self.app_obj.float_button.set_button_size(value)
