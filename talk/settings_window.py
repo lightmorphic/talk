@@ -857,7 +857,7 @@ class SettingsWindow(Gtk.Window):
         dictation = chooser.choice_button(
             [("app", i18n.t("settings.dictation_same")),
              ("auto", i18n.t("settings.dictation_auto"))]
-            + list(i18n.available_languages()),
+            + list(i18n.dictation_languages()),
             self.config.get("dictation_language"),
             lambda value: self._set("dictation_language", value),
             searchable=True,

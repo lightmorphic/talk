@@ -1,13 +1,16 @@
-"""Text cleanup: filler-word removal and personal-dictionary corrections.
+"""Text cleanup: fillers, British spelling, personal dictionary.
 
 Runs entirely locally on the transcript text. The dictionary maps
 "what the model heard" -> "what Charlie actually means", built up via
-the teach-a-word popup or the Settings page.
+the teach-a-word popup or the Settings page, and it runs last so that a
+word taught by hand beats anything decided here.
 """
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
+
+from .spelling import BRITISH
 
 # Standalone hesitation sounds only — never words that can carry meaning.
 # The "(?<!\d )" guard keeps units like "5 mm" intact.
@@ -32,6 +35,22 @@ def apply_dictionary(text, entries):
             r"\b" + re.escape(heard) + r"\b", re.IGNORECASE)
         text = pattern.sub(lambda m: _match_case(say, m.group(0)), text)
     return text
+
+
+_BRITISH_RE = re.compile(
+    r"\b(" + "|".join(sorted(BRITISH, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE)
+
+
+def apply_british(text):
+    """American spellings to British ones, one word at a time.
+
+    The model has one English and spells it the American way whatever
+    the accent it heard, so this is the only place the country can be
+    honoured. See spelling.py for what is deliberately left alone.
+    """
+    return _BRITISH_RE.sub(
+        lambda m: _match_case(BRITISH[m.group(0).lower()], m.group(0)), text)
 
 
 def remove_fillers(text):
@@ -61,6 +80,8 @@ def clean(text, config, dictionary):
         return text
     if config.get("cleanup_fillers"):
         text = remove_fillers(text)
+    if config.get("dictation_language") == "en-GB":
+        text = apply_british(text)
     if config.get("cleanup_dictionary") and config.get("dictionary_enabled"):
         text = apply_dictionary(text, dictionary.entries())
     # Capitalise the first letter if the model didn't.

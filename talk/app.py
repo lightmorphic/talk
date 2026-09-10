@@ -456,7 +456,9 @@ class TalkApp:
             return None
         if choice == "app":
             return self.config.get("language")
-        return choice
+        # "en-GB" and "en-US" are the same language to the model; the
+        # country only decides how cleanup spells what comes back.
+        return choice.split("-")[0]
 
     def retranslate(self):
         """Put the whole interface into the language just chosen.

@@ -68,3 +68,22 @@ def available_languages():
         _load()
     names = _table.get("language.name", {})
     return [(code, names.get(code) or code.upper()) for code in _codes]
+
+
+def dictation_languages():
+    """As above, but English appears twice, once per country.
+
+    There is only one English in the model, and only one in the
+    interface. What differs is the spelling of the words it types, and
+    that is ours to decide - so the choice lives here, in the list
+    someone already goes to when choosing what to dictate in, rather
+    than in a switch on some other page.
+    """
+    out = []
+    for code, name in available_languages():
+        if code == "en":
+            out.append(("en-GB", "English (British)"))
+            out.append(("en-US", "English (American)"))
+        else:
+            out.append((code, name))
+    return out
