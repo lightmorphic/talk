@@ -34,6 +34,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
+from . import session
 from .tray import _draw_frame
 
 log = logging.getLogger("talk.float")
@@ -110,16 +111,20 @@ class FloatButton(Gtk.Window):
         # what the colour and waveform already say. The tray icon keeps
         # the wording for anyone who wants it spelled out.
         self.canvas.add_events(Gdk.EventMask.BUTTON_PRESS_MASK
-                               | Gdk.EventMask.BUTTON_RELEASE_MASK)
+                               | Gdk.EventMask.BUTTON_RELEASE_MASK
+                               | Gdk.EventMask.BUTTON1_MOTION_MASK)
         self.canvas.connect("draw", self._on_draw)
         self.canvas.connect("button-press-event", self._on_press)
         self.canvas.connect("button-release-event", self._on_release)
+        self.canvas.connect("motion-notify-event", self._on_motion)
         row.pack_start(self.canvas, False, False, 0)
         row.set_valign(Gtk.Align.CENTER)
 
         # Press-and-move drags the window; a press that does not move is
         # treated as a click. The compositor owns the drag on Wayland.
         self._press_x = self._press_y = 0
+        self._press_button = self._press_time = 0
+        self._dragging = False
 
         # GNOME on Wayland treats "keep above" as a hint and mostly
         # ignores it, so a full-screen-ish window such as a browser ends
@@ -189,16 +194,38 @@ class FloatButton(Gtk.Window):
 
     def _on_press(self, _widget, event):
         self._press_x, self._press_y = event.x_root, event.y_root
-        if event.button == 1:
+        self._press_button, self._press_time = event.button, event.time
+        self._dragging = False
+        if event.button == 1 and session.is_wayland():
             # Start a compositor-driven move; if the pointer never moves
             # this does nothing and the release below counts as a click.
             self.begin_move_drag(event.button, int(event.x_root),
                                  int(event.y_root), event.time)
         return True
 
+    def _on_motion(self, _widget, event):
+        """On X11, start the move only once the pointer really moves.
+
+        Handing the press straight to the window manager, as Wayland
+        wants, does not survive X11: Cinnamon's window manager takes the
+        pointer for a move the instant it is asked, swallows the
+        release, and the click never reaches this button - it just sits
+        there in move mode, and dictation never starts.
+        """
+        if self._dragging or session.is_wayland():
+            return False
+        if (abs(event.x_root - self._press_x) > 4
+                or abs(event.y_root - self._press_y) > 4):
+            self._dragging = True
+            self.begin_move_drag(self._press_button, int(event.x_root),
+                                 int(event.y_root), self._press_time)
+        return True
+
     def _on_release(self, _widget, event):
-        moved = (abs(event.x_root - self._press_x) > 4
+        moved = (self._dragging
+                 or abs(event.x_root - self._press_x) > 4
                  or abs(event.y_root - self._press_y) > 4)
+        self._dragging = False
         if moved:
             return True
         if event.button == 1:
