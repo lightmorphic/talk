@@ -10,6 +10,9 @@ sounddevice>=0.5.0
 # X11 keystroke injection (XTEST). Unused on Wayland, where the portal
 # does the typing, but the one binary has to cover both.
 pynput>=1.8.0
+# python-xlib's own dependency, named here because the build's venv sees
+# the system's copy and so never installs one of its own.
+six
 # Imported directly (config.py, updater.py) to point the bundled Python
 # at a real CA bundle. It arrives as someone else's dependency today,
 # which means a version bump elsewhere could take it away from a build

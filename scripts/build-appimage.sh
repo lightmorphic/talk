@@ -106,6 +106,13 @@ assert os.path.exists(os.path.join(
     'the silence-detection model is missing from the bundle'
 import httpx
 from huggingface_hub import snapshot_download
+# The X11 typing path. Nothing above reaches it, because it is only
+# loaded on an X11 session, and python-xlib needs six - which the build
+# machine's system Python happened to have, so pip skipped it and 1.3.4
+# shipped without it: every X11 desktop got 'cannot type'. These are
+# plain imports; pynput itself is left out because importing its X11
+# backend opens a display, and the build has none.
+import six, Xlib.display, Xlib.XK, Xlib.ext.xtest
 print('CLEAN')
 " 2>&1
 }

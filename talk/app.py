@@ -121,7 +121,13 @@ class TalkApp:
             # at that point is simply untrue.
             log.info("model ready; can type = %s", injector.ready())
             if not injector.ready():
-                self.notify(i18n.t("notify.needs_permission"))
+                # Share is a Wayland thing. On X11 there is no permission
+                # to give, so the only reason for this is a fault, and
+                # telling someone to press a button that does not exist
+                # sends them looking for it.
+                self.notify(i18n.t("notify.needs_permission"
+                                   if session.is_wayland()
+                                   else "error.no_input_x11"))
             else:
                 self.notify(i18n.t("notify.download_done") if was_downloading
                             else i18n.t("notify.ready"))
