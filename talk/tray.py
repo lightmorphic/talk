@@ -311,6 +311,14 @@ class Tray:
 
     def _build_menu(self, on_settings, on_toggle_pause, on_restart, on_quit):
         menu = Gtk.Menu()
+        # Flip or slide to fit, never shrink. GTK's default also allows
+        # RESIZE, and a compositor that prefers it squashes the menu to
+        # the space below the pointer and adds scroll arrows - with the
+        # floating button parked at the bottom of the screen, that is
+        # most of the time, and a seven-item menu should never need a
+        # scroll to reach Quit.
+        menu.set_property("anchor-hints",
+                          Gdk.AnchorHints.FLIP | Gdk.AnchorHints.SLIDE)
         self._status_item = Gtk.MenuItem(label=t("tray.status.loading"))
         self._status_item.set_sensitive(False)
         menu.append(self._status_item)
