@@ -57,6 +57,9 @@ _BOTTOM_GAP = 6
 
 _ANIMATED = {"listening", "thinking", "loading", "downloading"}
 
+# Two clicks closer together than this are one double-click.
+_DOUBLE_CLICK_MS = 400
+
 
 class FloatButton(Gtk.Window):
     """A small always-on-top record button."""
@@ -125,6 +128,7 @@ class FloatButton(Gtk.Window):
         self._press_x = self._press_y = 0
         self._press_button = self._press_time = 0
         self._dragging = False
+        self._last_click = 0   # event time of the last click acted on
 
         # GNOME on Wayland treats "keep above" as a hint and mostly
         # ignores it, so a full-screen-ish window such as a browser ends
@@ -214,21 +218,38 @@ class FloatButton(Gtk.Window):
         """
         if self._dragging or session.is_wayland():
             return False
-        if (abs(event.x_root - self._press_x) > 4
-                or abs(event.y_root - self._press_y) > 4):
+        # The desktop's own drag threshold rather than a fixed few
+        # pixels. Four was small enough that the ordinary wobble of a
+        # finger on a touchpad, at 2x scaling, turned a click into a
+        # move - the click was simply lost, and read as the button
+        # skipping.
+        if self.canvas.drag_check_threshold(
+                int(self._press_x), int(self._press_y),
+                int(event.x_root), int(event.y_root)):
             self._dragging = True
+            log.info("button: dragged, not clicked")
             self.begin_move_drag(self._press_button, int(event.x_root),
                                  int(event.y_root), self._press_time)
         return True
 
     def _on_release(self, _widget, event):
-        moved = (self._dragging
-                 or abs(event.x_root - self._press_x) > 4
-                 or abs(event.y_root - self._press_y) > 4)
+        if session.is_wayland():
+            moved = (abs(event.x_root - self._press_x) > 4
+                     or abs(event.y_root - self._press_y) > 4)
+        else:
+            # On X11 a move has either been started or it has not; a
+            # pointer that crept under the threshold is still a click.
+            moved = self._dragging
         self._dragging = False
         if moved:
             return True
         if event.button == 1:
+            # A double-click is one intention, not two. Acting on both
+            # halves turned dictation on and straight back off again.
+            if 0 < event.time - self._last_click < _DOUBLE_CLICK_MS:
+                log.info("button: second click of a double-click ignored")
+                return True
+            self._last_click = event.time
             self.on_toggle()
         elif event.button == 3:
             self.on_menu(event)

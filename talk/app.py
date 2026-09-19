@@ -308,6 +308,11 @@ class TalkApp:
                 self._begin_stop()
         elif self._can_start():
             self._start_recording()
+        else:
+            # Said in the log because nothing on screen says it: a click
+            # while the last dictation is still being turned into text
+            # does nothing, and looks exactly like a click that was lost.
+            log.info("button: click ignored while %s", self.state)
 
     def _begin_stop(self):
         self._blip("stop")
