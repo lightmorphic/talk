@@ -58,16 +58,8 @@ def local_revision():
 
 def installed_bytes():
     """Size of the model on disk, for showing what a re-fetch would cost."""
-    total = 0
-    for root, _dirs, files in os.walk(_model_dir()):
-        for name in files:
-            path = os.path.join(root, name)
-            try:
-                if not os.path.islink(path):
-                    total += os.path.getsize(path)
-            except OSError:
-                continue
-    return total
+    from .engine import model_bytes
+    return model_bytes(_model_dir())[0]
 
 
 def check():

@@ -96,7 +96,22 @@ def _cached_bytes():
     that Whisper is present, sending the app offline around a model it
     has not got.
     """
-    model_dir = os.path.join(MODEL_DIR, MODEL_DIR_NAME)
+    return model_bytes(os.path.join(MODEL_DIR, MODEL_DIR_NAME))
+
+
+def model_bytes(model_dir):
+    """(bytes, partial) for the files a model folder really holds.
+
+    Links are followed, and each file they lead to is counted once.
+    Newer versions of the download library keep the big file in a store
+    shared by the whole cache and leave only a link to it in the
+    model's own folder. Skipping links, which used to be how double
+    counting was avoided, then counted 2.6 MB of a 464 MB model: the
+    app decided on every start that the model was missing, and put up
+    the download window and two "downloading" notices after every
+    update for a model that was already there.
+    """
+    seen = set()
     total = 0
     partial = False
     try:
@@ -106,11 +121,14 @@ def _cached_bytes():
                 if name.endswith(".incomplete"):
                     partial = True
                     continue
-                try:
-                    if not os.path.islink(path):
-                        total += os.path.getsize(path)
-                except OSError:
+                real = os.path.realpath(path)
+                if real in seen:
                     continue
+                seen.add(real)
+                try:
+                    total += os.path.getsize(real)
+                except OSError:
+                    continue   # a link to nothing is not model data
     except OSError:
         pass
     return total, partial
